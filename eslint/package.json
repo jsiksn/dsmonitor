@@ -1,0 +1,11 @@
+{
+  "name": "eslint-plugin-ui-health",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VitaUI lint rules: ban legacy Bootstrap/Tailwind utility classes",
+  "main": "index.js",
+  "files": ["index.js", "rules", "configs", "patterns.js"],
+  "peerDependencies": {
+    "eslint": ">=8"
+  }
+}

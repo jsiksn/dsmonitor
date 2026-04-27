@@ -1,0 +1,340 @@
+/**
+ * Figma baseline analyzer — Phase 0.5 최소 버전.
+ *
+ * 입력: `UIHealthConfig.figma` + `FIGMA_API_TOKEN` env
+ * 출력: `FigmaReport` (DS 파일별 카운트 + 출처 미상 Instance 분석 + 정상 instance 출처)
+ *
+ * 원칙:
+ *   - 도메인 파일은 **순차 처리**. 응답 크기 수십 MB 규모이므로 병렬 시 메모리 피크 위험.
+ *   - 개별 파일 실패는 errors 에 수집 후 계속 진행 (401/403 만 즉시 중단).
+ *   - 엔드포인트 축소 전략 (2026-04-23 재설계):
+ *     · DS 파일: 2-pass (fetchFileMeta → fetchFileNodes(pageIds)) — V8 문자열 한계 회피
+ *     · 도메인 파일: fetchNodes(frame/page id 목록) — 응답 크기 억제
+ *
+ * planning.md §7 2026-04-23 블록에서 "Detach → 출처 미상 Instance" 용어로 통일됨.
+ */
+
+import type {
+  UIHealthConfig,
+  FigmaReport,
+  FigmaDesignSystemCount,
+  FigmaInstanceAnalysis,
+  FigmaInstanceSources,
+  FigmaVariableEntry,
+} from "../types";
+import { parseFigmaUrl, FigmaUrlParseError } from "./figma/urlParser";
+import { FigmaApiError, type FigmaStyleEntry } from "./figma/apiClient";
+import { scanDesignSystem } from "./figma/designSystemScan";
+import { scanDomain, type DomainScanResult } from "./figma/domainScan";
+import { validateSameFile } from "./figma/fileKeyValidator";
+import { loadCodeTokens } from "./codeTokens";
+import { buildTokenMatrix, type TokenMatrixDsInput } from "./tokenMatrix";
+
+/**
+ * analyzeCodebase 와 동일하게 attachAbsRoot 가 주입한 __absRoot 를 사용.
+ * cli.ts 는 이미 확장된 cfg 를 전달하지만 타입은 UIHealthConfig 라서 맞춰둔다.
+ */
+type Cfg = UIHealthConfig & { __absRoot: string };
+
+/**
+ * Figma analyzer 엔트리.
+ *
+ * `cfg.metrics.figmaAnalysis` 가 false 면 호출 자체를 안 함 — cli.ts 에서 게이팅.
+ * 이 함수는 `true` 전제로 동작. 검증 실패 시 명확한 에러 throw.
+ */
+export async function analyzeFigma(cfg: Cfg): Promise<FigmaReport> {
+  // ───── 1. 초기 검증 ─────
+  if (!cfg.figma) {
+    throw new Error(
+      "figmaAnalysis 가 true 지만 `cfg.figma` 가 없습니다. " +
+        "vitaui.config.ts 에 figma 블록을 추가하거나, " +
+        "vitaui.config.local.ts 파일을 생성해 designSystemFiles/domainFiles 를 export 하세요. " +
+        "템플릿: vitaui.config.local.example.ts"
+    );
+  }
+  const fc = cfg.figma;
+
+  const token = process.env.FIGMA_API_TOKEN;
+  if (!token || token.trim() === "") {
+    throw new Error(
+      "FIGMA_API_TOKEN 환경변수가 없습니다. " +
+        "vitaui/.env.local 에 토큰을 설정하세요 " +
+        "(템플릿: .env.local.example). 발급: Figma > Settings > Personal access tokens."
+    );
+  }
+
+  if (fc.designSystemFiles.length === 0 && fc.domainFiles.length === 0) {
+    throw new Error(
+      "figma.designSystemFiles 와 figma.domainFiles 가 모두 비어있습니다. " +
+        "vitaui.config.local.ts 에서 최소 한 개 이상 추가하세요. " +
+        "템플릿: vitaui.config.local.example.ts"
+    );
+  }
+
+  // URL 사전 파싱 검증 — analyzer 시작 전 구조적 오류 먼저 차단.
+  preflightUrls(fc.designSystemFiles, "designSystemFiles");
+  preflightDomainUrls(fc.domainFiles);
+
+  const errors: string[] = [];
+  // DS 스캔에서 개별 페이지 실패 등 비치명적 경고. FigmaReport.warnings 로 bubble up.
+  // 도메인 scanDomain 의 warnings 는 기존대로 errors 로 병합 (의도된 비대칭).
+  const warnings: string[] = [];
+
+  // ───── 2. DS 파일 순차 스캔 ─────
+  console.log(`[figma] DS 파일 ${fc.designSystemFiles.length}개 스캔 시작`);
+  const designSystemCounts: FigmaDesignSystemCount[] = [];
+  const componentMap = new Map<string, { label: string; name: string }>();
+  const conflicts: string[] = [];
+  // tokenMatrix 용 — DS 순서(config 순) 유지를 위해 label 배열로 관리.
+  const dsStylesByLabel = new Map<string, FigmaStyleEntry[]>();
+  const dsVariablesByLabel = new Map<string, FigmaVariableEntry[]>();
+
+  for (const ds of fc.designSystemFiles) {
+    try {
+      const { fileKey } = parseFigmaUrl(ds.url);
+      const result = await scanDesignSystem(fileKey, ds.label, token);
+      designSystemCounts.push(result.count);
+      for (const w of result.warnings) warnings.push(w);
+      // componentMap 병합 + conflict 검출 (기존 buildComponentMap 로직을 메인으로 흡수).
+      for (const [nodeId, entry] of result.componentMapEntries) {
+        const prev = componentMap.get(nodeId);
+        if (prev) {
+          if (prev.label !== entry.label) {
+            conflicts.push(
+              `컴포넌트 ID 중복: ${nodeId} ("${entry.name}") 이미 "${prev.label}" 에 등록됨. "${entry.label}" 무시.`
+            );
+          }
+          continue;
+        }
+        componentMap.set(nodeId, entry);
+      }
+      dsStylesByLabel.set(ds.label, result.styleMapEntries);
+      dsVariablesByLabel.set(ds.label, result.variableMapEntries);
+      console.log(
+        `[figma]   "${ds.label}": styles=${result.count.styles}, components=${result.count.components}, variantGroups=${result.count.variantGroups}, variables=${result.variableMapEntries.length}`
+      );
+    } catch (e) {
+      if (e instanceof FigmaApiError && (e.status === 401 || e.status === 403)) {
+        // 인증/권한 문제는 나머지도 다 실패할 것이므로 즉시 중단.
+        throw e;
+      }
+      const msg = formatErr(e);
+      errors.push(`DS "${ds.label}" 스캔 실패: ${msg}`);
+      console.warn(`[figma]   ⚠ DS "${ds.label}" 실패: ${msg}`);
+      // 실패해도 tokenMatrix 가 빈 입력으로 정상 동작하도록 빈 배열 세팅.
+      dsStylesByLabel.set(ds.label, []);
+      dsVariablesByLabel.set(ds.label, []);
+    }
+  }
+  // 같은 stable library key 가 ds-legacy / ds-new 양쪽에 등장하는 경우는 에러가 아닌
+  // 운영 상황 (컴포넌트 이관 중 양쪽 library 공존). warnings 로 분류.
+  for (const c of conflicts) warnings.push(c);
+
+  // ───── 3. 도메인 파일 순차 스캔 ─────
+  console.log(`[figma] 도메인 파일 ${fc.domainFiles.length}개 스캔 시작 (순차)`);
+  const domainResults: DomainScanResult[] = [];
+  for (const d of fc.domainFiles) {
+    try {
+      // 도메인 파일 내 모든 URL 이 같은 fileKey 인지 + 파일 루트 URL 자리에 node-id 가
+      // 붙었는지 등 구조 검증. 성공 시 확정된 fileKey 를 넘겨받음.
+      const check = validateSameFile(d);
+      if (!check.ok) {
+        errors.push(check.error);
+        console.warn(`[figma]   ⚠ 도메인 "${d.label}" 검증 실패: ${check.error}`);
+        continue;
+      }
+      const r = await scanDomain(d, check.fileKey, token, componentMap);
+      domainResults.push(r);
+      for (const w of r.warnings) errors.push(`[도메인 "${d.label}"] ${w}`);
+      console.log(
+        `[figma]   "${d.label}": instances=${r.totalInstances}, unmatched=${r.unmatchedInstances}`
+      );
+    } catch (e) {
+      if (e instanceof FigmaApiError && (e.status === 401 || e.status === 403)) {
+        throw e;
+      }
+      const msg = formatErr(e);
+      errors.push(`도메인 "${d.label}" 스캔 실패: ${msg}`);
+      console.warn(`[figma]   ⚠ 도메인 "${d.label}" 실패: ${msg}`);
+    }
+  }
+
+  // ───── 4. 집계 ─────
+  const instanceAnalysis = aggregateInstanceAnalysis(domainResults, fc.unknownInstances.topN);
+  const instanceSources = aggregateInstanceSources(
+    domainResults,
+    fc.designSystemFiles.map((d) => d.label)
+  );
+
+  // ───── 5. 코드 토큰 파싱 + tokenMatrix 생성 (단계 3, 2026-04-24) ─────
+  // 파서 플러그인 구조: config.figma.codeTokens.parsers 의 각 엔트리를 레지스트리
+  // 에서 찾아 실행. 현재 지원 파서: "scss" (향후 css / tailwind / styled-components 확장).
+  const codeTokens = await loadCodeTokens(
+    fc.codeTokens.parsers,
+    cfg.__absRoot,
+    warnings
+  );
+  console.log(`[figma] 코드 토큰 ${codeTokens.length}개 추출`);
+
+  const dsInputs: TokenMatrixDsInput[] = fc.designSystemFiles.map((d) => ({
+    label: d.label,
+    styles: dsStylesByLabel.get(d.label) ?? [],
+    variables: dsVariablesByLabel.get(d.label) ?? [],
+  }));
+  const tokenMatrix = buildTokenMatrix(codeTokens, dsInputs);
+
+  const report: FigmaReport = {
+    generatedAt: new Date().toISOString(),
+    validationLevel: fc.validationLevel,
+    designSystemCounts,
+    instanceAnalysis,
+    instanceSources,
+    tokenMatrix,
+    errors,
+    warnings,
+  };
+
+  console.log(
+    `[figma] 완료: 출처 미상 비율 ${(instanceAnalysis.unmatchedRatio * 100).toFixed(1)}% ` +
+      `(${instanceAnalysis.unmatchedInstances} / ${instanceAnalysis.totalInstances})`
+  );
+  console.log(
+    `[figma] tokenMatrix: codeCount=${tokenMatrix.summary.codeCount}, ` +
+      `totalUnique=${tokenMatrix.summary.totalUniqueTokens}, duplicates=${tokenMatrix.duplicates.length}`
+  );
+  for (const ds of fc.designSystemFiles) {
+    const s = tokenMatrix.summary.dsStats[ds.label];
+    if (!s) continue;
+    console.log(
+      `[figma]   "${ds.label}": total=${s.total}, matchedWithCode=${s.matchedWithCode}, duplicates=${s.duplicateCount}`
+    );
+  }
+  if (errors.length > 0) {
+    console.warn(`[figma] 경고/에러 ${errors.length}건 수집됨 — 리포트 errors 섹션 참고`);
+  }
+  return report;
+}
+
+// ───── 집계 유틸 ──────────────────────────────────────────────────
+
+function aggregateInstanceAnalysis(
+  results: DomainScanResult[],
+  topN: number
+): FigmaInstanceAnalysis {
+  let total = 0;
+  let unmatched = 0;
+  const merged = new Map<string, { count: number; firstPath: string }>();
+
+  for (const r of results) {
+    total += r.totalInstances;
+    unmatched += r.unmatchedInstances;
+    for (const [name, entry] of r.unknownByName) {
+      const prev = merged.get(name);
+      if (prev) prev.count += entry.count;
+      else merged.set(name, { ...entry });
+    }
+  }
+
+  const ratio = total === 0 ? 0 : unmatched / total;
+
+  const sorted = [...merged.entries()]
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, topN)
+    .map(([name, v]) => ({
+      name,
+      count: v.count,
+      sourceLabel: null as string | null, // Phase 0.5 에선 미추정 (외주 옛 DS 검토 제외)
+      samplePath: v.firstPath,
+    }));
+
+  return {
+    totalInstances: total,
+    unmatchedInstances: unmatched,
+    unmatchedRatio: ratio,
+    topN: sorted,
+  };
+}
+
+/**
+ * 정상 instance 의 출처 분포를 config.designSystemFiles 등록 label 기반 동적 구조로 집계.
+ *
+ * 반환 객체 키는 `registeredLabels` 순서로 0 초기화 후 채움 — 매칭 0건인 DS 도 `{label: 0}`
+ * 으로 포함되어 대시보드/리포터가 config 순서 그대로 렌더 가능. 등록 외 label 은 애초
+ * componentMap 에 없어 매칭 실패로 흘러가므로 이 함수에 도달하지 않는다.
+ */
+function aggregateInstanceSources(
+  results: DomainScanResult[],
+  registeredLabels: string[]
+): FigmaInstanceSources {
+  const out: FigmaInstanceSources = {};
+  for (const label of registeredLabels) out[label] = 0;
+  for (const r of results) {
+    for (const [label, count] of r.sourcesByLabel) {
+      out[label] = (out[label] ?? 0) + count;
+    }
+  }
+  return out;
+}
+
+// ───── preflight URL 검증 ─────────────────────────────────────────
+
+function preflightUrls(
+  entries: Array<{ url: string; label: string }>,
+  which: string
+): void {
+  const fails: string[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    try {
+      parseFigmaUrl(entries[i].url);
+    } catch (e) {
+      const msg = e instanceof FigmaUrlParseError ? e.message : String(e);
+      fails.push(`  [${i}] label="${entries[i].label}": ${msg}`);
+    }
+  }
+  if (fails.length > 0) {
+    throw new Error(
+      `${which} 중 URL 파싱 실패 ${fails.length}건:\n${fails.join("\n")}`
+    );
+  }
+}
+
+function preflightDomainUrls(
+  entries: import("../types").FigmaDomainFile[]
+): void {
+  const fails: string[] = [];
+  const dupLabels = new Map<string, number>();
+
+  for (let i = 0; i < entries.length; i++) {
+    const d = entries[i];
+    // label 중복 체크
+    dupLabels.set(d.label, (dupLabels.get(d.label) ?? 0) + 1);
+
+    // union 전체 (url / pages / frames) 파싱 + 같은 파일 소속 + 루트 URL 에
+    // node-id 섞임 여부까지 한 번에 검증.
+    const check = validateSameFile(d);
+    if (!check.ok) {
+      fails.push(`  domainFiles[${i}] ${check.error}`);
+    }
+  }
+
+  // label 중복
+  for (const [label, count] of dupLabels) {
+    if (count > 1) {
+      fails.push(
+        `  label "${label}" 이 ${count}회 중복. domainFiles 의 label 은 리포트 ` +
+          `그룹핑 키라 중복 불가. 구분되는 이름으로 변경하세요.`
+      );
+    }
+  }
+
+  if (fails.length > 0) {
+    throw new Error(
+      `domainFiles 검증 실패 ${fails.length}건:\n${fails.join("\n")}`
+    );
+  }
+}
+
+function formatErr(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  return String(e);
+}
