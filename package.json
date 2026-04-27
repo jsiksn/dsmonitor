@@ -1,0 +1,39 @@
+{
+  "name": "vitaui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UI Health Monitoring Framework — 코드베이스/스타일/디자인 일관성을 정량 측정",
+  "bin": {
+    "ui-health": "./bin/ui-health.js"
+  },
+  "types": "./src/types.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts"
+    }
+  },
+  "_packageEntryPointsTodo": "분리 4단계 (파일 이동 + npm 발행 준비) 시점에 src/index.ts 신설 + dist/ 빌드 산출물로 entry 전환. 현재는 type-only export 만 src/ 직접 참조.",
+  "scripts": {
+    "audit": "tsx src/cli.ts audit",
+    "audit:baseline": "tsx src/cli.ts audit --baseline",
+    "baseline:lint": "tsx src/cli.ts baseline-lint",
+    "report": "tsx src/cli.ts report",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/types": "^7.18.0",
+    "@typescript-eslint/visitor-keys": "^7.18.0",
+    "fast-glob": "^3.3.2",
+    "postcss": "^8.4.47",
+    "postcss-scss": "^4.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.4"
+  }
+}
