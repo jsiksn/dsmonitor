@@ -1,0 +1,90 @@
+/**
+ * Dashboard 빌드 entry — baseline JSON + (옵션) lighthouse summary → HTML 출력.
+ *
+ * 흐름:
+ *   1. baseline JSON 로드
+ *   2. lighthouse summary 자동 검색 (옵션, 없어도 lighthouse 탭 빈 상태로 빌드)
+ *   3. 4개 transformer 실행 → DashboardData 조립
+ *   4. shell.ts 가 HTML 생성
+ *   5. 파일 출력 (vitaui/reports/dashboard-{date}.html)
+ */
+
+import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import type { CodebaseReport, UIHealthConfig } from "../../types";
+import { baselineToCodeData } from "../transformers/baseline-to-code-data";
+import { baselineToFigmaData } from "../transformers/baseline-to-figma-data";
+import {
+  findLatestLighthouseDir,
+  lighthouseToData,
+} from "../transformers/lighthouse-to-data";
+import { buildSummaryData } from "../transformers/baseline-to-summary-data";
+import type {
+  DashboardData,
+  LighthouseSummaryFile,
+  LighthouseTabData,
+} from "../transformers/types";
+import { buildHtmlShell } from "./shell";
+
+export interface RenderOptions {
+  /** baseline JSON 경로 (절대). */
+  inputPath: string;
+  /** 출력 HTML 경로 (절대). */
+  outputPath: string;
+  /** Lighthouse reports 루트 (절대). 기본: configDir/lighthouse/reports. */
+  lighthouseRoot?: string;
+  /** 출력 stamp date (YYYY-MM-DD). 기본 today. 파일명 / 헤더에 사용. */
+  cfg: UIHealthConfig & { __absRoot: string };
+  configDir: string;
+}
+
+export async function renderDashboard(opts: RenderOptions): Promise<void> {
+  const raw = await fs.readFile(opts.inputPath, "utf8");
+  const report = JSON.parse(raw) as CodebaseReport;
+
+  // ─── lighthouse 자동 검색 ───
+  const lhRoot =
+    opts.lighthouseRoot ??
+    path.join(opts.configDir, "lighthouse", "reports");
+  let lighthouse: LighthouseTabData | null = null;
+  const latestLhDir = findLatestLighthouseDir(lhRoot);
+  if (latestLhDir) {
+    const summaryPath = path.join(latestLhDir, "summary.json");
+    if (existsSync(summaryPath)) {
+      try {
+        const summary = JSON.parse(
+          await fs.readFile(summaryPath, "utf8")
+        ) as LighthouseSummaryFile;
+        lighthouse = lighthouseToData(summary, latestLhDir);
+      } catch (e) {
+        console.warn(
+          `[dashboard] lighthouse summary 파싱 실패 (${summaryPath}): ${
+            e instanceof Error ? e.message : String(e)
+          }. lighthouse 탭은 빈 상태로 빌드합니다.`
+        );
+      }
+    }
+  }
+
+  // ─── transformers 실행 ───
+  const code = baselineToCodeData(report);
+
+  let figma: DashboardData["figma"] = null;
+  if (report.figma && opts.cfg.figma) {
+    figma = baselineToFigmaData(report.figma, opts.cfg.figma);
+  }
+
+  const summary = buildSummaryData({
+    report,
+    lighthouse,
+    figmaWarningsCount: report.figma?.warnings?.length ?? 0,
+  });
+
+  const data: DashboardData = { summary, code, figma, lighthouse };
+
+  // ─── HTML 생성 + 출력 ───
+  const html = buildHtmlShell(data);
+  await fs.mkdir(path.dirname(opts.outputPath), { recursive: true });
+  await fs.writeFile(opts.outputPath, html, "utf8");
+}
