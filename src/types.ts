@@ -531,12 +531,82 @@ export type FigmaInstanceSources = {
   [dsLabel: string]: number;
 };
 
+/**
+ * 도메인 단위 측정 결과 — config 의 `figmaDomainFiles` 트리 구조 그대로 (B-2 단계 2, 2026-04-28).
+ *
+ * 패턴 A (file URL — 비권장): `measurementUnit: "file"` + `pages` 없음.
+ *   현재 scanDomain 이 패턴 A 를 warning 후 빈 측정값 반환 — 이 결과에 측정값 0 으로 출력.
+ * 패턴 B (페이지 URL): `pages[i].url` 보유, `pages[i].measurementUnit` 출력.
+ * 패턴 C (프레임 URL): `pages[i].frames[j]` 보유.
+ *
+ * 합산은 frame → page → domain 순서로 누적. 분석에서 한 번 계산 후 모든 깊이에 attach —
+ * 시각화에서 drill-down 시 매번 re-aggregate 불필요.
+ */
+export interface FigmaDomainResult {
+  label: string;
+  /** 도메인 합산 (= pages 합산 = scanResult.totalInstances). */
+  totalInstances: number;
+  /** 도메인 합산. */
+  unmatchedInstances: number;
+  /** 도메인 합산. config.designSystemFiles 등록 label 별 카운트. */
+  instanceSources: Record<string, number>;
+  /** 패턴 A 일 때만. 패턴 B/C 면 undefined (pages 사용). */
+  measurementUnit?: "file";
+  /** 패턴 B/C 일 때만 (config 의 pages 그대로 매핑). */
+  pages?: FigmaDomainPageResult[];
+  /** scan 자체 실패 시 true (validation 실패 / API 에러 등). errors 배열에 상세 사유. */
+  scanFailed?: boolean;
+}
+
+/**
+ * 페이지 단위 측정 결과.
+ *
+ * 패턴 B: `url` + `measurementUnit` 보유, `frames` 없음. 측정값은 페이지 자체 subtree.
+ * 패턴 C: `url` 없음, `frames` 보유. 측정값은 frames 합산.
+ *
+ * `comment` 는 config 원문 그대로 (가독성).
+ */
+export interface FigmaDomainPageResult {
+  comment?: string;
+  /** 패턴 B 일 때만. */
+  url?: string;
+  /** 패턴 B 일 때만 (CANVAS=page / 그 외=other). */
+  measurementUnit?: "page" | "other";
+  /** 페이지 합산 (패턴 B = 페이지 자체, 패턴 C = frames 합산). */
+  totalInstances: number;
+  unmatchedInstances: number;
+  instanceSources: Record<string, number>;
+  /** 패턴 C 일 때만. */
+  frames?: FigmaDomainFrameResult[];
+}
+
+/**
+ * 프레임 단위 측정 결과 (패턴 C 의 leaf).
+ *
+ * `measurementUnit` 자동 판정: FRAME=frame / 그 외=other (COMPONENT/GROUP 등).
+ * 비컨테이너 (TEXT/VECTOR 등) 는 scanDomain 진입부에서 warning 후 빈 측정.
+ */
+export interface FigmaDomainFrameResult {
+  url: string;
+  comment?: string;
+  measurementUnit: "frame" | "other";
+  totalInstances: number;
+  unmatchedInstances: number;
+  instanceSources: Record<string, number>;
+}
+
 export type FigmaReport = {
   generatedAt: string;
   validationLevel: "lite";
   designSystemCounts: FigmaDesignSystemCount[];
   instanceAnalysis: FigmaInstanceAnalysis;
   instanceSources: FigmaInstanceSources;
+  /**
+   * 도메인 단위 raw 측정 결과 트리 (B-2 단계 2, 2026-04-28).
+   * config 의 figmaDomainFiles 구조 그대로 + 각 노드에 측정값 attach.
+   * 합산 데이터 (instanceSources / instanceAnalysis) 는 그대로 보존 — 이 필드는 raw 추가만.
+   */
+  domainResults: FigmaDomainResult[];
   /**
    * DS ↔ 코드 토큰 이름 매칭 결과 (단계 3, 2026-04-24).
    * 각 DS 와 코드 SCSS 변수 간 이름 완전 일치 기준의 교차표.

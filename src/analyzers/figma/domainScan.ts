@@ -37,6 +37,32 @@ export type DomainScanResult = {
   sourcesByLabel: Map<string, number>;
   /** 비치명적 에러 / 경고. */
   warnings: string[];
+  /**
+   * Per-target raw 측정값 (B-2 단계 2, 2026-04-28).
+   *
+   * config 의 각 page url / frame url 에 대응. figma.ts 의 buildDomainResults 가
+   * config 트리와 nodeId 매칭으로 트리 구조에 attach.
+   *
+   * 도메인 합산은 visited Set 공유로 dedup 보존 — overlap 이 있으면 첫 target 만
+   * 카운트, 나중 target 은 skip. 본 프로젝트 (모두 disjoint frame URL) 엔 영향 없음.
+   */
+  targets: TargetMeasurement[];
+};
+
+/**
+ * 하나의 측정 단위 (page url 또는 frame url 또는 file root) 의 raw 결과.
+ */
+export type TargetMeasurement = {
+  /** Figma node-id (URL 의 ?node-id=X-Y 파싱 결과). */
+  nodeId: string;
+  /** 사람 친화적 경로 (예: "Material / Content / Preprocess-Main"). */
+  contextPath: string;
+  /** entry.document.type 자동 판정. CANVAS=page / FRAME=frame / 그 외=other. */
+  measurementUnit: "page" | "frame" | "other";
+  totalInstances: number;
+  unmatchedInstances: number;
+  /** label 별 카운트 (componentMap 매칭 성공 케이스). */
+  sourcesByLabel: Map<string, number>;
 };
 
 type ScanTarget = {
@@ -65,6 +91,7 @@ export async function scanDomain(
     unknownByName: new Map(),
     sourcesByLabel: new Map(),
     warnings: [],
+    targets: [],
   };
 
   // 패턴 A (파일 전체) — 비권장. 스킵.
@@ -117,14 +144,26 @@ export async function scanDomain(
     // 2-hop 경로로 해당 subtree 의 맵을 사용해야 함.
     const localComponents = entry.components ?? {};
 
+    // Per-target measurement (B-2 단계 2). 도메인 합산과 동시 누적.
+    const targetMeasure: TargetMeasurement = {
+      nodeId: target.nodeId,
+      contextPath: target.contextPath,
+      measurementUnit: documentTypeToUnit(actualType),
+      totalInstances: 0,
+      unmatchedInstances: 0,
+      sourcesByLabel: new Map(),
+    };
+
     walkSubtree(entry, target.contextPath, visited, (n, path) => {
       if (n.type !== "INSTANCE") return;
       result.totalInstances++;
+      targetMeasure.totalInstances++;
 
       const cid = n.componentId;
       if (!cid) {
         // INSTANCE 인데 componentId 없음 — 드문 케이스 방어.
         result.unmatchedInstances++;
+        targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
         return;
       }
@@ -134,6 +173,7 @@ export async function scanDomain(
       if (!stableKey) {
         // components 맵에 componentId 항목이 없거나 key 필드가 비어있음 — 출처 미상.
         result.unmatchedInstances++;
+        targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
         return;
       }
@@ -143,6 +183,7 @@ export async function scanDomain(
       if (!match) {
         // stable key 는 있으나 등록된 DS 어디에도 없음 — 외주 옛 DS 등 미등록 출처.
         result.unmatchedInstances++;
+        targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
         return;
       }
@@ -151,7 +192,13 @@ export async function scanDomain(
         match.label,
         (result.sourcesByLabel.get(match.label) ?? 0) + 1
       );
+      targetMeasure.sourcesByLabel.set(
+        match.label,
+        (targetMeasure.sourcesByLabel.get(match.label) ?? 0) + 1
+      );
     });
+
+    result.targets.push(targetMeasure);
   }
 
   return result;
@@ -284,5 +331,36 @@ function tallyUnknown(
     existing.count++;
   } else {
     bucket.set(key, { count: 1, firstPath: path });
+  }
+}
+
+/**
+ * fetchNodes 응답의 entry.document.type 을 measurementUnit 으로 매핑 (B-2 단계 2).
+ *
+ * 사용자 인식 ↔ Figma 내부 타입 차이 흡수:
+ *   CANVAS                                                          → "page"
+ *   FRAME / COMPONENT / COMPONENT_SET / GROUP / SECTION / INSTANCE  → "frame"
+ *   비컨테이너 (TEXT / VECTOR / RECTANGLE / 등)                     → "other"
+ *
+ * 컨테이너는 모두 "frame" 카테고리. 사용자 (디자이너 / 개발자) 가 "frame URL" 이라고
+ * 부르는 것이 Figma 내부 타입은 다양 (variant/state 구현용 COMPONENT 등) — 측정
+ * 도구 관점에서 동일한 측정 영역이라 한 카테고리로 통일.
+ *
+ * nodeTypeResolver 의 컨테이너 화이트리스트와 일관 ("비컨테이너가 아니면 컨테이너").
+ * 비컨테이너는 scanDomain 진입부에서 warning 출력 — 측정값은 빈 subtree 라 0.
+ */
+function documentTypeToUnit(type: string): "page" | "frame" | "other" {
+  switch (type) {
+    case "CANVAS":
+      return "page";
+    case "FRAME":
+    case "COMPONENT":
+    case "COMPONENT_SET":
+    case "GROUP":
+    case "SECTION":
+    case "INSTANCE":
+      return "frame";
+    default:
+      return "other";
   }
 }

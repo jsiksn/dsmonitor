@@ -18,14 +18,23 @@ import type {
   UIHealthConfig,
   FigmaReport,
   FigmaDesignSystemCount,
+  FigmaDomainFile,
+  FigmaDomainFrameResult,
+  FigmaDomainPageResult,
+  FigmaDomainResult,
   FigmaInstanceAnalysis,
   FigmaInstanceSources,
+  FigmaPageSelection,
   FigmaVariableEntry,
 } from "../types";
 import { parseFigmaUrl, FigmaUrlParseError } from "./figma/urlParser";
 import { FigmaApiError, type FigmaStyleEntry } from "./figma/apiClient";
 import { scanDesignSystem } from "./figma/designSystemScan";
-import { scanDomain, type DomainScanResult } from "./figma/domainScan";
+import {
+  scanDomain,
+  type DomainScanResult,
+  type TargetMeasurement,
+} from "./figma/domainScan";
 import { validateSameFile } from "./figma/fileKeyValidator";
 import { loadCodeTokens } from "./codeTokens";
 import { buildTokenMatrix, type TokenMatrixDsInput } from "./tokenMatrix";
@@ -183,12 +192,20 @@ export async function analyzeFigma(cfg: Cfg): Promise<FigmaReport> {
   }));
   const tokenMatrix = buildTokenMatrix(codeTokens, dsInputs);
 
+  const registeredLabels = fc.designSystemFiles.map((d) => d.label);
+  const domainResultsTree = buildDomainResults(
+    fc.domainFiles,
+    domainResults,
+    registeredLabels
+  );
+
   const report: FigmaReport = {
     generatedAt: new Date().toISOString(),
     validationLevel: fc.validationLevel,
     designSystemCounts,
     instanceAnalysis,
     instanceSources,
+    domainResults: domainResultsTree,
     tokenMatrix,
     errors,
     warnings,
@@ -273,6 +290,219 @@ function aggregateInstanceSources(
       out[label] = (out[label] ?? 0) + count;
     }
   }
+  return out;
+}
+
+// ───── 도메인 raw 트리 빌더 (B-2 단계 2, 2026-04-28) ─────────────
+
+/**
+ * config 의 figmaDomainFiles 트리 구조 그대로 + 각 노드에 측정값 attach.
+ *
+ * 매칭:
+ *   - 도메인 단위: cfg.label ↔ scanResult.label
+ *   - target 단위: nodeId 추출 (config 의 url) ↔ TargetMeasurement.nodeId
+ *
+ * scan 실패한 도메인 (validateSameFile 실패 / API 에러 등) 은 빈 측정값 + 라벨/구조
+ * 보존 (`scanFailed: true`). errors 배열에 상세 사유 별도 기록.
+ *
+ * page/domain 단위 합산 (frames 합산 → page, pages 합산 → domain) 모두 출력 —
+ * 시각화에서 drill-down 시 매번 re-aggregate 안 해도 됨.
+ */
+function buildDomainResults(
+  domainCfgs: FigmaDomainFile[],
+  scanResults: DomainScanResult[],
+  registeredLabels: string[]
+): FigmaDomainResult[] {
+  const scanByLabel = new Map<string, DomainScanResult>();
+  for (const sr of scanResults) scanByLabel.set(sr.label, sr);
+
+  return domainCfgs.map((cfg): FigmaDomainResult => {
+    const sr = scanByLabel.get(cfg.label);
+    if (!sr) {
+      return buildFailedDomainResult(cfg, registeredLabels);
+    }
+
+    const targetByNodeId = new Map<string, TargetMeasurement>();
+    for (const t of sr.targets) targetByNodeId.set(t.nodeId, t);
+
+    if (cfg.url) {
+      // 패턴 A — file URL. scanDomain 이 비권장 처리 후 빈 result 반환 (warning 만).
+      // 도메인 합산도 0. 측정값은 이대로 0 으로 출력.
+      return {
+        label: cfg.label,
+        totalInstances: sr.totalInstances,
+        unmatchedInstances: sr.unmatchedInstances,
+        instanceSources: mapToObject(sr.sourcesByLabel, registeredLabels),
+        measurementUnit: "file",
+      };
+    }
+
+    const pages = (cfg.pages ?? []).map((p) =>
+      buildPageResult(p, targetByNodeId, registeredLabels)
+    );
+
+    return {
+      label: cfg.label,
+      totalInstances: sr.totalInstances,
+      unmatchedInstances: sr.unmatchedInstances,
+      instanceSources: mapToObject(sr.sourcesByLabel, registeredLabels),
+      pages,
+    };
+  });
+}
+
+function buildFailedDomainResult(
+  cfg: FigmaDomainFile,
+  registeredLabels: string[]
+): FigmaDomainResult {
+  const emptySources = emptyLabelCounts(registeredLabels);
+  if (cfg.url) {
+    return {
+      label: cfg.label,
+      totalInstances: 0,
+      unmatchedInstances: 0,
+      instanceSources: emptySources,
+      measurementUnit: "file",
+      scanFailed: true,
+    };
+  }
+  // 패턴 B/C — 빈 measure 로 페이지/프레임 구조만 보존 (시각화에서 "측정 실패" 표시).
+  const pages = (cfg.pages ?? []).map((p) =>
+    buildEmptyPageResult(p, registeredLabels)
+  );
+  return {
+    label: cfg.label,
+    totalInstances: 0,
+    unmatchedInstances: 0,
+    instanceSources: emptySources,
+    pages,
+    scanFailed: true,
+  };
+}
+
+function buildPageResult(
+  pageCfg: FigmaPageSelection,
+  targetByNodeId: Map<string, TargetMeasurement>,
+  registeredLabels: string[]
+): FigmaDomainPageResult {
+  // 패턴 B — page URL. 페이지 자체 subtree 측정.
+  if (pageCfg.url) {
+    const target = lookupTarget(pageCfg.url, targetByNodeId);
+    return {
+      comment: pageCfg.comment,
+      url: pageCfg.url,
+      measurementUnit: target
+        ? target.measurementUnit === "page"
+          ? "page"
+          : "other"
+        : "other",
+      totalInstances: target?.totalInstances ?? 0,
+      unmatchedInstances: target?.unmatchedInstances ?? 0,
+      instanceSources: mapToObject(
+        target?.sourcesByLabel ?? new Map(),
+        registeredLabels
+      ),
+    };
+  }
+
+  // 패턴 C — frames. 각 frame measure 후 페이지 합산.
+  const frames = (pageCfg.frames ?? []).map((f): FigmaDomainFrameResult => {
+    const target = lookupTarget(f.url, targetByNodeId);
+    return {
+      url: f.url,
+      comment: f.comment,
+      measurementUnit:
+        target?.measurementUnit === "frame"
+          ? "frame"
+          : "other",
+      totalInstances: target?.totalInstances ?? 0,
+      unmatchedInstances: target?.unmatchedInstances ?? 0,
+      instanceSources: mapToObject(
+        target?.sourcesByLabel ?? new Map(),
+        registeredLabels
+      ),
+    };
+  });
+
+  // 페이지 합산 = frames 합 (drill-down 편의).
+  const pageSources = emptyLabelCounts(registeredLabels);
+  let pageTotal = 0;
+  let pageUnmatched = 0;
+  for (const f of frames) {
+    pageTotal += f.totalInstances;
+    pageUnmatched += f.unmatchedInstances;
+    for (const [k, v] of Object.entries(f.instanceSources)) {
+      pageSources[k] = (pageSources[k] ?? 0) + v;
+    }
+  }
+
+  return {
+    comment: pageCfg.comment,
+    totalInstances: pageTotal,
+    unmatchedInstances: pageUnmatched,
+    instanceSources: pageSources,
+    frames,
+  };
+}
+
+function buildEmptyPageResult(
+  pageCfg: FigmaPageSelection,
+  registeredLabels: string[]
+): FigmaDomainPageResult {
+  if (pageCfg.url) {
+    return {
+      comment: pageCfg.comment,
+      url: pageCfg.url,
+      measurementUnit: "other",
+      totalInstances: 0,
+      unmatchedInstances: 0,
+      instanceSources: emptyLabelCounts(registeredLabels),
+    };
+  }
+  const frames = (pageCfg.frames ?? []).map(
+    (f): FigmaDomainFrameResult => ({
+      url: f.url,
+      comment: f.comment,
+      measurementUnit: "other",
+      totalInstances: 0,
+      unmatchedInstances: 0,
+      instanceSources: emptyLabelCounts(registeredLabels),
+    })
+  );
+  return {
+    comment: pageCfg.comment,
+    totalInstances: 0,
+    unmatchedInstances: 0,
+    instanceSources: emptyLabelCounts(registeredLabels),
+    frames,
+  };
+}
+
+function lookupTarget(
+  url: string,
+  targetByNodeId: Map<string, TargetMeasurement>
+): TargetMeasurement | undefined {
+  try {
+    const { nodeId } = parseFigmaUrl(url);
+    if (!nodeId) return undefined;
+    return targetByNodeId.get(nodeId);
+  } catch {
+    return undefined;
+  }
+}
+
+function emptyLabelCounts(registeredLabels: string[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const label of registeredLabels) out[label] = 0;
+  return out;
+}
+
+function mapToObject(
+  source: Map<string, number>,
+  registeredLabels: string[]
+): Record<string, number> {
+  const out = emptyLabelCounts(registeredLabels);
+  for (const [k, v] of source) out[k] = (out[k] ?? 0) + v;
   return out;
 }
 
