@@ -9,6 +9,7 @@ import { writeReport } from "./reporters/json";
 import { findLatestReportJson, generateMarkdown } from "./reporters/markdown";
 import { generateOverview } from "./reporters/overview";
 import { attachAbsRoot } from "./utils/walker";
+import { renderDashboard } from "./dashboard";
 import type { UIHealthConfig, CodebaseReport } from "./types";
 
 // dotenv 즉시 로드 블록 제거 (이전: __dirname/../.env.local 강제).
@@ -131,7 +132,7 @@ async function main() {
     if (only === "figma") {
       const configDir = path.dirname(configPath);
       const reportsDir = path.resolve(configDir, cfg.report.outputDir);
-      const baseInput = findLatestReportJson(reportsDir);
+      const baseInput = findLatestReportJson(reportsDir, cfg.report.baselineFilenamePrefix);
       if (!baseInput) {
         console.error(
           `[vitaui] --only figma 는 기존 reports/ JSON 을 base 로 사용합니다. ` +
@@ -224,7 +225,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     const reportsDir = path.resolve(configDir, cfg.report.outputDir);
     const resolvedInput = inputPath
       ? path.resolve(inputPath)
-      : findLatestReportJson(reportsDir);
+      : findLatestReportJson(reportsDir, cfg.report.baselineFilenamePrefix);
     if (!resolvedInput) {
       console.error(
         `[vitaui] no report JSON found in ${reportsDir}. Run 'npm run audit' or 'npm run audit:baseline' first.`
@@ -268,12 +269,42 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     return;
   }
 
+  if (cmd === "dashboard") {
+    const configDir = path.dirname(configPath);
+    const reportsDir = path.resolve(configDir, cfg.report.outputDir);
+    const resolvedInput = inputPath
+      ? path.resolve(inputPath)
+      : findLatestReportJson(reportsDir, cfg.report.baselineFilenamePrefix);
+    if (!resolvedInput) {
+      console.error(
+        `[vitaui] no baseline JSON found in ${reportsDir}. ` +
+          `Run 'npm run ui-health' or 'npm run ui-health:baseline' first.`
+      );
+      process.exit(2);
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    const resolvedOutput = outputPath
+      ? path.resolve(outputPath)
+      : path.resolve(reportsDir, `dashboard-${stamp}.html`);
+    console.log(`[vitaui] input:  ${resolvedInput}`);
+    console.log(`[vitaui] output: ${resolvedOutput}`);
+    await renderDashboard({
+      inputPath: resolvedInput,
+      outputPath: resolvedOutput,
+      cfg,
+      configDir,
+    });
+    console.log(`[vitaui] dashboard written.`);
+    return;
+  }
+
   console.error(
     `[vitaui] Unknown command: ${cmd}.\n` +
       `  Supported:\n` +
-      `    audit [--only code|figma] [--baseline]   — 측정 (code + figma 통합 또는 영역별)\n` +
-      `    baseline-lint                            — ESLint 위반 baseline 생성\n` +
-      `    report [--input <path>] [--output <path>] — 측정 JSON → markdown 변환`
+      `    audit [--only code|figma] [--baseline]    — 측정 (code + figma 통합 또는 영역별)\n` +
+      `    baseline-lint                             — ESLint 위반 baseline 생성\n` +
+      `    report [--input <path>] [--output <path>]    — 측정 JSON → markdown 변환\n` +
+      `    dashboard [--input <path>] [--output <path>] — 측정 JSON → HTML 대시보드`
   );
   process.exit(2);
 }

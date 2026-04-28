@@ -40,16 +40,43 @@ function thresholdHint(t: Threshold, formatter: (n: number) => string): string {
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const num = (n: number) => String(n);
 
-/** `reports/` 디렉토리에서 가장 최근 JSON 파일 경로를 찾는다. */
-export function findLatestReportJson(reportsDir: string): string | null {
+/**
+ * `reports/` 디렉토리에서 가장 최근 baseline JSON 파일 경로를 찾는다.
+ *
+ * v0.9 (2026-04-28) 수정 — 단순 lex sort 가 `before-phase-a-*.json` 같은 prefix 가
+ * 다른 스냅샷을 baseline-* 보다 우선 선택하던 문제 해결 (v0.7 note 8 follow-up).
+ *
+ * 흐름:
+ *   1) `${prefix}-YYYY-MM-DD.json` 패턴 매칭 우선 (config.report.baselineFilenamePrefix
+ *      활용 — 다른 프로젝트가 prefix 변경하면 자동 대응).
+ *   2) 매칭 0건이면 fallback: 전체 *.json 중 lex 최신 (옛 동작 호환).
+ */
+export function findLatestReportJson(
+  reportsDir: string,
+  baselinePrefix?: string
+): string | null {
   if (!existsSync(reportsDir)) return null;
-  const files = readdirSync(reportsDir)
+  const all = readdirSync(reportsDir)
     .filter((f) => f.endsWith(".json"))
     .map((f) => path.join(reportsDir, f));
-  if (files.length === 0) return null;
-  // 파일명 기준 내림차순 (baseline-YYYY-MM-DD.json 포맷 가정)
-  files.sort((a, b) => (a < b ? 1 : -1));
-  return files[0];
+  if (all.length === 0) return null;
+
+  if (baselinePrefix) {
+    const re = new RegExp(`^${escapeRegex(baselinePrefix)}-\\d{4}-\\d{2}-\\d{2}\\.json$`);
+    const matched = all.filter((f) => re.test(path.basename(f)));
+    if (matched.length > 0) {
+      matched.sort((a, b) => (a < b ? 1 : -1));
+      return matched[0];
+    }
+  }
+
+  // Fallback — 옛 동작.
+  all.sort((a, b) => (a < b ? 1 : -1));
+  return all[0];
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function generateMarkdown(
