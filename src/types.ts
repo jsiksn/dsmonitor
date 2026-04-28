@@ -206,8 +206,17 @@ export interface CodebaseReport {
     }>;
     totalFiles: number;
     preferredId: string;
-    /** preferred 방식 사용 파일 / (사용 + forbidden 사용) 비율. 참고 지표 — detect 방식에 의존 */
-    preferredCompliance: number;
+    /**
+     * v0.7 (2026-04-28) — 정의 변경 + 메타정보 객체화.
+     *
+     * 분자: preferred + allowedGlobal (정상 스타일링 방식)
+     * 분모: 분자 + forbidden 합계
+     * 제외: orphanClass / noClass (정상 분포 측정 대상 아님)
+     *
+     * v0.6 이전 정의 (preferred / (preferred + forbidden)) 와 시계열 단절.
+     * 자세한 내용: measurementHistory v0.7 entry.
+     */
+    preferredCompliance: PreferredComplianceMeta;
     /** forbidden 방식을 쓰는 파일 수 (bootstrap/tailwind 등 union, 파일 단위) */
     forbiddenFileCount: number;
     /** forbiddenFileCount / totalFiles. 프로젝트 구조와 무관하게 비교 가능한 주 지표 */
@@ -227,6 +236,21 @@ export interface CodebaseReport {
     tsFiles: number;
     jsFiles: number;
     ratio: number;
+    /**
+     * v0.7 (2026-04-28) — 디렉토리별 ts/js 분포.
+     *
+     * 1-depth 기준, 단 `apps/` 는 2-depth (예: "apps/material") 까지.
+     * 정렬: jsFiles 내림차순 — JS 비중 높은 디렉토리 우선.
+     * 필터링 없음 — raw 보존 (작은 디렉토리 표시 여부는 시각화 영역).
+     */
+    byDir: Array<{
+      dir: string;
+      tsFiles: number;
+      jsFiles: number;
+      totalFiles: number;
+      /** tsFiles / totalFiles. 0~1. */
+      ratio: number;
+    }>;
   };
   dsCoverage: {
     filesUsingDs: number;
@@ -253,6 +277,43 @@ export interface CodebaseReport {
    * `cfg.metrics.figmaAnalysis` 가 false 이거나 측정 실패 시 undefined.
    */
   figma?: FigmaReport;
+}
+
+/**
+ * preferredCompliance 메타정보 (v0.7, 2026-04-28).
+ *
+ * 정의: (preferred + allowedGlobal) / (preferred + forbidden 합계 + allowedGlobal).
+ * 분자/분모/제외 항목 모두 raw 카운트 노출 — 대시보드에서 분해 시각화 가능.
+ *
+ * v0.6 이전엔 number 직접 노출. v0.7 부터 객체로 래핑 + 정의 자체 변경 (allowedGlobal
+ * 분자 포함). 시계열 단절 — measurementHistory v0.7 entry 참조.
+ */
+export interface PreferredComplianceMeta {
+  /** 최종 비율. 0~1. round(value, 4). */
+  value: number;
+  /** 분자 — 정상 스타일링 방식 합. */
+  numerator: ComplianceComponent;
+  /** 분모 — 분자 + forbidden. */
+  denominator: ComplianceComponent;
+  /**
+   * 분모/분자 어느 쪽에도 포함 안 한 항목 (orphanClass / noClass).
+   * 정상 스타일링 방식 분포 측정 대상이 아님 — 사유는 reason 참조.
+   */
+  excluded: {
+    items: string[];
+    counts: Record<string, number>;
+    reason: string;
+  };
+}
+
+/** PreferredComplianceMeta 의 분자 / 분모 공통 shape. */
+export interface ComplianceComponent {
+  /** 합산 항목 키 목록 (counts 의 keys 와 일치). */
+  items: string[];
+  /** 항목별 카운트. */
+  counts: Record<string, number>;
+  /** items 의 counts 합. */
+  total: number;
 }
 
 export interface SourceFile {

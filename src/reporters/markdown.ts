@@ -124,7 +124,7 @@ export async function generateMarkdown(
     {
       label: `명시적 ${dist.preferredId} 신호 비율 (참고)`,
       enabled: m.stylingDistribution,
-      value: pct(dist.preferredCompliance),
+      value: pct(dist.preferredCompliance.value),
       status: "info" as const,
       informational: true,
       hint: "참고 지표 — 글로벌 스타일 구조 프로젝트는 낮게 나옴. 주 지표는 Forbidden file ratio",
