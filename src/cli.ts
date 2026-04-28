@@ -307,7 +307,7 @@ Styling method distribution (files; non-exclusive):
   allowedGlobal:       ${d.allowedGlobal}
   orphanClass:         ${d.orphanClass}
   noClass:             ${d.noClass}
-  preferred (${d.preferredId}) compliance: ${(d.preferredCompliance * 100).toFixed(1)}%
+  preferred (${d.preferredId}) compliance: ${(d.preferredCompliance.value * 100).toFixed(1)}%
 
 Forbidden class occurrences:
   total:               ${r.forbiddenClassCount.total}

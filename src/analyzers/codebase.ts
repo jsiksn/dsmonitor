@@ -7,6 +7,7 @@ import type {
   UIHealthConfig,
   CodebaseReport,
   SourceFile,
+  PreferredComplianceMeta,
 } from "../types";
 import type { DetectSpec } from "../policy";
 import type { FrameworkAdapter, FileSignals } from "../frameworks/types";
@@ -304,8 +305,14 @@ function analyzeStyling(
     }
   }
 
-  const denom = preferredUsed + forbiddenUsed;
-  const preferredCompliance = denom === 0 ? 1 : preferredUsed / denom;
+  const preferredCompliance = buildPreferredCompliance({
+    preferredId: policy.preferred,
+    preferredUsed,
+    allowedGlobalUsed: allowedGlobalCount,
+    forbiddenFileCounts,
+    orphanClassUsed: orphanClassCount,
+    noClassUsed: noClassCount,
+  });
   const forbiddenFileRatio = totalFiles === 0 ? 0 : forbiddenUsed / totalFiles;
 
   const topFiles = Array.from(perFile.entries())
@@ -337,7 +344,7 @@ function analyzeStyling(
       orphanSamples,
       totalFiles,
       preferredId: policy.preferred,
-      preferredCompliance: round(preferredCompliance, 4),
+      preferredCompliance,
       forbiddenFileCount: forbiddenUsed,
       forbiddenFileRatio: round(forbiddenFileRatio, 4),
     },
@@ -349,20 +356,56 @@ function analyzeStyling(
   };
 }
 
+/**
+ * 1-depth 기준 디렉토리 버킷 — 단 `apps/` 만 2-depth (apps/material 등).
+ * 이유: apps 안 도메인 (material / ml / ecosystem 등) 이 의미 단위.
+ *      그 외 (components, pages, store 등) 는 1-depth 자체가 의미 단위.
+ */
+function getDirBucket(relPath: string): string {
+  const parts = relPath.split("/");
+  if (parts[0] === "apps" && parts.length >= 2) {
+    return `${parts[0]}/${parts[1]}`;
+  }
+  return parts[0];
+}
+
 function analyzeTsMigration(
   codeFiles: SourceFile[]
 ): CodebaseReport["tsMigration"] {
   let ts = 0;
   let js = 0;
+  const byDirMap = new Map<
+    string,
+    { ts: number; js: number; total: number }
+  >();
   for (const f of codeFiles) {
-    if (f.ext === ".ts" || f.ext === ".tsx") ts += 1;
-    else if (f.ext === ".js" || f.ext === ".jsx") js += 1;
+    const isTs = f.ext === ".ts" || f.ext === ".tsx";
+    const isJs = f.ext === ".js" || f.ext === ".jsx";
+    if (!isTs && !isJs) continue;
+    if (isTs) ts += 1;
+    else js += 1;
+    const dir = getDirBucket(f.relPath);
+    const cur = byDirMap.get(dir) ?? { ts: 0, js: 0, total: 0 };
+    if (isTs) cur.ts += 1;
+    else cur.js += 1;
+    cur.total += 1;
+    byDirMap.set(dir, cur);
   }
+  const byDir = [...byDirMap.entries()]
+    .map(([dir, v]) => ({
+      dir,
+      tsFiles: v.ts,
+      jsFiles: v.js,
+      totalFiles: v.total,
+      ratio: v.total === 0 ? 0 : round(v.ts / v.total, 4),
+    }))
+    .sort((a, b) => b.jsFiles - a.jsFiles);
   const total = ts + js;
   return {
     tsFiles: ts,
     jsFiles: js,
     ratio: total === 0 ? 0 : round(ts / total, 4),
+    byDir,
   };
 }
 
@@ -503,6 +546,72 @@ function round(v: number, digits: number): number {
   return Math.round(v * f) / f;
 }
 
+const PREFERRED_COMPLIANCE_EXCLUDED_REASON =
+  "orphanClass 는 정의 못 찾은 className, noClass 는 스타일 미사용 — 정상 스타일링 방식 분포 측정 대상 아님";
+
+/**
+ * preferredCompliance 메타 객체 빌드 (v0.7, 2026-04-28).
+ *
+ * 정의:
+ *   numerator   = preferred + allowedGlobal
+ *   denominator = numerator + sum(forbidden)
+ *   excluded    = orphanClass + noClass (분모/분자 어디에도 안 들어감)
+ *
+ * v0.6 이전엔 numerator = preferred 만, denominator = preferred + forbidden.
+ * allowedGlobal 을 분자에 포함하도록 정의 변경 — 시계열 단절 (measurementHistory v0.7).
+ */
+function buildPreferredCompliance(args: {
+  preferredId: string;
+  preferredUsed: number;
+  allowedGlobalUsed: number;
+  forbiddenFileCounts: Record<string, number>;
+  orphanClassUsed: number;
+  noClassUsed: number;
+}): PreferredComplianceMeta {
+  const {
+    preferredId,
+    preferredUsed,
+    allowedGlobalUsed,
+    forbiddenFileCounts,
+    orphanClassUsed,
+    noClassUsed,
+  } = args;
+
+  // 분자
+  const numCounts: Record<string, number> = {
+    [preferredId]: preferredUsed,
+    allowedGlobal: allowedGlobalUsed,
+  };
+  const numItems = [preferredId, "allowedGlobal"];
+  const numTotal = preferredUsed + allowedGlobalUsed;
+
+  // 분모 = 분자 + forbidden 각각
+  const denCounts: Record<string, number> = { ...numCounts };
+  const denItems: string[] = [preferredId];
+  let forbiddenSum = 0;
+  for (const [id, count] of Object.entries(forbiddenFileCounts)) {
+    const key = `forbidden.${id}`;
+    denCounts[key] = count;
+    denItems.push(key);
+    forbiddenSum += count;
+  }
+  denItems.push("allowedGlobal");
+  const denTotal = numTotal + forbiddenSum;
+
+  const value = denTotal === 0 ? 1 : numTotal / denTotal;
+
+  return {
+    value: round(value, 4),
+    numerator: { items: numItems, counts: numCounts, total: numTotal },
+    denominator: { items: denItems, counts: denCounts, total: denTotal },
+    excluded: {
+      items: ["orphanClass", "noClass"],
+      counts: { orphanClass: orphanClassUsed, noClass: noClassUsed },
+      reason: PREFERRED_COMPLIANCE_EXCLUDED_REASON,
+    },
+  };
+}
+
 function emptyDist(cfg: Cfg): CodebaseReport["stylingMethodDistribution"] {
   const allowed: Record<string, number> = {};
   const forbidden: Record<string, number> = {};
@@ -517,7 +626,14 @@ function emptyDist(cfg: Cfg): CodebaseReport["stylingMethodDistribution"] {
     orphanSamples: [],
     totalFiles: 0,
     preferredId: cfg.stylingPolicy.preferred,
-    preferredCompliance: 1,
+    preferredCompliance: buildPreferredCompliance({
+      preferredId: cfg.stylingPolicy.preferred,
+      preferredUsed: 0,
+      allowedGlobalUsed: 0,
+      forbiddenFileCounts: forbidden,
+      orphanClassUsed: 0,
+      noClassUsed: 0,
+    }),
     forbiddenFileCount: 0,
     forbiddenFileRatio: 0,
   };
@@ -552,7 +668,7 @@ export async function analyzeCodebase(cfg: Cfg): Promise<CodebaseReport> {
 
   const ts = cfg.metrics.tsMigration
     ? analyzeTsMigration(codeFiles)
-    : { tsFiles: 0, jsFiles: 0, ratio: 0 };
+    : { tsFiles: 0, jsFiles: 0, ratio: 0, byDir: [] };
 
   const ds = cfg.metrics.dsCoverage
     ? analyzeDsCoverage(codeFiles, cfg, adapter)
