@@ -124,6 +124,12 @@ export interface UIHealthConfig {
     forbiddenClassOccurrences: Threshold;
     /** 주 지표 — forbidden 방식을 쓰는 파일 비율. 낮을수록 좋음. */
     forbiddenFileRatio: Threshold;
+    /**
+     * 컴포넌트 매칭률 (B 그룹 단계 3, 2026-04-29).
+     * Figma DS variantGroup 이름 ↔ 코드 className (글로벌 인덱스 + jsx 사용 합집합) 매칭.
+     * 본 프로젝트는 Figma 이름 ↔ CSS class 동기화 정책이라 같은 kebab-case 로 정확 일치.
+     */
+    componentMatch?: Threshold;
   };
 
   /**
@@ -323,6 +329,28 @@ export interface SourceFile {
   content: string;
 }
 
+/**
+ * 코드 className 인덱스 (B 그룹 단계 3, 2026-04-29).
+ *
+ * `analyzeCodebase` 가 산출하는 부산물 — globalCss 정의 + jsx 사용. baseline JSON
+ * 직렬화 대상은 아니며, in-process 로 figma analyzer 의 컴포넌트 매칭에 전달.
+ *
+ * 두 영역 모두 token 단위 (className 속성 1개 안 여러 토큰을 split 한 결과) Set.
+ * Set 으로 출력해 has() 매칭 비용 O(1).
+ */
+export interface ClassIndex {
+  /**
+   * globalStyleSources glob 에 매치되는 SCSS/CSS 파일에서 정의된 className 들
+   * (`.foo` 셀렉터의 `foo`). buildGlobalClassIndex 결과.
+   */
+  globalClassNames: Set<string>;
+  /**
+   * jsx/tsx 컴포넌트의 `className=` 속성에서 token 단위로 추출된 className 들.
+   * 동적 표현 ({...}) 은 framework adapter 가 추출 가능한 범위까지.
+   */
+  jsxUsedClassNames: Set<string>;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // Figma baseline 측정 관련 타입 (Phase 0.5)
 // ═══════════════════════════════════════════════════════════════════
@@ -476,6 +504,17 @@ export type FigmaDesignSystemCount = {
   components: number;
   /** `d.componentSets` dict 크기 (variant 그룹 수). */
   variantGroups: number;
+  /**
+   * variantGroup 이름 리스트 (componentSet.name 알파벳순). 컴포넌트 매칭 분모.
+   * (B 그룹 단계 3, 2026-04-29). 다른 프로젝트 호환을 위해 optional.
+   */
+  componentSetNames?: string[];
+  /**
+   * variantGroup 에 속하지 않는 단독 component 이름 리스트 (alphabetical, dedup).
+   * variant component (componentSetId 보유) 는 분모 제외.
+   * (B 그룹 단계 3, 2026-04-29). 다른 프로젝트 호환을 위해 optional.
+   */
+  standaloneComponentNames?: string[];
 };
 
 /**
@@ -612,6 +651,17 @@ export type FigmaReport = {
    * 각 DS 와 코드 SCSS 변수 간 이름 완전 일치 기준의 교차표.
    */
   tokenMatrix: TokenMatrix;
+  /**
+   * Figma DS 컴포넌트 (variantGroup + standalone) ↔ 코드 className 매칭 결과
+   * (B 그룹 단계 3, 2026-04-29).
+   *
+   * 사용자 옛 직관 — "Figma 의 btn 컴포넌트가 코드 className 으로 쓰이는가" — 의 측정.
+   * 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case 정확 일치.
+   *
+   * 측정 호출자가 코드 분석 결과 (globalClassNames + jsxUsedClassNames) 미제공 시
+   * undefined 또는 비어있는 buckets 로 출력. 다른 프로젝트 호환을 위해 optional.
+   */
+  componentMatch?: FigmaComponentMatch;
   /** 비치명적 에러 (URL 파싱 실패 / 일부 파일 접근 실패 등). 전체 중단은 아님. */
   errors: string[];
   /**
@@ -737,6 +787,109 @@ export type TokenMatrixDsStats = {
   /** 동명 중복이 있는 토큰 개수 (duplicates 중 해당 DS 에 속한 것 수). */
   duplicateCount: number;
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// 컴포넌트 매칭 (B 그룹 단계 3, 2026-04-29)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * 어디에서 매칭됐는지 — 단순 union.
+ *   "globalCss" — globalStyleSources 인덱스에 같은 이름 className 존재
+ *   "jsx"       — jsx/tsx 의 className= 속성에서 토큰으로 사용됨
+ */
+export type FigmaComponentMatchSource = "globalCss" | "jsx";
+
+/** Figma DS 컴포넌트 1개에 대한 매칭 결과 항목. */
+export interface FigmaComponentMatchEntry {
+  /** Figma 컴포넌트 이름 (kebab-case 가정 — 본 프로젝트 정책). */
+  name: string;
+  /** Figma 어떤 DS 출처인지 (config 의 designSystemFiles[].label). */
+  figmaSource: string;
+  /**
+   * 컴포넌트 종류:
+   *   "componentSet" — variantGroup (variant 묶음, name=componentSet.name)
+   *   "standalone"   — variantGroup 외 단독 component (variant 분리 안 된 케이스)
+   */
+  kind: "componentSet" | "standalone";
+  /** 어디에서 매칭됐는지 — 둘 다 매칭 가능. 빈 배열이면 figmaOnly. */
+  matchedIn: FigmaComponentMatchSource[];
+}
+
+/**
+ * 코드에만 있는 className (Figma DS 정의 없음) — 단순 항목.
+ *
+ * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족하는
+ * "DS 외부 정상 사용" className 만. appearsIn 필드 제거 (모두 동일 값이라 자명).
+ * dead 가능성 (globalCss 만 정의되고 jsx 미사용) 영역은 별도 트랙 검토 (v0.12 이후).
+ */
+export interface FigmaComponentCodeOnlyEntry {
+  /** 코드 className 이름. */
+  name: string;
+}
+
+/** DS 별 요약. */
+export interface FigmaComponentMatchSummary {
+  /** Figma DS 분모 — componentSet + standaloneComponent 합 (본 프로젝트 ds-new=46). */
+  figmaTotal: number;
+  /** 분자 — matchedIn.length > 0 인 항목 수. */
+  matched: number;
+  /** matchedIn 가 비어있는 (코드 어디에도 없는) 항목 수. */
+  figmaOnly: number;
+  /** matched / figmaTotal. 0~1. */
+  matchRatio: number;
+  /** 분류별 매칭 분포. */
+  matchedBreakdown: {
+    /** matchedIn 에 globalCss + jsx 둘 다 포함. */
+    both: number;
+    /** matchedIn 에 jsx 만. */
+    jsxOnly: number;
+    /** matchedIn 에 globalCss 만 (코드 jsx 사용 없음 — dead style 가능성). */
+    globalCssOnly: number;
+  };
+}
+
+/**
+ * Figma DS 컴포넌트 ↔ 코드 className 매칭 분석 결과.
+ *
+ * 측정 본질: 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case
+ * 직접 비교 가능 — case sensitive 정확 일치 (B1 알고리즘).
+ *
+ * 분모 (Figma DS 컴포넌트):
+ *   - variantGroup 이름 (componentSet.name) — 본 프로젝트 ds-new 46 / ds-legacy 42
+ *   - variantGroup 에 속하지 않는 standalone component 이름
+ *   - variant 단위 (componentSetId 보유 component) 는 분모 제외 — 같은 그룹 분배
+ *
+ * 분자 (코드 className):
+ *   - globalCss: globalStyleSources 정의된 className 인덱스
+ *   - jsx: jsx/tsx 의 className= 속성에서 토큰 단위로 추출
+ *
+ * 시계열 — Phase 0.6 호환성 검증 시 다른 프로젝트가 className 정책 다르면 별도 mode 필요.
+ */
+export interface FigmaComponentMatch {
+  /** DS label 별 요약 (config.designSystemFiles 순서). */
+  summary: Record<string, FigmaComponentMatchSummary>;
+  /** matched 컴포넌트 (matchedIn.length > 0). figmaSource → kind → name 정렬. */
+  matched: FigmaComponentMatchEntry[];
+  /** Figma 만 있고 코드 어디에도 없는 컴포넌트 (작업 우선순위). */
+  figmaOnly: FigmaComponentMatchEntry[];
+  /**
+   * 코드에만 있는 className — Figma DS 정의 없음 (DS 외부 정상 사용).
+   *
+   * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족 +
+   * Figma 미매칭. 옛 β 의 "globalCss 만 정의 + jsx 미사용" (dead 가능성) 영역은
+   * 별도 트랙 검토 — codeOnly 의미 명확화 ("DS 외부 영역").
+   */
+  codeOnly: FigmaComponentCodeOnlyEntry[];
+  /** 합계 카운트 (대시보드 카드 메인용). */
+  totals: {
+    figmaTotal: number;
+    matched: number;
+    figmaOnly: number;
+    codeOnly: number;
+    /** matched / figmaTotal — DS 합산 비율. */
+    matchRatio: number;
+  };
+}
 
 /**
  * DS ↔ 코드 토큰 매칭 결과.

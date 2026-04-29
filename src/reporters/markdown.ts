@@ -5,6 +5,7 @@ import type {
   CodebaseReport,
   UIHealthConfig,
   Threshold,
+  FigmaComponentMatch,
   FigmaDesignSystemFile,
   TokenMatrix,
   TokenMatrixCell,
@@ -473,6 +474,12 @@ function appendFigmaSection(
     appendTokenMatrixSection(lines, figma.tokenMatrix, dsFiles);
   }
 
+  // ─── 컴포넌트 매칭 매트릭스 (B 그룹 단계 3, 2026-04-29) ───
+  // 토큰 매칭 (이름) 다음에 배치 — 컴포넌트 매칭은 한 단계 더 큰 단위 (그룹).
+  if (figma.componentMatch) {
+    appendComponentMatchSection(lines, figma.componentMatch, dsFiles);
+  }
+
   // ─── 도메인 파일 출처 미상 Instance 분석 ───
   const ia = figma.instanceAnalysis;
   lines.push(`### 도메인 파일 — 출처 미상 Instance 분석`);
@@ -654,4 +661,156 @@ function formatDsLabel(
 ): string {
   const entry = dsFiles.find((d) => d.label === label);
   return entry?.comment ? `${label} (${entry.comment})` : label;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// 컴포넌트 매칭 매트릭스 (B 그룹 단계 3, 2026-04-29)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Figma DS 컴포넌트 ↔ 코드 className 매칭 섹션.
+ *
+ * 구성: 요약 → DS 별 카드 (matchedBreakdown) → matched/figmaOnly/codeOnly 리스트 (각각 details).
+ * 본질: 사용자 옛 직관 ("Figma 의 btn 컴포넌트가 코드 className 으로 쓰이나") 직접 측정.
+ */
+function appendComponentMatchSection(
+  lines: string[],
+  cm: FigmaComponentMatch,
+  dsFiles: FigmaDesignSystemFile[]
+): void {
+  const labelWithComment = (label: string): string =>
+    formatDsLabel(label, dsFiles);
+
+  lines.push(`### 컴포넌트 매칭 매트릭스`);
+  lines.push("");
+  lines.push(
+    `> Figma DS 컴포넌트 (variantGroup + standalone) 이름과 코드 className ` +
+      `(글로벌 인덱스 + jsx 사용) 의 **이름 완전 일치 매칭** 결과.`
+  );
+  lines.push(
+    `> 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case 직접 비교. ` +
+      `다른 프로젝트로 호환 시 정책 다르면 매칭률 0 가까움 (Phase 0.6 별도 트랙).`
+  );
+  lines.push("");
+
+  // ─── 요약 ───
+  lines.push(`#### 요약`);
+  lines.push("");
+  lines.push(
+    `- 합계: 매칭 **${cm.totals.matched} / ${cm.totals.figmaTotal}** ` +
+      `(${(cm.totals.matchRatio * 100).toFixed(1)}%)`
+  );
+  lines.push(`- Figma만 (코드 미사용): **${cm.totals.figmaOnly}**개 — 작업 우선순위`);
+  lines.push(`- 코드만 (DS 정의 없음): **${cm.totals.codeOnly}**개 — DS 외부 영역`);
+  lines.push("");
+
+  // ─── DS 별 카드 — ds-new 우선 정렬 (보정 1, 2026-04-29) ───
+  // analyzer 는 config 순서 보존 (Phase 0.6 호환). 표시 단에서 일관 정렬.
+  const sortedSummaryEntries = Object.entries(cm.summary).sort((a, b) => {
+    if (a[0] === "ds-new") return -1;
+    if (b[0] === "ds-new") return 1;
+    return 0;
+  });
+  lines.push(`#### DS 별 매칭률`);
+  lines.push("");
+  // 보정 2 (2026-04-29 후속): figmaOnly + 합계 컬럼 추가 + 명칭 통일 (css 만).
+  lines.push(
+    `| DS | both | jsx만 | css만 | Figma만 | 합계 | 매칭률 |`
+  );
+  lines.push(`|---|---:|---:|---:|---:|---:|---:|`);
+  for (const [label, s] of sortedSummaryEntries) {
+    lines.push(
+      `| ${labelWithComment(label)} | ${s.matchedBreakdown.both} | ${s.matchedBreakdown.jsxOnly} | ${s.matchedBreakdown.globalCssOnly} | ${s.figmaOnly} | ${s.figmaTotal} | ${(
+        s.matchRatio * 100
+      ).toFixed(1)}% |`
+    );
+  }
+  lines.push("");
+  // 보정 5 (2026-04-29 후속): 분류 4종 안내 보강.
+  lines.push(`> 분류 의미:`);
+  lines.push(
+    `> - **both**: jsx + css 둘 다 매칭 (정상 사용)`
+  );
+  lines.push(
+    `> - **jsx만**: jsx 에서 className 으로 쓰는데 css 정의 없음 (orphan 가능성)`
+  );
+  lines.push(
+    `> - **css만**: css 에 정의됐는데 jsx 에서 미사용 (dead 가능성)`
+  );
+  lines.push(
+    `> - **Figma만**: Figma 컴포넌트 정의 있는데 코드에서 className 으로 안 씀 (작업 우선순위)`
+  );
+  lines.push("");
+
+  // ─── matched 리스트 ───
+  if (cm.matched.length > 0) {
+    lines.push(`<details>`);
+    lines.push(
+      `<summary>매칭된 컴포넌트 ${cm.matched.length}개 보기</summary>`
+    );
+    lines.push("");
+    lines.push(`| 이름 | 출처 | 종류 | 매칭 영역 |`);
+    lines.push(`|---|---|---|---|`);
+    for (const e of cm.matched) {
+      const matchedIn = e.matchedIn.join(" + ");
+      lines.push(
+        `| \`${e.name}\` | ${labelWithComment(e.figmaSource)} | ${e.kind} | ${matchedIn} |`
+      );
+    }
+    lines.push("");
+    lines.push(`</details>`);
+    lines.push("");
+  }
+
+  // ─── figmaOnly 리스트 ───
+  if (cm.figmaOnly.length > 0) {
+    lines.push(`<details>`);
+    lines.push(
+      `<summary>Figma만 — 코드 미구현 ${cm.figmaOnly.length}개 (작업 우선순위)</summary>`
+    );
+    lines.push("");
+    lines.push(
+      `> Figma 컴포넌트 정의 있는데 코드에서 className 으로 안 씀. 작업 우선순위.`
+    );
+    lines.push("");
+    lines.push(`| 이름 | 출처 | 종류 |`);
+    lines.push(`|---|---|---|`);
+    for (const e of cm.figmaOnly) {
+      lines.push(
+        `| \`${e.name}\` | ${labelWithComment(e.figmaSource)} | ${e.kind} |`
+      );
+    }
+    lines.push("");
+    lines.push(`</details>`);
+    lines.push("");
+  }
+
+  // ─── codeOnly 리스트 — γ (보정 3, 2026-04-29 후속): jsx 사용 필수 + appearsIn 제거 ───
+  if (cm.codeOnly.length > 0) {
+    lines.push(`<details>`);
+    lines.push(
+      `<summary>코드만 — DS 정의 없음 ${cm.codeOnly.length}개 (DS 외부 영역)</summary>`
+    );
+    lines.push("");
+    lines.push(
+      `> 코드에서 className 으로 쓰고 css 에 정의됐는데 Figma 컴포넌트 정의 없음. ` +
+        `DS 외부에서 정상 동작 중인 className. 상위 100개 표시.`
+    );
+    lines.push("");
+    lines.push(`| 이름 |`);
+    lines.push(`|---|`);
+    // codeOnly 가 클 수 있어 상위 100개만 보여줌.
+    const limit = 100;
+    for (const e of cm.codeOnly.slice(0, limit)) {
+      lines.push(`| \`${e.name}\` |`);
+    }
+    if (cm.codeOnly.length > limit) {
+      lines.push(
+        `| … (이하 ${cm.codeOnly.length - limit}개 생략 — baseline JSON 의 figma.componentMatch.codeOnly 참조) |`
+      );
+    }
+    lines.push("");
+    lines.push(`</details>`);
+    lines.push("");
+  }
 }

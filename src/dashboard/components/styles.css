@@ -276,7 +276,10 @@
   .stack-seg:hover { opacity: 0.85; }
 
   /* track bar (for SCSS, DS, TS) */
-  .bar-track { height: 8px; background: var(--bg-sunken); border-radius: 4px; position: relative; margin-top: 12px; overflow: hidden; }
+  /* B-3 보정 6 (2026-04-29): 배경 --bg-sunken (#f4f3ef) → --border-strong (#d5d3ca).
+     ds-token-row 배경이 같은 --bg-sunken 이라 Figma 탭 막대 영역 시각 비대칭 발생.
+     인접 영역 색상 차이 본질 — 단순 정의 여부 아닌 시각 노출이 본질. 모든 탭 영향. */
+  .bar-track { height: 8px; background: var(--border-strong); border-radius: 4px; position: relative; margin-top: 12px; overflow: hidden; }
   .bar-track-fill { height: 100%; border-radius: 4px; }
   .bar-track-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink-2); border-radius: 1px; }
   .bar-track-legend { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-4); margin-top: 6px; padding: 0 2px; }

@@ -129,7 +129,12 @@ export async function scanDesignSystem(
   }
 
   // 병합 맵 기반 카운트 + 엔트리 구성
-  const count = countFromMaps(label, mergedComponents, mergedComponentSets, mergedStyles);
+  const count = countFromMaps(
+    label,
+    mergedComponents,
+    mergedComponentSets,
+    mergedStyles
+  );
   const entries = buildEntries(mergedComponents, label);
   const styleMapEntries = [...mergedStyles.values()];
 
@@ -207,6 +212,32 @@ function countFromMaps(
     stylesByType[t] = (stylesByType[t] ?? 0) + 1;
   }
 
+  // 컴포넌트 매칭 (B 그룹 단계 3, 2026-04-29) 분모용 raw 이름 리스트.
+  // componentSet.name 알파벳순 dedup.
+  const componentSetNameSet = new Set<string>();
+  for (const v of componentSets.values()) {
+    if (v.name) componentSetNameSet.add(v.name);
+  }
+  const componentSetNames = [...componentSetNameSet].sort((a, b) =>
+    a.localeCompare(b)
+  );
+
+  // standalone — componentSetId 없는 단독 component 의 name 첫 segment.
+  // variant component (예: "btn / Primary / Default") 는 componentSetId 보유 → 자연 제외.
+  // 단독 component 의 name 이 슬래시 prefix 형태인 경우 (드물지만 가능) 첫 segment 만.
+  const standaloneNameSet = new Set<string>();
+  for (const v of components.values()) {
+    if (v.componentSetId) continue;
+    if (!v.name) continue;
+    const head = v.name.split("/")[0]?.trim();
+    if (head) standaloneNameSet.add(head);
+  }
+  // componentSet 이름과 겹치면 standalone 에서 제외 (같은 그룹 다중 카운트 방지).
+  for (const n of componentSetNames) standaloneNameSet.delete(n);
+  const standaloneComponentNames = [...standaloneNameSet].sort((a, b) =>
+    a.localeCompare(b)
+  );
+
   return {
     label,
     // Variables 는 Phase B 이월 — file_variables:read scope 미보유.
@@ -215,6 +246,8 @@ function countFromMaps(
     stylesByType,
     components: components.size,
     variantGroups: componentSets.size,
+    componentSetNames,
+    standaloneComponentNames,
   };
 }
 
@@ -241,5 +274,7 @@ function emptyCount(label: string): FigmaDesignSystemCount {
     stylesByType: {},
     components: 0,
     variantGroups: 0,
+    componentSetNames: [],
+    standaloneComponentNames: [],
   };
 }
