@@ -25,6 +25,10 @@ import type {
   FigmaDomainResult,
   FigmaInstanceAnalysis,
   FigmaInstanceSources,
+  FigmaInstancesDomain,
+  FigmaInstancesFile,
+  FigmaInstancesFrame,
+  FigmaInstancesPage,
   FigmaPageSelection,
   FigmaVariableEntry,
 } from "../types";
@@ -62,7 +66,7 @@ type Cfg = UIHealthConfig & { __absRoot: string };
 export async function analyzeFigma(
   cfg: Cfg,
   classIndex?: ClassIndex
-): Promise<FigmaReport> {
+): Promise<{ report: FigmaReport; instancesFile: FigmaInstancesFile }> {
   // ───── 1. 초기 검증 ─────
   if (!cfg.figma) {
     throw new Error(
@@ -210,6 +214,10 @@ export async function analyzeFigma(
     registeredLabels
   );
 
+  // Phase 0.7 (2026-04-29): instance level raw 영역 별도 파일용 트리 빌드.
+  // baseline JSON 영역 회귀 회피 — instances[] 는 별도 파일 (figma-instances-{date}.json) 으로 출력.
+  const instancesFile = buildInstancesFile(fc.domainFiles, domainResults);
+
   // ───── 6. 컴포넌트 매칭 (B 그룹 단계 3, 2026-04-29) ─────
   // classIndex 미제공 시 (figma 단독 호출 등) 영역 자체 생략.
   // 본질: Figma DS 컴포넌트 (variantGroup + standalone) 이름 ↔ 코드 className 매칭.
@@ -269,7 +277,7 @@ export async function analyzeFigma(
   if (errors.length > 0) {
     console.warn(`[figma] 경고/에러 ${errors.length}건 수집됨 — 리포트 errors 섹션 참고`);
   }
-  return report;
+  return { report, instancesFile };
 }
 
 // ───── 집계 유틸 ──────────────────────────────────────────────────
@@ -528,6 +536,110 @@ function lookupTarget(
     return targetByNodeId.get(nodeId);
   } catch {
     return undefined;
+  }
+}
+
+// ───── instance JSON 빌더 (Phase 0.7, 2026-04-29) ────────────────
+
+/**
+ * config 트리 + scan results.targets → FigmaInstancesFile (별도 파일용 트리).
+ *
+ * 본질: domainResults 트리 영역과 같은 구조 + 각 leaf (frame 또는 page) 에 instances[]
+ * 배열 추가. fileKey + fileName 영역 도메인 단위 보존 — figmaUrl 자동 조립 본질.
+ *
+ * scan 실패한 도메인 (validateSameFile 실패 / API 에러) 은 fileKey 영역 추출 실패 가능 —
+ * 빈 영역 유지 (instances 0).
+ */
+function buildInstancesFile(
+  domainCfgs: FigmaDomainFile[],
+  scanResults: DomainScanResult[]
+): FigmaInstancesFile {
+  const scanByLabel = new Map<string, DomainScanResult>();
+  for (const sr of scanResults) scanByLabel.set(sr.label, sr);
+
+  const domains: FigmaInstancesDomain[] = domainCfgs.map((cfg) => {
+    // fileKey + fileName — 도메인 영역 첫 URL (frame 또는 page) 에서 추출.
+    // 같은 도메인 안 모든 URL 은 같은 fileKey (validateSameFile 보장).
+    const firstUrl = findFirstUrl(cfg);
+    const { fileKey, fileName } = extractFileMeta(firstUrl);
+    const sr = scanByLabel.get(cfg.label);
+    const targetByNodeId = new Map<string, ReturnType<DomainScanResult["targets"]["find"]>>();
+    if (sr) {
+      for (const t of sr.targets) targetByNodeId.set(t.nodeId, t as never);
+    }
+
+    const pages: FigmaInstancesPage[] = (cfg.pages ?? []).map((p) => {
+      // 패턴 B — page url 직접 측정.
+      if (p.url) {
+        const nodeId = parseNodeIdFromUrl(p.url);
+        const target = nodeId ? (targetByNodeId.get(nodeId) as DomainScanResult["targets"][number] | undefined) : undefined;
+        return {
+          comment: p.comment,
+          url: p.url,
+          nodeId: nodeId ?? undefined,
+          instances: target?.instances ?? [],
+        };
+      }
+      // 패턴 C — frames 단위.
+      const frames: FigmaInstancesFrame[] = (p.frames ?? []).map((f) => {
+        const nodeId = parseNodeIdFromUrl(f.url);
+        const target = nodeId ? (targetByNodeId.get(nodeId) as DomainScanResult["targets"][number] | undefined) : undefined;
+        return {
+          comment: f.comment,
+          url: f.url,
+          nodeId: nodeId ?? "",
+          instances: target?.instances ?? [],
+        };
+      });
+      return { comment: p.comment, frames };
+    });
+
+    return {
+      label: cfg.label,
+      fileKey,
+      fileName,
+      pages,
+    };
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    domains,
+  };
+}
+
+/** 도메인 cfg 의 첫 URL (frame 또는 page url) 추출 — fileKey/fileName 추출용. */
+function findFirstUrl(cfg: FigmaDomainFile): string {
+  if (cfg.url) return cfg.url;
+  for (const p of cfg.pages ?? []) {
+    if (p.url) return p.url;
+    if (p.frames && p.frames.length > 0) return p.frames[0].url;
+  }
+  return "";
+}
+
+/** URL pathname 의 [design, fileKey, fileName] 영역에서 fileKey + fileName 추출. */
+function extractFileMeta(url: string): { fileKey: string; fileName: string } {
+  if (!url) return { fileKey: "", fileName: "" };
+  try {
+    const parts = new URL(url).pathname.split("/").filter(Boolean);
+    const idx = parts.findIndex((p) => p === "design" || p === "file");
+    if (idx < 0) return { fileKey: "", fileName: "" };
+    return {
+      fileKey: parts[idx + 1] ?? "",
+      fileName: parts[idx + 2] ?? "",
+    };
+  } catch {
+    return { fileKey: "", fileName: "" };
+  }
+}
+
+/** URL 의 node-id 영역 추출 — 콜론 표기로 정규화. parseFigmaUrl 영역 reuse. */
+function parseNodeIdFromUrl(url: string): string | null {
+  try {
+    return parseFigmaUrl(url).nodeId ?? null;
+  } catch {
+    return null;
   }
 }
 
