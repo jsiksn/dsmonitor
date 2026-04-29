@@ -204,6 +204,10 @@ export interface SummaryTabData {
     /** [path, perf, a11y, bp, seo] + 선택적 6번째 boolean (target 표시) */
     urlTable: Array<[string, number, number, number, number] | [string, number, number, number, number, boolean]>;
   } | null;
+  /**
+   * v0.12 (2026-04-29, Phase 0.6): figmaAnalysis=false 인 프로젝트 호환 위해 null 가능.
+   * baseline.figma 미존재 시 transformer 가 null 출력. root.jsx 가 가드로 Layer 03 hide.
+   */
   figma: {
     dsNewTotal: number;
     dsNewMatched: number;
@@ -214,7 +218,7 @@ export interface SummaryTabData {
     totalInstances: number;
     instanceSources: Record<string, number>;
     warningsCount: number;
-  };
+  } | null;
 }
 
 // ═══════════════════════════════════════════════════════════════════

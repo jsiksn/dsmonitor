@@ -41,14 +41,15 @@ const DATA = window.__SUMMARY_DATA;
   function Tabs({ tab, setTab }) {
     // v0.10 (2026-04-29): 카운트 자동 derive. 각 탭 jsx 가 window.{Tab}_CardCount export.
     // Lighthouse 는 카드 카운트 아닌 URL 카운트 (window.__LH_DATA.totalUrls).
+    // v0.12 (2026-04-29, Phase 0.6): 빠진 영역 탭 헤더 hide — figma / Lighthouse optional 본질.
     const codeCardCount = window.CodeTab_CardCount;
     const figmaCardCount = window.FigmaTab_CardCount;
     const lhUrlCount = window.__LH_DATA?.totalUrls;
     const tabs = [
       { id: "summary", label: "Summary" },
       { id: "code",       label: "Code",       count: codeCardCount  != null ? `${codeCardCount} 섹션` : null },
-      { id: "lighthouse", label: "Lighthouse", count: lhUrlCount     != null ? `${lhUrlCount} URL`     : null },
-      { id: "figma",      label: "Figma",      count: figmaCardCount != null ? `${figmaCardCount} 섹션` : null },
+      ...(window.__LH_DATA    ? [{ id: "lighthouse", label: "Lighthouse", count: lhUrlCount     != null ? `${lhUrlCount} URL`     : null }] : []),
+      ...(window.__FIGMA_DATA ? [{ id: "figma",      label: "Figma",      count: figmaCardCount != null ? `${figmaCardCount} 섹션` : null }] : []),
     ];
     return (
       <nav className="tabs" role="tablist">
@@ -139,7 +140,7 @@ const DATA = window.__SUMMARY_DATA;
           </div>
         </div>
 
-        <div className="layer">
+        {d.lh && <div className="layer">
           <div className="layer-head">
             <div className="layer-title">
               <div className="layer-tag">Layer 02 / Lighthouse</div>
@@ -213,9 +214,9 @@ const DATA = window.__SUMMARY_DATA;
               );
             })()}
           </div>
-        </div>
+        </div>}
 
-        <div className="layer">
+        {d.figma && <div className="layer">
           <div className="layer-head">
             <div className="layer-title">
               <div className="layer-tag">Layer 03 / Figma</div>
@@ -264,7 +265,7 @@ const DATA = window.__SUMMARY_DATA;
               <TrendReserved note="↓ 감소 필요" />
             </Card>
           </div>
-        </div>
+        </div>}
       </div>
     );
   }
