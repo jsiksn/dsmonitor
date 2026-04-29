@@ -28,9 +28,9 @@ const DATA = window.__SUMMARY_DATA;
           <div className="meta-col">
             <div className="k">측정 시점</div>
             <div className="v">
-              Code <span className="mono">2026-04-28</span><br/>
-              Figma <span className="mono">2026-04-24</span><br/>
-              Lighthouse <span className="mono">2026-04-22</span>
+              Code <span className="mono">{DATA.stamp.code}</span><br/>
+              Figma <span className="mono">{DATA.stamp.figma}</span><br/>
+              Lighthouse <span className="mono">{DATA.stamp.lighthouse}</span>
             </div>
           </div>
         </div>
@@ -39,11 +39,16 @@ const DATA = window.__SUMMARY_DATA;
   }
 
   function Tabs({ tab, setTab }) {
+    // v0.10 (2026-04-29): 카운트 자동 derive. 각 탭 jsx 가 window.{Tab}_CardCount export.
+    // Lighthouse 는 카드 카운트 아닌 URL 카운트 (window.__LH_DATA.totalUrls).
+    const codeCardCount = window.CodeTab_CardCount;
+    const figmaCardCount = window.FigmaTab_CardCount;
+    const lhUrlCount = window.__LH_DATA?.totalUrls;
     const tabs = [
       { id: "summary", label: "Summary" },
-      { id: "code", label: "Code", count: "8 섹션" },
-      { id: "lighthouse", label: "Lighthouse", count: "10 URL" },
-      { id: "figma", label: "Figma", count: "4 섹션" },
+      { id: "code",       label: "Code",       count: codeCardCount  != null ? `${codeCardCount} 섹션` : null },
+      { id: "lighthouse", label: "Lighthouse", count: lhUrlCount     != null ? `${lhUrlCount} URL`     : null },
+      { id: "figma",      label: "Figma",      count: figmaCardCount != null ? `${figmaCardCount} 섹션` : null },
     ];
     return (
       <nav className="tabs" role="tablist">
@@ -111,7 +116,7 @@ const DATA = window.__SUMMARY_DATA;
             <Card label="DS 커버리지" belowThreshold>
               <div className="numwrap"><span className="num warn">{pct(d.code.dsCoverage, 1)}</span><span className="unit">%</span></div>
               <div className="bar"><div className="bar-fill warn" style={{width: `${pct(d.code.dsCoverage)}%`}} /></div>
-              <div className="bar-row"><span className="mono">DS 사용 {d.code.dsFilesUsing} / 전체 소비자 {d.code.dsTotalConsumer}</span><span>목표 ↑</span></div>
+              <div className="bar-row"><span className="mono">DS 사용 {d.code.dsFilesUsing} / 전체 소비자 {d.code.dsTotalConsumer}</span><span>목표 ≥ 80%</span></div>
               <div className="card-desc">DS 컴포넌트를 import 하는 파일 비율. 높을수록 좋음.</div>
               <TrendReserved note="↑ 상승 필요" />
             </Card>
@@ -127,7 +132,7 @@ const DATA = window.__SUMMARY_DATA;
             <Card label="TypeScript 마이그레이션" belowThreshold>
               <div className="numwrap"><span className="num warn">{pct(d.code.tsRatio, 1)}</span><span className="unit">%</span></div>
               <div className="bar"><div className="bar-fill bad" style={{width: `${pct(d.code.tsRatio)}%`}} /></div>
-              <div className="bar-row"><span className="mono">{d.code.tsFiles} ts / {d.code.tsFiles + d.code.jsFiles} 전체</span><span>기준 ≥ 90%</span></div>
+              <div className="bar-row"><span className="mono">{d.code.tsFiles} ts / {d.code.tsFiles + d.code.jsFiles} 전체</span><span>목표 ≥ 90%</span></div>
               <div className="card-hint"><ArrowUp /><span><strong>상승 필요</strong> — 대부분 JS. 디렉토리별 분포는 Code 탭에서 확인 (Top: apps/ecosystem · apps/material · store).</span></div>
               <TrendReserved note="↑ 상승 필요" />
             </Card>
@@ -144,46 +149,69 @@ const DATA = window.__SUMMARY_DATA;
             <div className="stamp">측정 <span className="mono">{d.stamp.lighthouse}</span></div>
           </div>
           <div className="grid">
-            <Card label="Performance 평균" tags={<span className="tag met"><span className="tdot" />기준 도달</span>}>
-              <div className="numwrap"><span className="num good">{(d.lh.avgPerf * 100).toFixed(1)}</span><span className="unit">/ 100</span></div>
-              <div className="bar"><div className="bar-fill good" style={{width: `${d.lh.avgPerf * 100}%`}} /></div>
-              <div className="bar-row"><span>10 URL · {d.lh.runs}-run median</span><span>범위 88 – 93</span></div>
-              <div className="card-desc">전체적으로 안정. 회귀 감시 용도로 관찰.</div>
-              <TrendReserved />
-            </Card>
+            {(() => {
+              // v0.10 (2026-04-29) 작업 1: Summary Lighthouse 4 카드 표기 통일.
+              // urlTable 에서 metric 별 min/max 자동 derive. min === max 면 단일 값만.
+              const fmtRange = (xs) => {
+                const mn = Math.min(...xs), mx = Math.max(...xs);
+                return mn === mx
+                  ? `${(mn * 100).toFixed(1)}`
+                  : `${(mn * 100).toFixed(1)} – ${(mx * 100).toFixed(1)}`;
+              };
+              const measure = `${d.lh.urls} URL · ${d.lh.runs}-run median`;
+              const perfRange = fmtRange(d.lh.urlTable.map(r => r[1]));
+              const a11yRange = fmtRange(d.lh.urlTable.map(r => r[2]));
+              const bpRange   = fmtRange(d.lh.urlTable.map(r => r[3]));
+              const seoRange  = fmtRange(d.lh.urlTable.map(r => r[4]));
+              return (
+                <React.Fragment>
+                  <Card label="Performance 평균" tags={<span className="tag met"><span className="tdot" />기준 도달</span>}>
+                    <div className="numwrap"><span className="num good">{(d.lh.avgPerf * 100).toFixed(1)}</span><span className="unit">/ 100</span></div>
+                    <div className="bar"><div className="bar-fill good" style={{width: `${d.lh.avgPerf * 100}%`}} /></div>
+                    <div className="bar-row"><span>{measure} · 범위 {perfRange}</span><span>목표 ≥ 90</span></div>
+                    <div className="card-desc">전체적으로 안정. 회귀 감시 용도로 관찰.</div>
+                    <TrendReserved />
+                  </Card>
 
-            <Card label="Accessibility 평균" belowThreshold>
-              <div className="numwrap"><span className="num warn">{(d.lh.avgA11y * 100).toFixed(1)}</span><span className="unit">/ 100</span></div>
-              <div className="bar"><div className="bar-fill warn" style={{width: `${d.lh.avgA11y * 100}%`}} /></div>
-              <div className="bar-row"><span>10 URL 평균</span><span>목표 ≥ 90</span></div>
-              <div className="emph-row" style={{marginTop:8}}>
-                <span className="k">최저 · {d.lh.worst.url}</span>
-                <span className="v" style={{color:"var(--bad-ink)"}}>{(d.lh.worst.a11y * 100).toFixed(1)}</span>
-              </div>
-              <div className="card-hint"><ArrowUp /><span>컴포넌트 교체가 label · aria 개선으로 이어질 것으로 예상.</span></div>
-              <TrendReserved note="↑ 상승 필요" />
-            </Card>
+                  <Card label="Accessibility 평균" belowThreshold>
+                    <div className="numwrap"><span className="num warn">{(d.lh.avgA11y * 100).toFixed(1)}</span><span className="unit">/ 100</span></div>
+                    <div className="bar"><div className="bar-fill warn" style={{width: `${d.lh.avgA11y * 100}%`}} /></div>
+                    <div className="bar-row"><span>{measure} · 범위 {a11yRange}</span><span>목표 ≥ 90</span></div>
+                    <div className="emph-row" style={{marginTop:8}}>
+                      <span className="k">최저 · {d.lh.worst.url}</span>
+                      <span className="v" style={{color:"var(--bad-ink)"}}>{(d.lh.worst.a11y * 100).toFixed(1)}</span>
+                    </div>
+                    <div className="card-hint"><ArrowUp /><span>컴포넌트 교체가 label · aria 개선으로 이어질 것으로 예상.</span></div>
+                    <TrendReserved note="↑ 상승 필요" />
+                  </Card>
 
-            <Card label="Best Practices · SEO" tags={<span className="tag met"><span className="tdot" />기준 도달</span>}>
-              <div style={{display:"flex", gap:24, alignItems:"flex-start", marginTop:4}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:11, color:"var(--ink-3)", fontWeight:500, marginBottom:4}}>Best Practices</div>
-                  <div className="numwrap" style={{margin:0}}>
-                    <span className="num" style={{fontSize:32}}>{(d.lh.avgBP*100).toFixed(1)}</span>
-                    <span className="unit" style={{fontSize:13}}>/ 100</span>
-                  </div>
-                </div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:11, color:"var(--ink-3)", fontWeight:500, marginBottom:4}}>SEO</div>
-                  <div className="numwrap" style={{margin:0}}>
-                    <span className="num" style={{fontSize:32}}>{(d.lh.avgSeo*100).toFixed(1)}</span>
-                    <span className="unit" style={{fontSize:13}}>/ 100</span>
-                  </div>
-                </div>
-              </div>
-              <div className="card-desc" style={{marginTop:16}}>두 지표 모두 임계치 이상. 직접 개선 대상 아님.</div>
-              <TrendReserved />
-            </Card>
+                  <Card label="Best Practices · SEO" tags={<span className="tag met"><span className="tdot" />기준 도달</span>}>
+                    <div style={{display:"flex", gap:24, alignItems:"flex-start", marginTop:4}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:11, color:"var(--ink-3)", fontWeight:500, marginBottom:4}}>Best Practices</div>
+                        <div className="numwrap" style={{margin:0}}>
+                          <span className="num" style={{fontSize:32}}>{(d.lh.avgBP*100).toFixed(1)}</span>
+                          <span className="unit" style={{fontSize:13}}>/ 100</span>
+                        </div>
+                        <div style={{fontSize:11, color:"var(--ink-3)", marginTop:6}}>{measure}</div>
+                        <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>범위 {bpRange}</div>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:11, color:"var(--ink-3)", fontWeight:500, marginBottom:4}}>SEO</div>
+                        <div className="numwrap" style={{margin:0}}>
+                          <span className="num" style={{fontSize:32}}>{(d.lh.avgSeo*100).toFixed(1)}</span>
+                          <span className="unit" style={{fontSize:13}}>/ 100</span>
+                        </div>
+                        <div style={{fontSize:11, color:"var(--ink-3)", marginTop:6}}>{measure}</div>
+                        <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>범위 {seoRange}</div>
+                      </div>
+                    </div>
+                    <div className="card-desc" style={{marginTop:16}}>두 지표 모두 임계치 이상. 직접 개선 대상 아님.</div>
+                    <TrendReserved />
+                  </Card>
+                </React.Fragment>
+              );
+            })()}
           </div>
         </div>
 
@@ -204,7 +232,7 @@ const DATA = window.__SUMMARY_DATA;
                 <span className="sub-num">· {d.figma.dsNewMatched} / {d.figma.dsNewTotal}</span>
               </div>
               <div className="bar"><div className="bar-fill warn" style={{width: `${(d.figma.dsNewMatched / d.figma.dsNewTotal) * 100}%`}} /></div>
-              <div className="bar-row"><span>새 DS 토큰 (Styles) 가 코드에 반영된 비율</span></div>
+              <div className="bar-row"><span>새 DS 토큰 (Styles) 가 코드에 반영된 비율</span><span>목표 ↑</span></div>
               <div className="card-hint"><ArrowUp /><span><strong>상승 필요</strong> — Variables 는 plan 제약으로 미포함.</span></div>
               <TrendReserved note="↑ 상승 필요" />
             </Card>
@@ -220,7 +248,7 @@ const DATA = window.__SUMMARY_DATA;
                     <div className="numwrap"><span className="num warn">{(ratio*100).toFixed(1)}</span><span className="unit">%</span></div>
                     <div className="bar"><div className="bar-fill warn" style={{width: `${ratio*100}%`}} /></div>
                     <div className="bar-row"><span className="mono">Primary (ds-new) {inNew.toLocaleString()} / 전체 {totalInst.toLocaleString()}</span><span>목표 ↑</span></div>
-                    <div className="card-desc">전체 instance 중 primary DS (ds-new) 사용 비율. ds-legacy 84.1%, unmatched 0.3% 는 Figma 탭 통합 카드에서 분포 확인.</div>
+                    <div className="card-desc">전체 instance 중 primary DS (ds-new) 사용 비율. ds-legacy {((inLegacy/totalInst)*100).toFixed(1)}%, unmatched {((d.figma.unmatchedInstances/totalInst)*100).toFixed(1)}% 는 Figma 탭 통합 카드에서 분포 확인.</div>
                   </React.Fragment>
                 );
               })()}
@@ -232,7 +260,7 @@ const DATA = window.__SUMMARY_DATA;
               <div className="emph-row"><span className="k">전체 instance</span><span className="v">{d.figma.totalInstances.toLocaleString()}</span></div>
               <div className="emph-row"><span className="k">ds-legacy 사용</span><span className="v">{d.figma.instanceSources["ds-legacy"].toLocaleString()}</span></div>
               <div className="emph-row"><span className="k">ds-new 사용</span><span className="v">{d.figma.instanceSources["ds-new"].toLocaleString()}</span></div>
-              <div className="card-hint"><ArrowDown /><span>어떤 DS 에도 속하지 않은 instance. <strong>1차 마이그레이션 대상</strong>.</span></div>
+              <div className="card-hint"><ArrowDown /><span>어떤 DS 에도 속하지 않은 instance · <strong>감소 필요</strong>.</span></div>
               <TrendReserved note="↓ 감소 필요" />
             </Card>
           </div>

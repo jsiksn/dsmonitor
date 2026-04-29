@@ -776,22 +776,29 @@ function TsByDir({ t }) {
 }
 
 // ---------- main CodeTab ----------
+// v0.10 (2026-04-29): 카드 컴포넌트 배열로 분리. window.CodeTab_CardCount 자동 export.
+// 카드 추가/제거 시 root.jsx Tabs 의 카운트 자동 반영 — hardcoded 동기화 의무 제거.
+const CODE_CARD_SECTIONS = [
+  ForbiddenSection,
+  MigrationSection,
+  TotalsSection,
+  StylingMethodSection,
+  ScssSection,
+  HardcodedSection,
+  DsCoverageSection,
+  TsSection,
+];
+
 function CodeTab() {
   const d = window.__CODE_DATA;
   if (!d) return <div className="skeleton-note">데이터 로딩 중…</div>;
   return (
     <div className="code-tab">
-      <ForbiddenSection d={d} />
-      <MigrationSection d={d} />
-      <TotalsSection d={d} />
-      <StylingMethodSection d={d} />
-      <ScssSection d={d} />
-      <HardcodedSection d={d} />
-      <DsCoverageSection d={d} />
-      <TsSection d={d} />
+      {CODE_CARD_SECTIONS.map((S, i) => <S key={i} d={d} />)}
     </div>
   );
 }
 
 window.CodeTab_Detail = CodeTab;
+window.CodeTab_CardCount = CODE_CARD_SECTIONS.length;
 document.dispatchEvent(new Event("__code-tab-ready"));

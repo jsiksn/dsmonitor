@@ -107,7 +107,7 @@ function MatrixSection({ urls, averages }) {
 }
 
 // ---------- Sections 2–5 — Category breakdown ----------
-function CategorySection({ title, field, metric, urls, average, hint }) {
+function CategorySection({ title, field, metric, urls, average, hint, runs }) {
   const sorted = [...urls].sort((a, b) => a[metric] - b[metric]);
   const lowest = sorted[0];
   const highest = sorted[sorted.length - 1];
@@ -124,7 +124,8 @@ function CategorySection({ title, field, metric, urls, average, hint }) {
             <span className="lh-unit">{" / 100"}</span>
           </div>
           <div className="lh-cat-num-meta">
-            <span>{urls.length} URL median 평균</span>
+            {/* v0.10 note 10: Summary 탭 "10 URL · 3-run median" 표기와 일관성. */}
+            <span>{runs != null ? `${urls.length} URL · ${runs}-run median` : `${urls.length} URL median 평균`}</span>
             <span className="sep">·</span>
             <span>{`범위 ${(min*100).toFixed(1)} – ${(max*100).toFixed(1)}`}</span>
           </div>
@@ -287,22 +288,22 @@ function LighthouseTabDetail() {
 
       <CategorySection
         title="Accessibility" field="lighthouse.a11y" metric="a11y"
-        urls={d.urls} average={d.averages.a11y}
+        urls={d.urls} average={d.averages.a11y} runs={d.numberOfRuns}
         hint="↑ 컴포넌트 교체가 label · aria 개선으로 이어질 것으로 예상."
       />
       <CategorySection
         title="Performance" field="lighthouse.perf" metric="perf"
-        urls={d.urls} average={d.averages.perf}
+        urls={d.urls} average={d.averages.perf} runs={d.numberOfRuns}
         hint="전체적으로 안정. 회귀 감시 용도로 관찰."
       />
       <CategorySection
         title="Best Practices" field="lighthouse.bp" metric="bp"
-        urls={d.urls} average={d.averages.bp}
+        urls={d.urls} average={d.averages.bp} runs={d.numberOfRuns}
         hint={`${d.urls.length} URL 모두 동일 점수 — 회귀 감시 용도.`}
       />
       <CategorySection
         title="SEO" field="lighthouse.seo" metric="seo"
-        urls={d.urls} average={d.averages.seo}
+        urls={d.urls} average={d.averages.seo} runs={d.numberOfRuns}
         hint="회귀 감시 용도."
       />
 
