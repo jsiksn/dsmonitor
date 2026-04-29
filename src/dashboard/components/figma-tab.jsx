@@ -161,6 +161,7 @@ function TokenMatchSection({ d }) {
         }}>
           <div>
             <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>ds-new</div>
+            <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>기준</div>
           </div>
           <div className="bar-track" style={{ margin: 0 }}>
             <div className="bar-track-fill" style={{ width: `${newRatio * 100}%`, background: "var(--bad)" }} />
@@ -327,7 +328,7 @@ function DsInstanceShareSection({ d }) {
   const unmatchedPct = (unmatchedRatio * 100).toFixed(1);
 
   const rows = [
-    { k: "ds-new",    v: newCnt,    pct: newPct,       color: "var(--accent)", primary: true,  note: "" },
+    { k: "ds-new",    v: newCnt,    pct: newPct,       color: "var(--accent)", primary: false, note: "기준" },
     { k: "ds-legacy", v: legacyCnt, pct: legacyPct,    color: "var(--ink-3)",  primary: false, note: "참고 · 장기 감소 기대" },
     { k: "unmatched", v: unmatched, pct: unmatchedPct, color: "var(--bad)",    primary: false, note: "DS 범위 밖" },
   ];
@@ -554,15 +555,23 @@ function FigmaTab() {
   if (!d) return <div className="skeleton-note">데이터 로딩 중…</div>;
   return (
     <div className="figma-tab">
+      {/* 헤더 — 카드 카운트 제외 (사용자 인지 상 "섹션" 분류 안 됨) */}
       <MeasurementScope d={d} />
-      <TokenMatchSection d={d} />
-      <TokenMatrixSection d={d} />
-      <DsInstanceShareSection d={d} />
-      <MigrationPrioritySection d={d} />
-      <UnmatchedSection d={d} />
+      {FIGMA_CARD_SECTIONS.map((S, i) => <S key={i} d={d} />)}
     </div>
   );
 }
 
+// v0.10 (2026-04-29): 카드 컴포넌트 배열로 분리. window.FigmaTab_CardCount 자동 export.
+// MeasurementScope 는 헤더라 카운트 제외 — 사용자 인지 상 "섹션" 5개 (현재 후속 4 작업 후).
+const FIGMA_CARD_SECTIONS = [
+  TokenMatchSection,
+  TokenMatrixSection,
+  DsInstanceShareSection,
+  MigrationPrioritySection,
+  UnmatchedSection,
+];
+
 window.FigmaTab_Detail = FigmaTab;
+window.FigmaTab_CardCount = FIGMA_CARD_SECTIONS.length;
 document.dispatchEvent(new Event("__figma-tab-ready"));
