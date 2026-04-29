@@ -15,6 +15,7 @@
  */
 
 import type {
+  ClassIndex,
   UIHealthConfig,
   FigmaReport,
   FigmaDesignSystemCount,
@@ -38,6 +39,10 @@ import {
 import { validateSameFile } from "./figma/fileKeyValidator";
 import { loadCodeTokens } from "./codeTokens";
 import { buildTokenMatrix, type TokenMatrixDsInput } from "./tokenMatrix";
+import {
+  analyzeComponentMatch,
+  dsInputsFromCounts,
+} from "./figma/componentMatch";
 
 /**
  * analyzeCodebase 와 동일하게 attachAbsRoot 가 주입한 __absRoot 를 사용.
@@ -50,8 +55,14 @@ type Cfg = UIHealthConfig & { __absRoot: string };
  *
  * `cfg.metrics.figmaAnalysis` 가 false 면 호출 자체를 안 함 — cli.ts 에서 게이팅.
  * 이 함수는 `true` 전제로 동작. 검증 실패 시 명확한 에러 throw.
+ *
+ * @param classIndex (B 그룹 단계 3, 2026-04-29) 코드 className 인덱스. analyzeCodebase
+ *   결과에서 전달. 미제공 시 컴포넌트 매칭 (componentMatch) 영역 미생성.
  */
-export async function analyzeFigma(cfg: Cfg): Promise<FigmaReport> {
+export async function analyzeFigma(
+  cfg: Cfg,
+  classIndex?: ClassIndex
+): Promise<FigmaReport> {
   // ───── 1. 초기 검증 ─────
   if (!cfg.figma) {
     throw new Error(
@@ -199,6 +210,34 @@ export async function analyzeFigma(cfg: Cfg): Promise<FigmaReport> {
     registeredLabels
   );
 
+  // ───── 6. 컴포넌트 매칭 (B 그룹 단계 3, 2026-04-29) ─────
+  // classIndex 미제공 시 (figma 단독 호출 등) 영역 자체 생략.
+  // 본질: Figma DS 컴포넌트 (variantGroup + standalone) 이름 ↔ 코드 className 매칭.
+  let componentMatch: FigmaReport["componentMatch"];
+  if (classIndex) {
+    const dsInputs = dsInputsFromCounts(designSystemCounts);
+    componentMatch = analyzeComponentMatch(dsInputs, classIndex);
+    console.log(
+      `[figma] componentMatch: total=${componentMatch.totals.figmaTotal}, ` +
+        `matched=${componentMatch.totals.matched} (${(
+          componentMatch.totals.matchRatio * 100
+        ).toFixed(1)}%), ` +
+        `figmaOnly=${componentMatch.totals.figmaOnly}, codeOnly=${componentMatch.totals.codeOnly}`
+    );
+    for (const [label, s] of Object.entries(componentMatch.summary)) {
+      console.log(
+        `[figma]   "${label}": matched=${s.matched}/${s.figmaTotal} (${(
+          s.matchRatio * 100
+        ).toFixed(1)}%) — both=${s.matchedBreakdown.both}, ` +
+          `jsxOnly=${s.matchedBreakdown.jsxOnly}, globalCssOnly=${s.matchedBreakdown.globalCssOnly}`
+      );
+    }
+  } else {
+    console.log(
+      `[figma] componentMatch: classIndex 미제공 (figma 단독 호출 등) — 영역 생략`
+    );
+  }
+
   const report: FigmaReport = {
     generatedAt: new Date().toISOString(),
     validationLevel: fc.validationLevel,
@@ -207,6 +246,7 @@ export async function analyzeFigma(cfg: Cfg): Promise<FigmaReport> {
     instanceSources,
     domainResults: domainResultsTree,
     tokenMatrix,
+    componentMatch,
     errors,
     warnings,
   };

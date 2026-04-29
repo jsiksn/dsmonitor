@@ -8,7 +8,12 @@
  * derive 추가.
  */
 
-import type { FigmaConfig, FigmaDomainResult, FigmaReport } from "../../types";
+import type {
+  FigmaConfig,
+  FigmaDomainResult,
+  FigmaReport,
+  TokenMatrix,
+} from "../../types";
 import type {
   FigmaDomainSummaryEntry,
   FigmaFrameRankingEntry,
@@ -56,6 +61,12 @@ export function baselineToFigmaData(
   const frameRanking = buildFrameRanking(figma.domainResults, primaryLabel);
   const domainSummary = buildDomainSummary(figma.domainResults, primaryLabel);
 
+  // tokenMatrix 영역 derive (3차 시각 검증 후 보정 2, 2026-04-29 후속).
+  // v0.9 note 12 의 transformer flat 화 패턴 누락 보완 — 시안 figma-tab.jsx
+  // TokenMatrixSection 이 기대하는 형식 (rows c/dn/dl + summary both/codeOnly/dsOnly).
+  // baseline JSON 영역은 안 건드림 (시계열 보존). 다른 프로젝트 호환성 별도 트랙.
+  const tokenMatrixForUi = enrichTokenMatrix(figma.tokenMatrix);
+
   return {
     stamp,
     measurementScope: {
@@ -63,7 +74,7 @@ export function baselineToFigmaData(
       domainNames,
       frames,
     },
-    tokenMatrix: figma.tokenMatrix,
+    tokenMatrix: tokenMatrixForUi,
     instanceSources: figma.instanceSources,
     domainResults: figma.domainResults,
     dsStats: figma.tokenMatrix.summary.dsStats,
@@ -71,6 +82,67 @@ export function baselineToFigmaData(
     totalInstances: figma.instanceAnalysis.totalInstances,
     frameRanking,
     domainSummary,
+    // B 그룹 단계 3 (2026-04-29): 컴포넌트 매칭 — baseline 에 영역 미존재 시 null.
+    componentMatch: figma.componentMatch ?? null,
+  };
+}
+
+/**
+ * tokenMatrix 를 시안 figma-tab.jsx TokenMatrixSection 기대 형식으로 enrich.
+ *
+ * 추가 영역:
+ *   - rows[i].n / .c / .dn / .dl  — flat 형식 (시안 직접 접근)
+ *   - summary.both / .codeOnly / .dsOnly — 분류 카운트
+ *
+ * 옛 형식 (rows[i].name / .inCode / .inDs, summary.totalUniqueTokens 등) 도 보존
+ * — baseline JSON 형식과 호환 (다른 코드 영역 의존 시).
+ *
+ * derive 정의:
+ *   - both     = code 매칭 + 어떤 DS 에라도 매칭
+ *   - codeOnly = code 매칭 + 모든 DS 미매칭
+ *   - dsOnly   = code 미매칭 + 어떤 DS 에라도 매칭
+ *   - (code 미매칭 + 모든 DS 미매칭 케이스는 row 자체 등장 안 함 — 분류 외)
+ */
+function enrichTokenMatrix(tm: TokenMatrix): TokenMatrix & {
+  rows: Array<TokenMatrix["rows"][number] & {
+    n: string;
+    c: 0 | 1;
+    dn: 0 | 1;
+    dl: 0 | 1;
+  }>;
+  summary: TokenMatrix["summary"] & {
+    both: number;
+    codeOnly: number;
+    dsOnly: number;
+  };
+} {
+  let both = 0;
+  let codeOnly = 0;
+  let dsOnly = 0;
+
+  const enrichedRows = tm.rows.map((r) => {
+    const inCode = r.inCode.exists;
+    const inNew = r.inDs["ds-new"]?.exists ?? false;
+    const inLegacy = r.inDs["ds-legacy"]?.exists ?? false;
+    const inAnyDs = inNew || inLegacy;
+
+    if (inCode && inAnyDs) both += 1;
+    else if (inCode && !inAnyDs) codeOnly += 1;
+    else if (!inCode && inAnyDs) dsOnly += 1;
+
+    return {
+      ...r,
+      n: r.name,
+      c: (inCode ? 1 : 0) as 0 | 1,
+      dn: (inNew ? 1 : 0) as 0 | 1,
+      dl: (inLegacy ? 1 : 0) as 0 | 1,
+    };
+  });
+
+  return {
+    ...tm,
+    rows: enrichedRows,
+    summary: { ...tm.summary, both, codeOnly, dsOnly },
   };
 }
 

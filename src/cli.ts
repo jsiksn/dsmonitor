@@ -152,6 +152,12 @@ async function main() {
       const report = JSON.parse(raw) as CodebaseReport;
       const fT0 = Date.now();
       try {
+        // --only figma 는 코드 측정을 다시 하지 않으므로 classIndex 미제공.
+        // 컴포넌트 매칭 (B 그룹 단계 3) 영역 미생성 — 통합 측정 (npm run ui-health) 시점에만 산출.
+        console.log(
+          `[vitaui]   note: --only figma 는 componentMatch 영역 미생성 ` +
+            `(코드 인덱스 필요). 통합 측정 사용 권장.`
+        );
         report.figma = await analyzeFigma(cfg);
         const figmaElapsed = Date.now() - fT0;
         console.log(`[vitaui] figma analysis done in ${figmaElapsed}ms`);
@@ -169,7 +175,9 @@ async function main() {
     // 기본 흐름 (--only 미지정 또는 --only code)
     console.log(`[vitaui] analyzing codebase...`);
     const t0 = Date.now();
-    const report = await analyzeCodebase(cfg);
+    // B 그룹 단계 3 (2026-04-29): analyzeCodebase 가 { report, classIndex } 반환.
+    // classIndex 는 figma analyzer 의 컴포넌트 매칭 (B 그룹 단계 3) 분자 source.
+    const { report, classIndex } = await analyzeCodebase(cfg);
     const codebaseElapsed = Date.now() - t0;
     console.log(`[vitaui] codebase analysis done in ${codebaseElapsed}ms`);
 
@@ -179,7 +187,7 @@ async function main() {
       console.log(`[vitaui] figma baseline enabled — analyzing...`);
       const fT0 = Date.now();
       try {
-        report.figma = await analyzeFigma(cfg);
+        report.figma = await analyzeFigma(cfg, classIndex);
         const figmaElapsed = Date.now() - fT0;
         console.log(`[vitaui] figma analysis done in ${figmaElapsed}ms`);
       } catch (e) {

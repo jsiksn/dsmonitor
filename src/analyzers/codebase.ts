@@ -6,6 +6,7 @@ import postcssScss from "postcss-scss";
 import type {
   UIHealthConfig,
   CodebaseReport,
+  ClassIndex,
   SourceFile,
   PreferredComplianceMeta,
 } from "../types";
@@ -203,7 +204,8 @@ function analyzeStyling(
   codeFiles: SourceFile[],
   cfg: Cfg,
   adapter: FrameworkAdapter,
-  globalIndex: Set<string>
+  globalIndex: Set<string>,
+  jsxUsedOut: Set<string>
 ): {
   distribution: CodebaseReport["stylingMethodDistribution"];
   forbidden: CodebaseReport["forbiddenClassCount"];
@@ -242,6 +244,11 @@ function analyzeStyling(
     totalFiles += 1;
     const parsed = adapter.parse(f.content, f.relPath);
     const signals = adapter.extractSignals(parsed);
+    // jsxUsedClassNames 누적 — 컴포넌트 매칭 (B 그룹 단계 3) 의 분자 source.
+    // tokenize 로 split (className="foo bar baz" → ["foo","bar","baz"]).
+    for (const cn of signals.classNames) {
+      for (const tok of tokenize(cn)) jsxUsedOut.add(tok);
+    }
     let matchedAny = false;
 
     for (const a of policy.allowed) {
@@ -639,7 +646,9 @@ function emptyDist(cfg: Cfg): CodebaseReport["stylingMethodDistribution"] {
   };
 }
 
-export async function analyzeCodebase(cfg: Cfg): Promise<CodebaseReport> {
+export async function analyzeCodebase(
+  cfg: Cfg
+): Promise<{ report: CodebaseReport; classIndex: ClassIndex }> {
   const adapter = getFrameworkAdapter(cfg.framework.id);
   const [codeFiles, styleFiles] = await Promise.all([
     collectCodeFiles(cfg),
@@ -659,8 +668,12 @@ export async function analyzeCodebase(cfg: Cfg): Promise<CodebaseReport> {
     ? await buildGlobalClassIndex(cfg)
     : new Set<string>();
 
+  // 컴포넌트 매칭 (B 그룹 단계 3) 분자용 jsx className 인덱스.
+  // analyzeStyling 안 walk 에서 같이 누적 — 별도 walk 회피.
+  const jsxUsedClassNames = new Set<string>();
+
   const stylingResult = cfg.metrics.stylingDistribution
-    ? analyzeStyling(codeFiles, cfg, adapter, globalIndex)
+    ? analyzeStyling(codeFiles, cfg, adapter, globalIndex, jsxUsedClassNames)
     : {
         distribution: emptyDist(cfg),
         forbidden: { byId: {}, total: 0, topFiles: [] },
@@ -696,7 +709,7 @@ export async function analyzeCodebase(cfg: Cfg): Promise<CodebaseReport> {
     (f) => !isDsPath(f.relPath, cfg) && isComponentFile(f, cfg)
   ).length;
 
-  return {
+  const report: CodebaseReport = {
     generatedAt: new Date().toISOString(),
     projectRoot: cfg.__absRoot,
     totals: {
@@ -714,5 +727,13 @@ export async function analyzeCodebase(cfg: Cfg): Promise<CodebaseReport> {
     tsMigration: ts,
     dsCoverage: ds,
     migrationCandidates: migration,
+  };
+
+  return {
+    report,
+    classIndex: {
+      globalClassNames: globalIndex,
+      jsxUsedClassNames,
+    },
   };
 }

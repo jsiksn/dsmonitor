@@ -8,6 +8,7 @@
 
 import type {
   CodebaseReport,
+  FigmaComponentMatch,
   FigmaReport,
   PreferredComplianceMeta,
   TokenMatrix,
@@ -73,6 +74,12 @@ export interface FigmaTabData {
   frameRanking: FigmaFrameRankingEntry[];
   /** 도메인 단위 합산 — config 순서 보존. */
   domainSummary: FigmaDomainSummaryEntry[];
+  /**
+   * 컴포넌트 매칭 (B 그룹 단계 3, 2026-04-29).
+   * Figma DS 컴포넌트 (variantGroup + standalone) ↔ 코드 className 매칭 결과.
+   * baseline.figma.componentMatch 미존재 시 null — figma-tab 가 카드 숨김.
+   */
+  componentMatch: FigmaComponentMatch | null;
 }
 
 /**

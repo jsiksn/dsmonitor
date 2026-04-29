@@ -128,7 +128,7 @@ function TokenMatchSection({ d }) {
         <div className="kv-side">
           <div className="kv-row">
             <span className="k">측정 범위</span>
-            <span className="v">Styles 만</span>
+            <span className="v">Styles만</span>
           </div>
           <div className="kv-row">
             <span className="k">Primary (ds-new)</span>
@@ -202,7 +202,7 @@ function TokenMatchSection({ d }) {
       </div>
 
       <FNote>
-        현재 측정 범위: <strong>Styles 만</strong>. Variables API 는 Enterprise plan 미보유로 조회 불가 — 다음 측정 시 plan 변경 시 자동 포함.
+        현재 측정 범위: <strong>Styles만</strong>. Variables API 는 Enterprise plan 미보유로 조회 불가 — 다음 측정 시 plan 변경 시 자동 포함.
       </FNote>
     </FSection>
   );
@@ -236,11 +236,11 @@ function TokenMatrixSection({ d }) {
             <span className="v mono">{summary.both}</span>
           </div>
           <div className="kv-row">
-            <span className="k">code 만 (DS 미등록)</span>
+            <span className="k">code만 (DS 미등록)</span>
             <span className="v mono">{summary.codeOnly}</span>
           </div>
           <div className="kv-row">
-            <span className="k">DS 만 (코드 미사용)</span>
+            <span className="k">DS만 (코드 미사용)</span>
             <span className="v mono">{summary.dsOnly}</span>
           </div>
         </div>
@@ -249,13 +249,13 @@ function TokenMatrixSection({ d }) {
       {/* mini stack bar */}
       <div className="stack-bar" style={{ display: "flex", height: 12, borderRadius: 4, overflow: "hidden", marginTop: 4, background: "var(--bg-sunken)" }}>
         <div title={`code+DS 양쪽: ${summary.both}`} style={{ width: `${(summary.both/rows.length)*100}%`, background: "var(--good)" }} />
-        <div title={`code 만: ${summary.codeOnly}`} style={{ width: `${(summary.codeOnly/rows.length)*100}%`, background: "var(--warn)" }} />
-        <div title={`DS 만: ${summary.dsOnly}`} style={{ width: `${(summary.dsOnly/rows.length)*100}%`, background: "var(--ink-4)" }} />
+        <div title={`code만: ${summary.codeOnly}`} style={{ width: `${(summary.codeOnly/rows.length)*100}%`, background: "var(--warn)" }} />
+        <div title={`DS만: ${summary.dsOnly}`} style={{ width: `${(summary.dsOnly/rows.length)*100}%`, background: "var(--ink-4)" }} />
       </div>
       <div className="bar-track-legend" style={{ marginTop: 6 }}>
         <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--good)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />양쪽 {summary.both}</span>
-        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--warn)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />code 만 {summary.codeOnly}</span>
-        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--ink-4)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />DS 만 {summary.dsOnly}</span>
+        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--warn)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />code만 {summary.codeOnly}</span>
+        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--ink-4)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />DS만 {summary.dsOnly}</span>
       </div>
 
       <FDisclosure summary={`전체 ${rows.length} 행 매트릭스 펼치기`} count={rows.length}>
@@ -442,7 +442,7 @@ function MigrationPrioritySection({ d }) {
       direction={{ kind: "up-good", label: "primary 비중 높을수록" }}
     >
       <FNote>
-        분모는 프레임 안 INSTANCE (DS 컴포넌트 사용) 만. 직접 그린 도형 / 텍스트는 미카운트.
+        분모는 프레임 안 INSTANCE (DS 컴포넌트 사용)만. 직접 그린 도형 / 텍스트는 미카운트.
         primary (ds-new) 비중 낮은 프레임 우선 작업.
       </FNote>
 
@@ -496,6 +496,279 @@ function MigrationPrioritySection({ d }) {
             </div>
           ))}
         </div>
+      )}
+    </FSection>
+  );
+}
+
+// ---------- component match (B 그룹 단계 3, 2026-04-29) ----------
+// Figma DS variantGroup 이름 ↔ 코드 className (글로벌 인덱스 + jsx 사용) 매칭.
+// 본 프로젝트 정책 (Figma 이름 = CSS class 동기화) 활용한 정확 일치 (B1).
+function ComponentMatchSection({ d }) {
+  const cm = d.componentMatch;
+  if (!cm) return null;
+
+  const { totals, summary } = cm;
+  const totalPct = totals.figmaTotal === 0 ? 0 : (totals.matchRatio * 100);
+  // 본 프로젝트 thresholds.componentMatch — good 0.7 / warn 0.4. 본 카드 자체 색 결정.
+  const badgeKind =
+    totals.matchRatio >= 0.7
+      ? "met"
+      : totals.matchRatio >= 0.4
+      ? "note"
+      : "below";
+  const primaryInk =
+    badgeKind === "below" ? "var(--bad-ink)"
+    : badgeKind === "met" ? "var(--good-ink)"
+    : "var(--ink)";
+
+  // DS 별 row — ds-new 우선 정렬 (다른 카드와 시각 일관성).
+  // analyzer 는 config 순서 보존 (Phase 0.6 호환). 표시 단에서 정렬.
+  const dsLabels = Object.keys(summary).sort((a, b) => {
+    if (a === "ds-new") return -1;
+    if (b === "ds-new") return 1;
+    return 0;
+  });
+
+  return (
+    <FSection
+      id="component-match"
+      field="figma.componentMatch"
+      title="DS 컴포넌트 구현 매칭"
+      status={{ kind: badgeKind, label:
+        badgeKind === "met" ? "기준 도달"
+        : badgeKind === "note" ? "참고"
+        : "기준 미달"
+      }}
+      direction={{ kind: "up-good" }}
+    >
+      {/* primary big number */}
+      <div className="kv-grid">
+        <div className="kv-big">
+          <div className="kv-num mono" style={{ color: primaryInk }}>{totalPct.toFixed(1)}</div>
+          <div className="kv-unit">%</div>
+          <div className="kv-cap">
+            <strong>합계 매칭률</strong> · {totals.matched} / {totals.figmaTotal}
+          </div>
+        </div>
+        <div className="kv-side">
+          <div className="kv-row">
+            <span className="k">측정 범위</span>
+            <span className="v">variantGroup + standalone</span>
+          </div>
+          <div className="kv-row">
+            <span className="k">Figma만 (코드 미사용)</span>
+            <span className="v mono">{totals.figmaOnly}</span>
+          </div>
+          <div className="kv-row">
+            <span className="k">코드만 (DS 정의 없음)</span>
+            <span className="v mono">{totals.codeOnly}</span>
+          </div>
+          <div className="kv-row">
+            <span className="k">목표</span>
+            <span className="v mono">≥ 70%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* per-DS rows — matched 3 영역 stack 막대 (보정 1+4, 2026-04-29 후속):
+          both (녹색) / jsxOnly (주황) / cssOnly (회색). figmaOnly 영역 = 빈 영역 (.bar-track
+          배경 --border-strong 자동 노출 — 보정 6). DsInstanceShareSection 막대 패턴과 본질 동일. */}
+      <div className="csect-subhead">
+        <h4>DS 별 매칭률</h4>
+        <span className="csect-field mono">summary[label]</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+        {dsLabels.map((label, i) => {
+          const s = summary[label];
+          const ratio = s.matchRatio;
+          const pct = (ratio * 100).toFixed(1);
+          const isPrimary = label === "ds-new";
+          const numInk =
+            ratio >= 0.7 ? "var(--good-ink)"
+            : ratio >= 0.4 ? "var(--warn-ink)"
+            : "var(--bad-ink)";
+          // primary border 색은 매칭률 기반 (카드 left border만).
+          const borderColor =
+            ratio >= 0.7 ? "var(--good)"
+            : ratio >= 0.4 ? "var(--warn)"
+            : "var(--bad)";
+
+          const total = s.figmaTotal;
+          const bothW = total === 0 ? 0 : (s.matchedBreakdown.both / total) * 100;
+          const jsxOnlyW = total === 0 ? 0 : (s.matchedBreakdown.jsxOnly / total) * 100;
+          const cssOnlyW = total === 0 ? 0 : (s.matchedBreakdown.globalCssOnly / total) * 100;
+
+          return (
+            <div key={label} className="ds-token-row" style={{
+              display: "grid",
+              gridTemplateColumns: "200px 1fr 130px 90px",
+              alignItems: "center",
+              gap: 14,
+              padding: "12px 14px",
+              borderRadius: 6,
+              background: "var(--bg-sunken)",
+              border: "1px solid var(--border)",
+              borderLeft: isPrimary ? `3px solid ${borderColor}` : "1px solid var(--border)",
+            }}>
+              <div>
+                <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{label}</div>
+                <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>
+                  {isPrimary ? "기준" : "참고"}
+                </div>
+              </div>
+              {/* matched 3 영역 stack 막대. 빈 영역 = .bar-track 배경 (--border-strong) 자동 노출. */}
+              <div className="bar-track" style={{ margin: 0, display: "flex", overflow: "hidden" }}>
+                <div title={`both: ${s.matchedBreakdown.both}`}
+                  style={{ width: `${bothW}%`, background: "var(--good)", height: "100%" }} />
+                <div title={`jsx만 (orphan 가능성): ${s.matchedBreakdown.jsxOnly}`}
+                  style={{ width: `${jsxOnlyW}%`, background: "var(--warn)", height: "100%" }} />
+                <div title={`css만 (dead 가능성): ${s.matchedBreakdown.globalCssOnly}`}
+                  style={{ width: `${cssOnlyW}%`, background: "var(--ink-3)", height: "100%" }} />
+              </div>
+              <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)", textAlign: "right" }}>
+                {s.matched} / {s.figmaTotal}
+              </div>
+              <div className="mono" style={{ fontSize: 16, fontWeight: 600, color: numInk, textAlign: "right" }}>
+                {pct}%
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* legend — matched 3 영역 (figmaOnly 영역은 빈 막대 자동 시각). */}
+      <div className="bar-track-legend" style={{ marginTop: 8 }}>
+        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--good)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />both (정상)</span>
+        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--warn)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />jsx만 (orphan 가능성)</span>
+        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--ink-3)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />css만 (dead 가능성)</span>
+      </div>
+
+      {/* 분류 4종 한 줄 안내 (3차 시각 검증 후 보정 1, 2026-04-29 후속).
+          카드 본문 시각 부담 감소 — 자세 의미는 Disclosure 안 첫 줄 안내로 위계 분리. */}
+      <FNote>
+        <strong>both</strong> (정상 사용) / <strong>jsx만</strong> (orphan 가능성) /
+        {" "}<strong>css만</strong> (dead 가능성) / <strong>Figma만</strong> (작업 우선순위)
+      </FNote>
+
+      {/* DS 별 matchedBreakdown 표 — 보정 2 (2026-04-29 후속): figmaOnly + 합계 컬럼 추가. */}
+      <div style={{ marginTop: 8 }}>
+        <table className="ftable" style={{ width: "100%", fontSize: 12.5 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left" }}>DS</th>
+              <th style={{ textAlign: "right" }}>both</th>
+              <th style={{ textAlign: "right" }}>jsx만</th>
+              <th style={{ textAlign: "right" }}>css만</th>
+              <th style={{ textAlign: "right" }}>Figma만</th>
+              <th style={{ textAlign: "right" }}>합계</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dsLabels.map(label => {
+              const s = summary[label];
+              const b = s.matchedBreakdown;
+              return (
+                <tr key={label}>
+                  <td className="mono">{label}</td>
+                  <td className="mono" style={{ textAlign: "right" }}>{b.both}</td>
+                  <td className="mono" style={{ textAlign: "right" }}>{b.jsxOnly}</td>
+                  <td className="mono" style={{ textAlign: "right" }}>{b.globalCssOnly}</td>
+                  <td className="mono" style={{ textAlign: "right" }}>{s.figmaOnly}</td>
+                  <td className="mono" style={{ textAlign: "right", fontWeight: 600 }}>{s.figmaTotal}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Disclosure detail — matched / figmaOnly / codeOnly */}
+      {cm.matched.length > 0 && (
+        <FDisclosure summary={`매칭된 컴포넌트 (${cm.matched.length}개)`} count={cm.matched.length}>
+          <table className="ftable" style={{ width: "100%", fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>이름</th>
+                <th style={{ textAlign: "left" }}>출처</th>
+                <th style={{ textAlign: "left" }}>종류</th>
+                <th style={{ textAlign: "left" }}>매칭 영역</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cm.matched.map((e, i) => (
+                <tr key={i}>
+                  <td className="mono">{e.name}</td>
+                  <td className="mono dim">{e.figmaSource}</td>
+                  <td className="mono dim">{e.kind}</td>
+                  <td className="mono dim">{e.matchedIn.join(" + ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </FDisclosure>
+      )}
+
+      {cm.figmaOnly.length > 0 && (
+        <FDisclosure
+          summary={`Figma만 — 코드 미구현 (${cm.figmaOnly.length}개, 작업 우선순위)`}
+          count={cm.figmaOnly.length}
+        >
+          <FNote>
+            Figma 컴포넌트 정의 있는데 코드에서 className 으로 안 씀. 작업 우선순위.
+          </FNote>
+          <table className="ftable" style={{ width: "100%", fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>이름</th>
+                <th style={{ textAlign: "left" }}>출처</th>
+                <th style={{ textAlign: "left" }}>종류</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cm.figmaOnly.map((e, i) => (
+                <tr key={i}>
+                  <td className="mono">{e.name}</td>
+                  <td className="mono dim">{e.figmaSource}</td>
+                  <td className="mono dim">{e.kind}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </FDisclosure>
+      )}
+
+      {cm.codeOnly.length > 0 && (
+        <FDisclosure
+          summary={`코드만 — DS 정의 없음 (${cm.codeOnly.length}개, DS 외부 영역)`}
+          count={cm.codeOnly.length}
+        >
+          <FNote>
+            코드에서 className 으로 쓰고 css 에 정의됐는데 Figma 컴포넌트 정의 없음. DS 외부에서
+            정상 동작 중인 className. 상위 100개 표시.
+          </FNote>
+          <table className="ftable" style={{ width: "100%", fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>이름</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cm.codeOnly.slice(0, 100).map((e, i) => (
+                <tr key={i}>
+                  <td className="mono">{e.name}</td>
+                </tr>
+              ))}
+              {cm.codeOnly.length > 100 && (
+                <tr>
+                  <td className="dim" style={{ fontStyle: "italic", fontSize: 11 }}>
+                    이하 {cm.codeOnly.length - 100}개 생략 (baseline JSON 의 figma.componentMatch.codeOnly 참조)
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </FDisclosure>
       )}
     </FSection>
   );
@@ -563,12 +836,15 @@ function FigmaTab() {
 }
 
 // v0.10 (2026-04-29): 카드 컴포넌트 배열로 분리. window.FigmaTab_CardCount 자동 export.
-// MeasurementScope 는 헤더라 카운트 제외 — 사용자 인지 상 "섹션" 5개 (현재 후속 4 작업 후).
+// v0.11 (2026-04-29): ComponentMatchSection 추가 (B 그룹 단계 3) — 5 → 6 카드.
+// MeasurementScope 는 헤더라 카운트 제외 — 사용자 인지 상 "섹션" 6개.
+// 정보 위계: 거시 (이름 / 빈도 / 매칭) → 미시 (프레임별 / 컴포넌트 매칭) → 외부 (unmatched).
 const FIGMA_CARD_SECTIONS = [
   TokenMatchSection,
   TokenMatrixSection,
   DsInstanceShareSection,
   MigrationPrioritySection,
+  ComponentMatchSection,
   UnmatchedSection,
 ];
 
