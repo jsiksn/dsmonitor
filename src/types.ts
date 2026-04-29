@@ -676,6 +676,74 @@ export type FigmaReport = {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+// Figma instance level raw (Phase 0.7, 2026-04-29)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * 도메인 파일 안 INSTANCE 노드 1개의 raw 영역.
+ *
+ * 본질: 마이그레이션 작업 진입 자료 (CSV export). frame 안 ds-legacy instance 의
+ * 정확한 위치 (nodeId + Figma URL) + 컴포넌트 영역 (componentName master) 보존.
+ *
+ * baseline JSON 영역 회귀 회피 위해 별도 파일 (`vitaui/reports/figma-instances-{date}.json`)
+ * 로 출력 — domainScan walk 안 raw 영역 수집 → figma.ts 가 별도 파일 출력.
+ */
+export interface FigmaInstanceEntry {
+  /** Figma node-id (콜론 표기, 예: "5569:62500"). */
+  nodeId: string;
+  /** Figma instance node 의 name (예: "btn-default", master 의 variant 가능). */
+  name: string;
+  /**
+   * 매칭된 DS 컴포넌트의 master name (componentMap 의 entry.name).
+   * 매칭 실패 (unmatched / componentId 부재) 시 null.
+   */
+  componentName: string | null;
+  /**
+   * 매칭 라벨 — config.designSystemFiles[].label ("ds-new" / "ds-legacy" 등) 또는 "unmatched".
+   * componentMap 매칭 성공 시 라이브러리 label, 실패 시 "unmatched".
+   */
+  dsLabel: string;
+  /** walk 안 path (예: "Machine Learning / Test / Test-Perform / ContentBox / btn-..."). */
+  contextPath: string;
+}
+
+/**
+ * Phase 0.7 별도 파일 (`vitaui/reports/figma-instances-{date}.json`) schema.
+ *
+ * domainResults 트리 보존 + frame 별 instances[] 추가. 사용자 인지 영역 (도메인/페이지/
+ * 프레임) 일관 + CSV reporter 가 frame 필터링 자연.
+ */
+export interface FigmaInstancesFile {
+  generatedAt: string;
+  domains: FigmaInstancesDomain[];
+}
+
+export interface FigmaInstancesDomain {
+  label: string;
+  fileKey: string;
+  /** Figma URL 영역 fileName (예: "Machine-Learning"). figmaUrl 조립 시 가독성. */
+  fileName: string;
+  pages: FigmaInstancesPage[];
+}
+
+export interface FigmaInstancesPage {
+  comment?: string;
+  /** 패턴 B 일 때만 (페이지 자체 url 영역). */
+  url?: string;
+  nodeId?: string;
+  frames?: FigmaInstancesFrame[];
+  /** 패턴 B 면 페이지 자체 instances 영역 (frames 없음). */
+  instances?: FigmaInstanceEntry[];
+}
+
+export interface FigmaInstancesFrame {
+  comment?: string;
+  url: string;
+  nodeId: string;
+  instances: FigmaInstanceEntry[];
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // 토큰 매칭 (단계 3, 2026-04-24)
 // ═══════════════════════════════════════════════════════════════════
 

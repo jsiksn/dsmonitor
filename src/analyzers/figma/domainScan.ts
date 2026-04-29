@@ -17,7 +17,7 @@
  *   - 혼합: 같은 도메인 파일에서 B/C 혼용 가능 — 모든 id 를 한 호출로 묶어 요청.
  */
 
-import type { FigmaDomainFile } from "../../types";
+import type { FigmaDomainFile, FigmaInstanceEntry } from "../../types";
 import type {
   FigmaFileNodeEntry,
   FigmaNode,
@@ -63,6 +63,12 @@ export type TargetMeasurement = {
   unmatchedInstances: number;
   /** label 별 카운트 (componentMap 매칭 성공 케이스). */
   sourcesByLabel: Map<string, number>;
+  /**
+   * Per-target instance level raw (Phase 0.7, 2026-04-29).
+   * walk 안 모든 INSTANCE node 의 nodeId + name + 매칭 결과 보존.
+   * baseline JSON 영역 외 별도 파일로 출력 (figma.ts 가 처리).
+   */
+  instances: FigmaInstanceEntry[];
 };
 
 type ScanTarget = {
@@ -145,6 +151,7 @@ export async function scanDomain(
     const localComponents = entry.components ?? {};
 
     // Per-target measurement (B-2 단계 2). 도메인 합산과 동시 누적.
+    // Phase 0.7 (2026-04-29): instances raw 영역도 같은 walk 에서 누적.
     const targetMeasure: TargetMeasurement = {
       nodeId: target.nodeId,
       contextPath: target.contextPath,
@@ -152,6 +159,7 @@ export async function scanDomain(
       totalInstances: 0,
       unmatchedInstances: 0,
       sourcesByLabel: new Map(),
+      instances: [],
     };
 
     walkSubtree(entry, target.contextPath, visited, (n, path) => {
@@ -159,12 +167,26 @@ export async function scanDomain(
       result.totalInstances++;
       targetMeasure.totalInstances++;
 
+      const recordInstance = (
+        dsLabel: string,
+        componentName: string | null
+      ): void => {
+        targetMeasure.instances.push({
+          nodeId: n.id,
+          name: n.name,
+          componentName,
+          dsLabel,
+          contextPath: path,
+        });
+      };
+
       const cid = n.componentId;
       if (!cid) {
         // INSTANCE 인데 componentId 없음 — 드문 케이스 방어.
         result.unmatchedInstances++;
         targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
+        recordInstance("unmatched", null);
         return;
       }
 
@@ -175,6 +197,7 @@ export async function scanDomain(
         result.unmatchedInstances++;
         targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
+        recordInstance("unmatched", null);
         return;
       }
 
@@ -185,6 +208,7 @@ export async function scanDomain(
         result.unmatchedInstances++;
         targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
+        recordInstance("unmatched", null);
         return;
       }
 
@@ -196,6 +220,7 @@ export async function scanDomain(
         match.label,
         (targetMeasure.sourcesByLabel.get(match.label) ?? 0) + 1
       );
+      recordInstance(match.label, match.name);
     });
 
     result.targets.push(targetMeasure);

@@ -8,9 +8,14 @@ import { generateLintBaseline } from "./analyzers/lintBaseline";
 import { writeReport } from "./reporters/json";
 import { findLatestReportJson, generateMarkdown } from "./reporters/markdown";
 import { generateOverview } from "./reporters/overview";
+import { exportMigrationCsv } from "./reporters/migrationCsv";
 import { attachAbsRoot } from "./utils/walker";
 import { renderDashboard } from "./dashboard";
-import type { UIHealthConfig, CodebaseReport } from "./types";
+import type {
+  UIHealthConfig,
+  CodebaseReport,
+  FigmaInstancesFile,
+} from "./types";
 
 // dotenv 즉시 로드 블록 제거 (이전: __dirname/../.env.local 강제).
 // configPath 확정 후 main() 안에서 위치 결정 — 분리 후에도 동작하도록.
@@ -151,6 +156,7 @@ async function main() {
       const raw = await fs.readFile(baseInput, "utf8");
       const report = JSON.parse(raw) as CodebaseReport;
       const fT0 = Date.now();
+      let instancesFile: FigmaInstancesFile | undefined;
       try {
         // --only figma 는 코드 측정을 다시 하지 않으므로 classIndex 미제공.
         // 컴포넌트 매칭 (B 그룹 단계 3) 영역 미생성 — 통합 측정 (npm run ui-health) 시점에만 산출.
@@ -158,7 +164,9 @@ async function main() {
           `[vitaui]   note: --only figma 는 componentMatch 영역 미생성 ` +
             `(코드 인덱스 필요). 통합 측정 사용 권장.`
         );
-        report.figma = await analyzeFigma(cfg);
+        const result = await analyzeFigma(cfg);
+        report.figma = result.report;
+        instancesFile = result.instancesFile;
         const figmaElapsed = Date.now() - fT0;
         console.log(`[vitaui] figma analysis done in ${figmaElapsed}ms`);
       } catch (e) {
@@ -168,6 +176,9 @@ async function main() {
       }
       const target = await writeReport(report, cfg, configDir, { baseline });
       console.log(`[vitaui] report: ${target}`);
+      if (instancesFile) {
+        await writeInstancesFile(instancesFile, cfg, configDir);
+      }
       printSummary(report);
       return;
     }
@@ -183,11 +194,14 @@ async function main() {
 
     // --only code 시 figma 강제 skip. 미지정 시 cfg.metrics.figmaAnalysis 그대로.
     const runFigma = only !== "code" && cfg.metrics.figmaAnalysis;
+    let instancesFile: FigmaInstancesFile | undefined;
     if (runFigma) {
       console.log(`[vitaui] figma baseline enabled — analyzing...`);
       const fT0 = Date.now();
       try {
-        report.figma = await analyzeFigma(cfg, classIndex);
+        const result = await analyzeFigma(cfg, classIndex);
+        report.figma = result.report;
+        instancesFile = result.instancesFile;
         const figmaElapsed = Date.now() - fT0;
         console.log(`[vitaui] figma analysis done in ${figmaElapsed}ms`);
       } catch (e) {
@@ -206,6 +220,9 @@ async function main() {
     const configDir = path.dirname(configPath);
     const target = await writeReport(report, cfg, configDir, { baseline });
     console.log(`[vitaui] report: ${target}`);
+    if (instancesFile) {
+      await writeInstancesFile(instancesFile, cfg, configDir);
+    }
     printSummary(report);
     return;
   }
@@ -306,15 +323,120 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     return;
   }
 
+  if (cmd === "export-migration") {
+    // Phase 0.7 (2026-04-29): figma-instances-{date}.json + frame 필터링 → CSV.
+    const configDir = path.dirname(configPath);
+    const reportsDir = path.resolve(configDir, cfg.report.outputDir);
+    const frame = readArg(process.argv, "--frame");
+    const ds = readArg(process.argv, "--ds") ?? "ds-legacy";
+    if (!frame) {
+      console.error(
+        `[vitaui] export-migration: --frame=<frame-comment> 필수.\n` +
+          `  사용 예: ui-health:export-migration -- --frame=Test-Perform [--ds=ds-legacy]\n` +
+          `  --ds 영역 기본값: ds-legacy. 다른 값: ds-new / unmatched / all`
+      );
+      process.exit(2);
+    }
+    const instancesPath = inputPath
+      ? path.resolve(inputPath)
+      : findLatestInstancesJson(reportsDir);
+    if (!instancesPath) {
+      console.error(
+        `[vitaui] export-migration: figma-instances-{date}.json 없음. ` +
+          `먼저 'npm run ui-health:baseline' 으로 측정 + 별도 파일 생성하세요.`
+      );
+      process.exit(2);
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    const safeFrame = frame.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const safeDs = ds.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const resolvedOutput = outputPath
+      ? path.resolve(outputPath)
+      : path.resolve(
+          configDir,
+          "reports",
+          "migration",
+          `${safeFrame}-${safeDs}-${stamp}.csv`
+        );
+    console.log(`[vitaui] export-migration`);
+    console.log(`[vitaui]   input:  ${instancesPath}`);
+    console.log(`[vitaui]   output: ${resolvedOutput}`);
+    console.log(`[vitaui]   frame:  ${frame}`);
+    console.log(`[vitaui]   ds:     ${ds}`);
+    const result = await exportMigrationCsv(instancesPath, {
+      frame,
+      ds,
+      outputPath: resolvedOutput,
+    });
+    console.log(`[vitaui]   rows:   ${result.rowCount.toLocaleString()}`);
+    console.log(`[vitaui] CSV written.`);
+    return;
+  }
+
   console.error(
     `[vitaui] Unknown command: ${cmd}.\n` +
       `  Supported:\n` +
       `    audit [--only code|figma] [--baseline]    — 측정 (code + figma 통합 또는 영역별)\n` +
       `    baseline-lint                             — ESLint 위반 baseline 생성\n` +
       `    report [--input <path>] [--output <path>]    — 측정 JSON → markdown 변환\n` +
-      `    dashboard [--input <path>] [--output <path>] — 측정 JSON → HTML 대시보드`
+      `    dashboard [--input <path>] [--output <path>] — 측정 JSON → HTML 대시보드\n` +
+      `    export-migration --frame=<comment> [--ds=<label>]  — frame 별 instance CSV (Phase 0.7)`
   );
   process.exit(2);
+}
+
+/** 명령행 인자 영역 헬퍼 — `--key=value` 또는 `--key value` 둘 다 지원. */
+function readArg(argv: string[], key: string): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === key) return argv[i + 1];
+    if (a.startsWith(`${key}=`)) return a.slice(key.length + 1);
+  }
+  return undefined;
+}
+
+/**
+ * vitaui/reports/ 영역에서 가장 최근 figma-instances-{date}.json 영역 검색.
+ * findLatestReportJson 영역과 같은 본질 — prefix "figma-instances" 만 우선.
+ */
+function findLatestInstancesJson(reportsDir: string): string | null {
+  if (!existsSync(reportsDir)) return null;
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const fs2 = require("node:fs") as typeof import("node:fs");
+  const all = fs2
+    .readdirSync(reportsDir)
+    .filter((f) => /^figma-instances-\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .map((f) => path.join(reportsDir, f));
+  if (all.length === 0) return null;
+  all.sort((a, b) => (a < b ? 1 : -1));
+  return all[0];
+}
+
+/**
+ * Phase 0.7 별도 파일 출력 — vitaui/reports/figma-instances-{date}.json.
+ * baseline JSON 영역과 분리, 시계열 보존 본질.
+ */
+async function writeInstancesFile(
+  instancesFile: FigmaInstancesFile,
+  cfg: UIHealthConfig,
+  configDir: string
+): Promise<void> {
+  const reportsDir = path.resolve(configDir, cfg.report.outputDir);
+  const stamp = (instancesFile.generatedAt || "").slice(0, 10);
+  const outPath = path.join(reportsDir, `figma-instances-${stamp}.json`);
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
+  await fs.writeFile(outPath, JSON.stringify(instancesFile, null, 2), "utf8");
+  // 합산 stat 영역 — 사용자 인지.
+  let totalInstances = 0;
+  for (const d of instancesFile.domains) {
+    for (const p of d.pages) {
+      for (const f of p.frames ?? []) totalInstances += f.instances.length;
+      if (p.instances) totalInstances += p.instances.length;
+    }
+  }
+  console.log(
+    `[vitaui] instances JSON: ${outPath} (${totalInstances.toLocaleString()} instance)`
+  );
 }
 
 function printSummary(r: any) {
