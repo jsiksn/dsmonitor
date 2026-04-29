@@ -89,24 +89,26 @@ export function buildSummaryData(args: {
     };
   }
 
-  // ─── figma 압축 ───
-  // dsNew/dsLegacy total/matched 는 tokenMatrix.summary.dsStats[label] 에서.
-  // 본 프로젝트 label = "ds-new" / "ds-legacy" — 다른 프로젝트 호환 위해 fallback null.
-  const dsStats = figmaReport?.tokenMatrix?.summary?.dsStats ?? {};
-  const dsNew = dsStats["ds-new"];
-  const dsLegacy = dsStats["ds-legacy"];
-
-  const figma: SummaryTabData["figma"] = {
-    dsNewTotal: dsNew?.total ?? 0,
-    dsNewMatched: dsNew?.matchedWithCode ?? 0,
-    dsLegacyTotal: dsLegacy?.total ?? 0,
-    dsLegacyMatched: dsLegacy?.matchedWithCode ?? 0,
-    tokenRowsTotal: figmaReport?.tokenMatrix?.summary?.totalUniqueTokens ?? 0,
-    unmatchedInstances: figmaReport?.instanceAnalysis?.unmatchedInstances ?? 0,
-    totalInstances: figmaReport?.instanceAnalysis?.totalInstances ?? 0,
-    instanceSources: figmaReport?.instanceSources ?? {},
-    warningsCount: figmaWarningsCount,
-  };
+  // ─── figma 압축 (v0.12, Phase 0.6) — figmaReport 없으면 null 출력 ───
+  // 다른 프로젝트 호환 본질: figmaAnalysis=false 인 프로젝트는 figma 영역 자체 null →
+  // root.jsx 가 Summary Layer 03 + Figma 탭 hide. dsNew/dsLegacy 는 본 프로젝트 label.
+  let figma: SummaryTabData["figma"] = null;
+  if (figmaReport) {
+    const dsStats = figmaReport.tokenMatrix?.summary?.dsStats ?? {};
+    const dsNew = dsStats["ds-new"];
+    const dsLegacy = dsStats["ds-legacy"];
+    figma = {
+      dsNewTotal: dsNew?.total ?? 0,
+      dsNewMatched: dsNew?.matchedWithCode ?? 0,
+      dsLegacyTotal: dsLegacy?.total ?? 0,
+      dsLegacyMatched: dsLegacy?.matchedWithCode ?? 0,
+      tokenRowsTotal: figmaReport.tokenMatrix?.summary?.totalUniqueTokens ?? 0,
+      unmatchedInstances: figmaReport.instanceAnalysis?.unmatchedInstances ?? 0,
+      totalInstances: figmaReport.instanceAnalysis?.totalInstances ?? 0,
+      instanceSources: figmaReport.instanceSources ?? {},
+      warningsCount: figmaWarningsCount,
+    };
+  }
 
   return {
     stamp: { code: codeStamp, figma: figmaStamp, lighthouse: lhStamp },
