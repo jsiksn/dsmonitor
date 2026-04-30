@@ -39,8 +39,15 @@ export type DesignSystemScanResult = {
    * INSTANCE.componentId 는 그 도메인 파일의 local nodeId 라 직접 비교 불가능
    * (서로 다른 파일의 id 체계). stable library key 가 Figma library 참조의
    * 교집합 namespace 이므로 이것으로 매칭해야 함 (사전 조사 g1/g2 확인).
+   *
+   * Phase 0.7 후속 (2026-04-30): masterName 필드 추가. variant component 인 경우
+   * componentSet.name (master), 단독 component 인 경우 null. CSV / instance JSON
+   * 영역 활용 (사용자 발견 — 대시보드 master / CSV variant 어긋남 정정).
    */
-  componentMapEntries: Array<[string, { label: string; name: string }]>;
+  componentMapEntries: Array<[
+    string,
+    { label: string; name: string; masterName: string | null }
+  ]>;
   /**
    * Styles 전체 엔트리 (단계 3, 2026-04-24). 토큰 매칭은 name 기준이라
    * componentMapEntries 와 달리 stable key 튜플이 아닌 엔트리 배열 형태.
@@ -135,7 +142,7 @@ export async function scanDesignSystem(
     mergedComponentSets,
     mergedStyles
   );
-  const entries = buildEntries(mergedComponents, label);
+  const entries = buildEntries(mergedComponents, mergedComponentSets, label);
   const styleMapEntries = [...mergedStyles.values()];
 
   // Variables API — 조건부 호출. Enterprise plan 미보유 시 403 (warning).
@@ -253,15 +260,29 @@ function countFromMaps(
 
 function buildEntries(
   components: Map<string, FigmaComponentEntry>,
+  componentSets: Map<string, FigmaComponentSetEntry>,
   label: string
-): Array<[string, { label: string; name: string }]> {
+): Array<[
+  string,
+  { label: string; name: string; masterName: string | null }
+]> {
   // key 는 stable library key (component.key) — 도메인 INSTANCE 매칭을 위한
   // 교집합 namespace. local nodeId 는 여기서 쓰지 않음 (안 맞으므로).
-  const entries: Array<[string, { label: string; name: string }]> = [];
+  //
+  // masterName (Phase 0.7 후속, 2026-04-30): variant component 영역의 master
+  // name 영역 보존. componentSetId 영역으로 componentSets 영역 lookup → name 추출.
+  // 단독 component (componentSetId 없음) 영역은 masterName null.
+  const entries: Array<[
+    string,
+    { label: string; name: string; masterName: string | null }
+  ]> = [];
   for (const entry of components.values()) {
     const stableKey = entry.key;
     if (!stableKey) continue; // 드문 방어 — stable key 없는 entry 는 매칭 불가
-    entries.push([stableKey, { label, name: entry.name }]);
+    const masterName = entry.componentSetId
+      ? (componentSets.get(entry.componentSetId)?.name ?? null)
+      : null;
+    entries.push([stableKey, { label, name: entry.name, masterName }]);
   }
   return entries;
 }

@@ -88,7 +88,10 @@ export async function scanDomain(
   domainCfg: FigmaDomainFile,
   fileKey: string,
   token: string,
-  componentMap: ReadonlyMap<string, { label: string; name: string }>
+  componentMap: ReadonlyMap<
+    string,
+    { label: string; name: string; masterName: string | null }
+  >
 ): Promise<DomainScanResult> {
   const result: DomainScanResult = {
     label: domainCfg.label,
@@ -169,12 +172,14 @@ export async function scanDomain(
 
       const recordInstance = (
         dsLabel: string,
-        componentName: string | null
+        componentName: string | null,
+        masterName: string | null
       ): void => {
         targetMeasure.instances.push({
           nodeId: n.id,
           name: n.name,
           componentName,
+          masterName,
           dsLabel,
           contextPath: path,
         });
@@ -186,7 +191,7 @@ export async function scanDomain(
         result.unmatchedInstances++;
         targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
-        recordInstance("unmatched", null);
+        recordInstance("unmatched", null, null);
         return;
       }
 
@@ -197,7 +202,7 @@ export async function scanDomain(
         result.unmatchedInstances++;
         targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
-        recordInstance("unmatched", null);
+        recordInstance("unmatched", null, null);
         return;
       }
 
@@ -208,7 +213,7 @@ export async function scanDomain(
         result.unmatchedInstances++;
         targetMeasure.unmatchedInstances++;
         tallyUnknown(result.unknownByName, n.name, path);
-        recordInstance("unmatched", null);
+        recordInstance("unmatched", null, null);
         return;
       }
 
@@ -220,7 +225,7 @@ export async function scanDomain(
         match.label,
         (targetMeasure.sourcesByLabel.get(match.label) ?? 0) + 1
       );
-      recordInstance(match.label, match.name);
+      recordInstance(match.label, match.name, match.masterName);
     });
 
     result.targets.push(targetMeasure);

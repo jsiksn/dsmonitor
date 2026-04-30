@@ -691,13 +691,24 @@ export type FigmaReport = {
 export interface FigmaInstanceEntry {
   /** Figma node-id (콜론 표기, 예: "5569:62500"). */
   nodeId: string;
-  /** Figma instance node 의 name (예: "btn-default", master 의 variant 가능). */
+  /** Figma instance node 의 name (예: "btn-default"). */
   name: string;
   /**
-   * 매칭된 DS 컴포넌트의 master name (componentMap 의 entry.name).
+   * 매칭된 Figma component entry 의 name 필드 (Figma API
+   * `/v1/files/:key/nodes` 응답의 `components` dict entry 의 name).
+   * - variant component (componentSet 안): variant name (예: "Property 1=default")
+   * - 단독 component (componentSet 외): component 자체 이름 (예: "icon-guide")
    * 매칭 실패 (unmatched / componentId 부재) 시 null.
    */
   componentName: string | null;
+  /**
+   * 매칭된 컴포넌트의 master name (componentSet.name).
+   * - variant component (componentSet 안): componentSet 의 name (예: "btn")
+   * - 단독 component (componentSet 외): null (CSV reporter 영역에서 componentName 강제 주입)
+   * 매칭 실패 (unmatched) 시 null.
+   * (Phase 0.7 후속, 2026-04-30)
+   */
+  masterName: string | null;
   /**
    * 매칭 라벨 — config.designSystemFiles[].label ("ds-new" / "ds-legacy" 등) 또는 "unmatched".
    * componentMap 매칭 성공 시 라이브러리 label, 실패 시 "unmatched".

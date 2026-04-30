@@ -107,7 +107,12 @@ export async function analyzeFigma(
   // ───── 2. DS 파일 순차 스캔 ─────
   console.log(`[figma] DS 파일 ${fc.designSystemFiles.length}개 스캔 시작`);
   const designSystemCounts: FigmaDesignSystemCount[] = [];
-  const componentMap = new Map<string, { label: string; name: string }>();
+  // Phase 0.7 후속 (2026-04-30): componentMap entry 에 masterName 추가.
+  // variant component 의 componentSet.name 영역 보존 — CSV / instance JSON 활용.
+  const componentMap = new Map<
+    string,
+    { label: string; name: string; masterName: string | null }
+  >();
   const conflicts: string[] = [];
   // tokenMatrix 용 — DS 순서(config 순) 유지를 위해 label 배열로 관리.
   const dsStylesByLabel = new Map<string, FigmaStyleEntry[]>();
