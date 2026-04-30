@@ -14,6 +14,7 @@ import type {
   TokenMatrix,
   TokenMatrixDsStats,
 } from "../../types";
+import type { DashboardPluginEntry } from "../../plugins/types";
 
 // ═══════════════════════════════════════════════════════════════════
 // CodeTabData
@@ -230,6 +231,12 @@ export interface DashboardData {
   code: CodeTabData;
   figma: FigmaTabData | null;
   lighthouse: LighthouseTabData | null;
+  /**
+   * 사이드카 plugin 영역 entry 배열 (v0.15, 2026-04-30).
+   * vitaui/reports/plugins/{id}/{date}.json 영역 자동 검색 — id 알파벳 순 정렬.
+   * 검증 실패 영역도 entry 영역 (ok: false) 으로 보존 — dashboard 안 빨간 알림 영역.
+   */
+  plugins: DashboardPluginEntry[];
 }
 
 /**

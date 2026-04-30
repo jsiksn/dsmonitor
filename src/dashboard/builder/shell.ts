@@ -31,6 +31,7 @@ export function buildHtmlShell(data: DashboardData): string {
   const codeJsx = readComponent("code-tab.jsx");
   const figmaJsx = readComponent("figma-tab.jsx");
   const lighthouseJsx = readComponent("lighthouse-tab.jsx");
+  const pluginJsx = readComponent("plugin-tab.jsx");
   const rootJsx = readComponent("root.jsx");
 
   // 데이터 inject — JSON.stringify, </script> 이스케이프 방어.
@@ -38,6 +39,7 @@ export function buildHtmlShell(data: DashboardData): string {
   const codeJson = safeJson(data.code);
   const figmaJson = data.figma ? safeJson(data.figma) : "null";
   const lhJson = data.lighthouse ? safeJson(data.lighthouse) : "null";
+  const pluginsJson = safeJson(data.plugins ?? []);
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -63,12 +65,14 @@ ${styles}
   <script id="code-tab-data" type="application/json">${codeJson}</script>
   <script id="figma-tab-data" type="application/json">${figmaJson}</script>
   <script id="lighthouse-tab-data" type="application/json">${lhJson}</script>
+  <script id="plugins-data" type="application/json">${pluginsJson}</script>
 
   <script>
     window.__SUMMARY_DATA = JSON.parse(document.getElementById("summary-tab-data").textContent);
     window.__CODE_DATA = JSON.parse(document.getElementById("code-tab-data").textContent);
     window.__FIGMA_DATA = JSON.parse(document.getElementById("figma-tab-data").textContent);
     window.__LH_DATA = JSON.parse(document.getElementById("lighthouse-tab-data").textContent);
+    window.__PLUGINS_DATA = JSON.parse(document.getElementById("plugins-data").textContent);
   </script>
 
   <script type="text/babel" data-presets="env,react">
@@ -81,6 +85,10 @@ ${figmaJsx}
 
   <script type="text/babel" data-presets="env,react">
 ${lighthouseJsx}
+  </script>
+
+  <script type="text/babel" data-presets="env,react">
+${pluginJsx}
   </script>
 
   <script type="text/babel" data-presets="env,react">

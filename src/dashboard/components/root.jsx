@@ -13,6 +13,8 @@ const DATA = window.__SUMMARY_DATA;
   const pct = (x, d = 1) => (x * 100).toFixed(d);
 
   function Header() {
+    // v0.15 (2026-04-30): hdr-meta 영역 (Code / Figma / Lighthouse 3행 stamp) 삭제.
+    // 측정 시점은 각 Layer 의 layer-head stamp + plugin 탭 헤더 2곳에서만 표시.
     return (
       <header className="hdr">
         <div>
@@ -24,16 +26,6 @@ const DATA = window.__SUMMARY_DATA;
             </div>
           </div>
         </div>
-        <div className="hdr-meta">
-          <div className="meta-col">
-            <div className="k">측정 시점</div>
-            <div className="v">
-              Code <span className="mono">{DATA.stamp.code}</span><br/>
-              Figma <span className="mono">{DATA.stamp.figma}</span><br/>
-              Lighthouse <span className="mono">{DATA.stamp.lighthouse}</span>
-            </div>
-          </div>
-        </div>
       </header>
     );
   }
@@ -42,14 +34,27 @@ const DATA = window.__SUMMARY_DATA;
     // v0.10 (2026-04-29): 카운트 자동 derive. 각 탭 jsx 가 window.{Tab}_CardCount export.
     // Lighthouse 는 카드 카운트 아닌 URL 카운트 (window.__LH_DATA.totalUrls).
     // v0.12 (2026-04-29, Phase 0.6): 빠진 영역 탭 헤더 hide — figma / Lighthouse optional 본질.
+    // v0.15 (2026-04-30): 사이드카 plugin 탭 동적 추가 (id 알파벳 순) + 검증 실패 / stale 배지.
     const codeCardCount = window.CodeTab_CardCount;
     const figmaCardCount = window.FigmaTab_CardCount;
     const lhUrlCount = window.__LH_DATA?.totalUrls;
+    const pluginEntries = window.__PLUGINS_DATA ?? [];
+    const pluginTabs = pluginEntries.map((p) => {
+      const id = p.ok ? p.output.id : p.id;
+      const label = p.ok ? p.output.label : p.id;
+      return {
+        id: `plugin:${id}`,
+        label,
+        error: !p.ok,
+        stale: p.ok && p.stale,
+      };
+    });
     const tabs = [
       { id: "summary", label: "Summary" },
       { id: "code",       label: "Code",       count: codeCardCount  != null ? `${codeCardCount} 섹션` : null },
       ...(window.__LH_DATA    ? [{ id: "lighthouse", label: "Lighthouse", count: lhUrlCount     != null ? `${lhUrlCount} URL`     : null }] : []),
       ...(window.__FIGMA_DATA ? [{ id: "figma",      label: "Figma",      count: figmaCardCount != null ? `${figmaCardCount} 섹션` : null }] : []),
+      ...pluginTabs,
     ];
     return (
       <nav className="tabs" role="tablist">
@@ -57,6 +62,8 @@ const DATA = window.__SUMMARY_DATA;
           <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab" onClick={() => setTab(t.id)}>
             {t.label}
             {t.count && <span className="count">{t.count}</span>}
+            {t.error && <span className="tag below" style={{marginLeft:6, fontSize:9, padding:"1px 4px"}}><span className="tdot" />오류</span>}
+            {t.stale && !t.error && <span className="tag stale" style={{marginLeft:6, fontSize:9, padding:"1px 4px"}}><span className="tdot" />stale</span>}
           </button>
         ))}
       </nav>
@@ -266,6 +273,67 @@ const DATA = window.__SUMMARY_DATA;
             </Card>
           </div>
         </div>}
+
+        {/* v0.15: 사이드카 plugin Layer 영역 — plugin 1개당 Layer 1개 자동 추가.
+            Layer 번호 = activeLayerCount + idx + 1 (figma 빠짐 환경 등 동적 영역). */}
+        {(() => {
+          const plugins = window.__PLUGINS_DATA ?? [];
+          if (plugins.length === 0) return null;
+          // codebase 항상 활성 + lighthouse / figma 가드 영역 정합.
+          const activeLayerCount = 1 + (d.lh ? 1 : 0) + (d.figma ? 1 : 0);
+          return plugins.map((p, idx) => {
+            const layerNum = String(activeLayerCount + 1 + idx).padStart(2, "0");
+            if (!p.ok) {
+              // 정정 1 (B-2 안): grid 카드 영역 삭제 — layer-head 만 표시. 사유 영역은 plugin 탭 (PluginErrorView) 영역에서만.
+              return (
+                <div key={`plugin-${p.id}-err`} className="layer">
+                  <div className="layer-head">
+                    <div className="layer-title">
+                      <div className="layer-tag">Layer {layerNum} / {p.id}</div>
+                      <h2>{p.id}</h2>
+                      <div className="desc">plugin 자료 영역 검증 실패 — 탭 영역 클릭해서 사유 확인</div>
+                    </div>
+                    <div className="stamp"><span className="tag below"><span className="tdot" />검증 실패</span></div>
+                  </div>
+                </div>
+              );
+            }
+            const out = p.output;
+            const stamp = (out.measuredAt || "").slice(0, 10);
+            const cls = (s) => s === "good" ? "good" : s === "warn" ? "warn" : s === "bad" ? "bad" : "";
+            return (
+              <div key={`plugin-${out.id}`} className="layer">
+                <div className="layer-head">
+                  <div className="layer-title">
+                    <div className="layer-tag">Layer {layerNum} / {out.label}</div>
+                    <h2>{out.label}</h2>
+                    {out.summary.primary.hint && <div className="desc">{out.summary.primary.hint}</div>}
+                  </div>
+                  <div className="stamp">
+                    {p.stale && <span className="tag stale" style={{marginRight:8}}><span className="tdot" />7일+ stale</span>}
+                    측정 <span className="mono">{stamp}</span>
+                  </div>
+                </div>
+                <div className="grid">
+                  <Card label={out.summary.primary.label} belowThreshold={out.summary.primary.status === "bad"}>
+                    <div className="numwrap">
+                      <span className={`num ${cls(out.summary.primary.status)}`}>{out.summary.primary.value}</span>
+                    </div>
+                    {out.summary.primary.hint && <div className="card-desc">{out.summary.primary.hint}</div>}
+                  </Card>
+                  {(out.summary.secondary ?? []).map((c, i) => (
+                    <Card key={i} label={c.label} belowThreshold={c.status === "bad"}>
+                      <div className="numwrap">
+                        <span className={`num ${cls(c.status)}`}>{c.value}</span>
+                      </div>
+                      {c.hint && <div className="card-desc">{c.hint}</div>}
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            );
+          });
+        })()}
       </div>
     );
   }
@@ -306,8 +374,25 @@ const DATA = window.__SUMMARY_DATA;
     return <Comp />;
   }
 
+  // v0.15: 사이드카 plugin 탭 wrapper — plugin id 영역 받아 entry 영역 분기.
+  function PluginTabWrapper({ pluginId }) {
+    const [, force] = React.useReducer(x => x + 1, 0);
+    React.useEffect(() => {
+      const handler = () => force();
+      document.addEventListener("__plugin-tab-ready", handler);
+      return () => document.removeEventListener("__plugin-tab-ready", handler);
+    }, []);
+    const Comp = window.PluginTab_Detail;
+    if (!Comp) return <div className="skeleton-note"><span className="tdot" />Plugin 탭 모듈 로딩 중…</div>;
+    const plugins = window.__PLUGINS_DATA ?? [];
+    const entry = plugins.find((p) => (p.ok ? p.output.id : p.id) === pluginId);
+    if (!entry) return <div className="skeleton-note"><span className="tdot" />plugin 영역 빠짐: {pluginId}</div>;
+    return <Comp entry={entry} />;
+  }
+
   function App() {
     const [tab, setTab] = useState("summary");
+    const pluginId = tab.startsWith("plugin:") ? tab.slice("plugin:".length) : null;
     return (
       <div className="shell">
         <Header />
@@ -317,6 +402,7 @@ const DATA = window.__SUMMARY_DATA;
           {tab === "code" && <CodeTab />}
           {tab === "lighthouse" && <LighthouseTab />}
           {tab === "figma" && <FigmaTab />}
+          {pluginId && <PluginTabWrapper pluginId={pluginId} />}
         </main>
         <footer>
           <span>portal-gateway-web · VitaUI 리뷰</span>
