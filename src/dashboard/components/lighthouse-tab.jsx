@@ -265,11 +265,12 @@ function LighthouseTabDetail() {
   }
   return (
     <div className="lh-tab">
+      {/* v0.15: 측정 시점 박스 → 인라인 영역 (Figma 패턴 정합). URL / Run / Base URL 박스는 정보 영역 그대로 유지. */}
+      <div className="tab-stamp">
+        <span className="mono dim">측정</span>
+        <span className="mono">{d.measuredAt}</span>
+      </div>
       <div className="lh-context">
-        <div>
-          <span className="k">측정 시점</span>
-          <span className="v mono">{d.measuredAt}</span>
-        </div>
         <div>
           <span className="k">측정 URL</span>
           <span className="v mono">{`${d.totalUrls} 페이지`}</span>

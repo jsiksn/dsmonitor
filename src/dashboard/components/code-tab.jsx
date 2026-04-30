@@ -792,8 +792,14 @@ const CODE_CARD_SECTIONS = [
 function CodeTab() {
   const d = window.__CODE_DATA;
   if (!d) return <div className="skeleton-note">데이터 로딩 중…</div>;
+  // v0.15: 측정 시점 인라인 영역 (Figma 패턴 정합). __SUMMARY_DATA.stamp.code 활용.
+  const stamp = window.__SUMMARY_DATA?.stamp?.code ?? "—";
   return (
     <div className="code-tab">
+      <div className="tab-stamp">
+        <span className="mono dim">측정</span>
+        <span className="mono">{stamp}</span>
+      </div>
       {CODE_CARD_SECTIONS.map((S, i) => <S key={i} d={d} />)}
     </div>
   );

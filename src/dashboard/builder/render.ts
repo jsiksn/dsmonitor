@@ -20,6 +20,8 @@ import {
   lighthouseToData,
 } from "../transformers/lighthouse-to-data";
 import { buildSummaryData } from "../transformers/baseline-to-summary-data";
+import { pluginsToData } from "../transformers/plugins-to-data";
+import { loadPlugins } from "../../plugins/loader";
 import type {
   DashboardData,
   LighthouseSummaryFile,
@@ -81,7 +83,23 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
     figmaWarningsCount: report.figma?.warnings?.length ?? 0,
   });
 
-  const data: DashboardData = { summary, code, figma, lighthouse };
+  // ─── plugins 영역 자동 검색 (v0.15, 사이드카 plugin) ───
+  // 폴더 구조: configDir/reports/plugins/{id}/{date}.json
+  // cfg.report.outputDir 영역 안 plugins/ 영역 — id 알파벳 순 정렬.
+  const pluginsRoot = path.resolve(
+    opts.configDir,
+    opts.cfg.report.outputDir,
+    "plugins"
+  );
+  const pluginEntries = pluginsToData(loadPlugins(pluginsRoot));
+
+  const data: DashboardData = {
+    summary,
+    code,
+    figma,
+    lighthouse,
+    plugins: pluginEntries,
+  };
 
   // ─── HTML 생성 + 출력 ───
   const html = buildHtmlShell(data);

@@ -83,6 +83,9 @@
   .tag.met .tdot { background: var(--good); }
   .tag.note { background: var(--bg-sunken); color: var(--ink-2); border: 1px solid var(--border); }
   .tag.note .tdot { background: var(--ink-4); }
+  /* v0.15: stale 영역 (사이드카 plugin 자료 7일+ 오래됨) — 회색 영역 */
+  .tag.stale { background: var(--bg-sunken); color: var(--ink-3); border: 1px solid var(--border); }
+  .tag.stale .tdot { background: var(--ink-4); }
 
   .numwrap { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 6px; }
   .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 500; line-height: 1; letter-spacing: -0.02em; color: var(--ink); }
@@ -524,3 +527,16 @@
     .lh-cwv-grid { grid-template-columns: 1fr 1fr; }
     .lh-cat-row { grid-template-columns: 140px 1fr 36px; }
   }
+
+  /* ─── v0.15: 사이드카 plugin 영역 ─── */
+  /* 각 탭 측정 시점 인라인 영역 (Figma 패턴 정합). */
+  .tab-stamp { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); margin-bottom: 16px; }
+  .tab-stamp .dim { color: var(--ink-4); }
+  .tab-stamp .sep { margin: 0 2px; color: var(--ink-4); }
+
+  /* plugin 탭 표 영역 (details 자동 표시) — Lighthouse 표 영역 패턴 활용. */
+  .plugin-details { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
+  .plugin-details thead th { text-align: left; padding: 9px 10px; font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--bg-sunken); }
+  .plugin-details tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft, var(--border)); color: var(--ink-2); vertical-align: top; }
+  .plugin-details tbody td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink); }
+  .plugin-details tbody tr:hover { background: var(--bg-sunken); }
