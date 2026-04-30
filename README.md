@@ -28,7 +28,7 @@
 
 `npm install` 실행 시 루트 `postinstall` 훅이 `packages/vitaui` 의존성도 자동 설치합니다.
 
-npm 발행 후 (Phase 0.6 이후 예정): `npm install vitaui --save-dev`.
+npm 발행은 **Phase C 패키지화 단계** (phase-c-plan.md 1.5) 에서 진행 예정. 그 전까지 `file:` 의존성 영역으로 monorepo 안에서 사용. 다른 프로젝트 도입 호환성 — Phase 0.6 (v0.12, 2026-04-29) 시점에 figma / Lighthouse optional 보장 (B 본질) 추가 완료 — codebase 미설정 외 영역은 자연 작동.
 
 ### 2. 프로젝트 측 디렉토리 구성
 
@@ -59,13 +59,14 @@ vitaui/
 
 | 명령 | 동작 | 비고 |
 |------|------|------|
-| `ui-health` | code + figma 측정 + markdown 자동 변환 | 전체 cycle |
+| `ui-health` | code + figma 측정 + markdown + dashboard 자동 chain | 전체 cycle (non-baseline 출력 — `YYYY-MM-DD.json`) |
 | `ui-health:code` | code 영역만 측정 | figma 단계 건너뜀 |
-| `ui-health:figma` | figma 영역만 측정 | base JSON 필요 (`ui-health` 또는 `ui-health:code` 선행) |
+| `ui-health:figma` | figma 영역만 측정 | base JSON 필요. **componentMatch 영역 미생성** — 통합 측정 권장 (cli.ts 명시) |
 | `ui-health:lighthouse` | Lighthouse 측정 | 약 20-35분 (10 URL × 3 runs) |
 | `ui-health:report` | markdown 만 재생성 | 측정 안 다시 함 |
-| `ui-health:baseline` | `--baseline` 모드로 정식 측정 | `baseline-YYYY-MM-DD.json` 생성 |
-| `ui-health:dashboard` | 대시보드 (Phase 0.5 단계 5 이후) | 현재 placeholder |
+| `ui-health:baseline` | `--baseline` 모드로 정식 측정 + markdown + dashboard 자동 chain | `baseline-YYYY-MM-DD.json` + `figma-instances-YYYY-MM-DD.json` (v0.14) 생성 |
+| `ui-health:dashboard` | dashboard html 재빌드 | 측정 안 다시 함. baseline JSON + lighthouse summary 결합 |
+| `ui-health:export-migration` | frame 별 instance CSV (v0.14, Phase 0.7) | `-- --frame=<comment> [--ds=<label>]`. 출력 — `vitaui/reports/migration/` |
 | `lint:summary` | ESLint forbidden class 위반 baseline 비교 | soft, exit 0 |
 | `lint:update-baseline` | baseline 갱신 | |
 | `lighthouse:clean` | LHR 결과 폴더 정리 | |
@@ -75,16 +76,18 @@ vitaui/
 ```json
 {
   "scripts": {
-    "ui-health":            "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit && node packages/vitaui/bin/report.js",
-    "ui-health:code":       "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit --only code",
-    "ui-health:figma":      "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit --only figma",
-    "ui-health:lighthouse": "node packages/vitaui/lighthouse/run.js",
-    "ui-health:report":     "node packages/vitaui/bin/report.js",
-    "ui-health:baseline":   "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit --baseline && node packages/vitaui/bin/report.js",
-    "lint:summary":         "node packages/vitaui/bin/lint-summary.js",
-    "lint:update-baseline": "node packages/vitaui/bin/lint-update-baseline.js",
-    "lighthouse:clean":     "rm -rf vitaui/lighthouse/reports/*",
-    "postinstall":          "cd packages/vitaui && npm install"
+    "ui-health":               "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit && node packages/vitaui/bin/report.js && node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts dashboard",
+    "ui-health:code":          "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit --only code",
+    "ui-health:figma":         "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit --only figma",
+    "ui-health:lighthouse":    "node packages/vitaui/lighthouse/run.js",
+    "ui-health:report":        "node packages/vitaui/bin/report.js",
+    "ui-health:baseline":      "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts audit --baseline && node packages/vitaui/bin/report.js && node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts dashboard",
+    "ui-health:dashboard":     "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts dashboard",
+    "ui-health:export-migration": "node packages/vitaui/node_modules/.bin/tsx packages/vitaui/src/cli.ts export-migration",
+    "lint:summary":            "node packages/vitaui/bin/lint-summary.js",
+    "lint:update-baseline":    "node packages/vitaui/bin/lint-update-baseline.js",
+    "lighthouse:clean":        "rm -rf vitaui/lighthouse/reports/*",
+    "postinstall":             "cd packages/vitaui && npm install"
   }
 }
 ```
@@ -149,6 +152,9 @@ ratchet 동작:
 |------|------|
 | `vitaui/reports/baseline-YYYY-MM-DD.json` | 측정 결과 (정식 baseline) |
 | `vitaui/reports/YYYY-MM-DD.json` | non-baseline (gitignored) |
+| `vitaui/reports/figma-instances-YYYY-MM-DD.json` | Figma instance level raw (v0.14, Phase 0.7) — frame 별 nodeId / componentName / dsLabel / contextPath |
+| `vitaui/reports/dashboard-YYYY-MM-DD.html` | 4 탭 dashboard (Summary / Code / Lighthouse / Figma, v0.9 시점부터) |
+| `vitaui/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV (v0.14, `ui-health:export-migration` 출력) |
 | `vitaui/docs/baseline.md` | markdown 리포트 (자동 생성, 수동 편집 금지) |
 | `vitaui/docs/overview-for-stakeholders.md` | 비개발자용 간결 요약 |
 | `vitaui/lighthouse/reports/YYYY-MM-DD/manifest.json` | LHCI manifest |
@@ -160,27 +166,29 @@ ratchet 동작:
 ```
 packages/vitaui/
 ├── src/
-│   ├── analyzers/  ← codebase / figma / lintBaseline / scssTokens / tokenMatrix / codeTokens
+│   ├── analyzers/  ← codebase / figma (+ figma/componentMatch v0.11 + figma/domainScan v0.14) / lintBaseline / scssTokens / tokenMatrix / codeTokens
 │   ├── frameworks/ ← react adapter (확장 가능 — Vue / Svelte / Astro / Solid)
-│   ├── reporters/  ← json / markdown / overview
+│   ├── reporters/  ← json / markdown / overview / migrationCsv (v0.14)
+│   ├── dashboard/  ← v0.9 시점 통합 — components (root / code-tab / figma-tab / lighthouse-tab) + transformers (baseline-to-{code,figma,summary}-data + lighthouse-to-data) + builder (render / shell)
 │   ├── utils/walker.ts
-│   ├── cli.ts      ← 진입점
+│   ├── cli.ts      ← 진입점 (audit / report / dashboard / export-migration / baseline-lint)
 │   ├── policy.ts
 │   └── types.ts
 ├── bin/            ← report / lint-summary / lint-update-baseline
 ├── eslint/         ← eslint-plugin-ui-health (no-forbidden-classes 룰)
 ├── lighthouse/run.js  ← LHCI 실행 + summary.json 생성
-├── presets/        ← 4종 stylingPolicy + 3종 config 템플릿
-└── docs/           ← figma-config-guide / eslint-rules / methodology (placeholder)
+├── presets/        ← 4종 stylingPolicy + 3종 config 템플릿 (configs/next-app-css-modules.ts / next-pages-scss.ts / vite-react-tailwind.ts)
+└── docs/           ← figma-config-guide / eslint-rules / eslint-ci-integration / lighthouse-ci-integration / methodology (Phase B 작성 예정)
 ```
 
 ## 더 읽기
 
-- [docs/figma-config-guide.md](./docs/figma-config-guide.md) — Figma config 작성법 (DS 파일 + 도메인 파일 등록)
+- [docs/figma-config-guide.md](./docs/figma-config-guide.md) — Figma config 작성법 (DS 파일 + 도메인 파일 등록 + 마이그레이션 CSV 추출)
 - [docs/eslint-rules.md](./docs/eslint-rules.md) — ESLint 룰 상세 + ratchet 동작
 - [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) — CI 통합 패턴
 - [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) — Lighthouse CI 통합
-- [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (**Phase B 작성 예정** — 현재 placeholder)
+- [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (**Phase B 작성 예정** — 현재 placeholder, planning.md / phase-c-plan.md reference)
+- 프로젝트 측 운영 기록 — `vitaui/docs/planning.md` (Phase × 레이어 매트릭스 + Phase 정의 + §7 Decision Log v0.1 ~ v0.14) / `vitaui/docs/phase-c-plan.md` (Phase C 5 작업)
 
 ## 라이선스
 

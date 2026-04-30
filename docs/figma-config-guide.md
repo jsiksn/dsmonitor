@@ -150,12 +150,32 @@ Copy link 방법: Figma 캔버스에서 **프레임을 선택한 뒤 우클릭**
 
 ```bash
 # 프로젝트 루트에서 실행 (영역 통합 cycle):
-npm run ui-health:baseline     # codebase + Figma 측정 + markdown 자동 변환
+npm run ui-health:baseline     # codebase + Figma 측정 + markdown + dashboard 자동 chain
 
 # 또는 영역별:
-npm run ui-health:figma        # figma 만 (base JSON 필요)
+npm run ui-health:figma        # figma 만 (base JSON 필요, 단독 측정 시 제약 — 아래 주의 참조)
 npm run ui-health:report       # markdown 만 재생성
+npm run ui-health:dashboard    # dashboard html 만 재빌드
 ```
+
+### `ui-health:figma` 단독 측정의 제약
+
+`--only figma` 흐름은 코드 인덱스 (`classIndex`) 가 없어 **componentMatch 영역 미생성** 합니다 (B 그룹 단계 3, v0.11 시점부터). componentMatch = Figma DS 컴포넌트 ↔ 코드 className 매칭. 해당 측정값이 필요하면 통합 측정 (`ui-health:baseline`) 사용 권장.
+
+### 마이그레이션 자료 추출 (v0.14, Phase 0.7 단계 1+6)
+
+frame 단위 instance 목록을 CSV 로 추출 — 마이그레이션 작업 진입 사전 자료.
+
+```bash
+npm run ui-health:export-migration -- --frame=<frame-comment> [--ds=<label>]
+```
+
+- `--frame=<comment>` (필수): frame.comment 정확 일치 또는 `all`
+- `--ds=<label>` (옵션, 기본 `ds-legacy`): `ds-new` / `unmatched` / `all` 가능
+
+출력 — `vitaui/reports/migration/{frame}-{ds}-{date}.csv` (CSV 컬럼: nodeId / componentName / instanceName / dsLabel / contextPath / figmaUrl). figmaUrl 은 Figma 시안 직접 진입 가능한 형태로 자동 조립.
+
+사전 조건: `ui-health:baseline` 실행으로 `vitaui/reports/figma-instances-{date}.json` 생성 (instance level raw, walk 시점에 같이 출력).
 
 ## FAQ
 
@@ -189,6 +209,12 @@ A. 단일 파일 응답이 수십 MB 단위입니다(DS 파일 예: 42MB / 18초
 
 **Q. "출처 미상 Instance" 가 예상보다 많습니다.**
 A. 외주 옛 DS 에서 온 instance 가 여기로 분류됩니다. planning.md §7 2026-04-23 결정 — 외주 옛 DS 는 검토 대상 제외이고, 그 출처의 instance 는 "출처 미상" 으로 허용. Top N 섹션이 "외주 옛 DS 에서 자주 쓰이는 컴포넌트" 리스트 역할을 해서 마이그레이션 우선순위 파악에 도움이 됩니다.
+
+**Q. Figma 의 Copy link 결과에 `&t=...` 트래킹 파라미터가 붙어있는데 그대로 넣어도 되나요?**
+A. 네. urlParser 가 `parsed.searchParams.get("node-id")` 로 node-id 만 추출 — 다른 query param (`&t=Yqb0SCoDaqckT0kw-4` 같은 share session token) 은 자연 무시됩니다. URL 에서 직접 제거할 필요 없음.
+
+**Q. ds-legacy / ds-new 양쪽 라이브러리 영역에 같은 컴포넌트가 published 됐을 때 어떻게 분류되나요?**
+A. componentMap 빌드 시 **first-come-first-serve** — config 의 `designSystemFiles` 순서가 우선. ds-legacy 가 1st 로 등록돼 있으면 같은 stable library key 영역 ds-new 측 항목은 무시 (warnings 영역에 conflict 기록). 본 프로젝트의 v0.14 측정에서 114 conflict 발견 — 모두 ds-legacy 우선. 이는 vitaui 의 issue 가 아니라 Figma 작업 영역 본질 (ds-legacy 컴포넌트 영역을 ds-new 파일에 복사 / import 시 같은 stable key 유지). 자세한 검증은 measurementHistory v0.14 entry 참조.
 
 ## 부록: Figma REST API 응답 구조 메모 (사전 조사 결과)
 
