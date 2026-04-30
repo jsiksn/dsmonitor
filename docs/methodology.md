@@ -6,9 +6,9 @@
 
 방법론 / 진행 / Phase 정의 / 측정 도구 진화 historical 은 프로젝트 측 운영 기록 영역에 통합 정리:
 
-- **`vitaui/docs/planning.md`** — 프로젝트 측 메인 기획. Phase × 레이어 매트릭스 / 진행 상태 / Phase 정의 / §7 Decision Log (v0.1 ~ v0.14, 2026-04-20 ~ 2026-04-29).
-- **`vitaui/docs/phase-c-plan.md`** — Phase C 5 작업 (대시보드 고도화 + depth/parentInstance + case A/B 정정 + 레이어 3 + 패키지화).
-- **`vitaui/vitaui.config.ts`** measurementHistory — v0.1 ~ v0.14 entry (각 버전의 정의 변경 / 신규 기능 / 본질 학습 historical).
+- **`vitaui/docs/planning.md`** — 프로젝트 측 메인 기획. Phase × 레이어 매트릭스 / 진행 상태 / Phase 정의 / §7 Decision Log (v0.1 ~ v0.15, 2026-04-20 ~ 2026-04-30).
+- **`vitaui/docs/phase-c-plan.md`** — Phase C 6 작업 (대시보드 고도화 + depth/parentInstance + case A/B 정정 + 레이어 3 + 패키지화 + 사이드카 plugin 시스템 ✅).
+- **`vitaui/vitaui.config.ts`** measurementHistory — v0.1 ~ v0.15 entry (각 버전의 정의 변경 / 신규 기능 / 본질 학습 historical).
 
 ## 패키지 측 사용자 가이드 reference
 
@@ -17,6 +17,7 @@
 - **[eslint-rules.md](./eslint-rules.md)** — ESLint 룰 상세
 - **[eslint-ci-integration.md](./eslint-ci-integration.md)** — ESLint CI 통합 패턴
 - **[lighthouse-ci-integration.md](./lighthouse-ci-integration.md)** — Lighthouse CI 통합
+- **[plugin-development.md](./plugin-development.md)** — 사이드카 plugin 개발 자료실 (v0.15) — 외부 측정 자료 영역 dashboard 자동 표시 약속 + 자료 위치 / 자료 형식 / 검증 / 예시 코드
 
 ## 본 문서 작성 시점 (Phase B)
 

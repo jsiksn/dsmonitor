@@ -12,6 +12,16 @@
 | **figma** | DS 파일 Styles/Components 카운트 + 도메인 파일 INSTANCE 의 출처 미상 비율 + DS↔코드 토큰 매트릭스 | 위 JSON 의 `figma` 필드 |
 | **lighthouse** | 페이지별 Performance / Accessibility / Best Practices / SEO 점수 | `vitaui/lighthouse/reports/YYYY-MM-DD/` |
 
+## 사이드카 plugin 시스템 (v0.15, 2026-04-30)
+
+vitaui 자체 측정 외 외부 측정 자료 영역 (단위 테스트 / 번들 크기 / 접근성 검사 등) 영역 dashboard 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — vitaui ↔ plugin 직접 코드 의존 빠짐.
+
+- 자료 위치: `vitaui/reports/plugins/{id}/{date}.json` (id 알파벳 순 정렬)
+- 자동 표시: `npx vitaui dashboard` (별도 명령 빠짐 — dashboard 빌드 시점에 자동 검색)
+- Summary 탭 안 plugin 1개당 Layer 04+ 자동 추가 + plugin 탭 동적 생성
+- 검증 영역 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + stale 영역 (7일+) 회색 배지
+- 자세한 영역: [docs/plugin-development.md](./docs/plugin-development.md) (plugin 개발자용 자료실)
+
 ## 빠른 시작
 
 ### 1. 설치
@@ -167,9 +177,10 @@ ratchet 동작:
 packages/vitaui/
 ├── src/
 │   ├── analyzers/  ← codebase / figma (+ figma/componentMatch v0.11 + figma/domainScan v0.14) / lintBaseline / scssTokens / tokenMatrix / codeTokens
+│   ├── plugins/    ← v0.15 사이드카 plugin (types / loader — vitaui/reports/plugins/* 자동 검색 + 검증)
 │   ├── frameworks/ ← react adapter (확장 가능 — Vue / Svelte / Astro / Solid)
 │   ├── reporters/  ← json / markdown / overview / migrationCsv (v0.14)
-│   ├── dashboard/  ← v0.9 시점 통합 — components (root / code-tab / figma-tab / lighthouse-tab) + transformers (baseline-to-{code,figma,summary}-data + lighthouse-to-data) + builder (render / shell)
+│   ├── dashboard/  ← v0.9 통합 + v0.15 plugin 영역 — components (root / code-tab / figma-tab / lighthouse-tab / plugin-tab) + transformers (baseline-to-{code,figma,summary}-data + lighthouse-to-data + plugins-to-data) + builder (render / shell)
 │   ├── utils/walker.ts
 │   ├── cli.ts      ← 진입점 (audit / report / dashboard / export-migration / baseline-lint)
 │   ├── policy.ts
@@ -178,7 +189,7 @@ packages/vitaui/
 ├── eslint/         ← eslint-plugin-ui-health (no-forbidden-classes 룰)
 ├── lighthouse/run.js  ← LHCI 실행 + summary.json 생성
 ├── presets/        ← 4종 stylingPolicy + 3종 config 템플릿 (configs/next-app-css-modules.ts / next-pages-scss.ts / vite-react-tailwind.ts)
-└── docs/           ← figma-config-guide / eslint-rules / eslint-ci-integration / lighthouse-ci-integration / methodology (Phase B 작성 예정)
+└── docs/           ← figma-config-guide / eslint-rules / eslint-ci-integration / lighthouse-ci-integration / methodology (Phase B 작성 예정) / plugin-development (v0.15)
 ```
 
 ## 더 읽기
@@ -187,8 +198,9 @@ packages/vitaui/
 - [docs/eslint-rules.md](./docs/eslint-rules.md) — ESLint 룰 상세 + ratchet 동작
 - [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) — CI 통합 패턴
 - [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) — Lighthouse CI 통합
+- [docs/plugin-development.md](./docs/plugin-development.md) — 사이드카 plugin 개발 자료실 (자료 위치 / 자료 형식 / 자동 표시 / 검증 / 예시 코드 — v0.15)
 - [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (**Phase B 작성 예정** — 현재 placeholder, planning.md / phase-c-plan.md reference)
-- 프로젝트 측 운영 기록 — `vitaui/docs/planning.md` (Phase × 레이어 매트릭스 + Phase 정의 + §7 Decision Log v0.1 ~ v0.14) / `vitaui/docs/phase-c-plan.md` (Phase C 5 작업)
+- 프로젝트 측 운영 기록 — `vitaui/docs/planning.md` (Phase × 레이어 매트릭스 + Phase 정의 + §7 Decision Log v0.1 ~ v0.15) / `vitaui/docs/phase-c-plan.md` (Phase C 6 작업, 1.6 사이드카 plugin ✅ 끝)
 
 ## 라이선스
 
