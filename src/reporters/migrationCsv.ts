@@ -8,7 +8,12 @@
  * Test-Perform / 다른 frame 마이그레이션 작업 진입 사전 영역.
  *
  * CSV 컬럼:
- *   nodeId, componentName, instanceName, dsLabel, contextPath, figmaUrl
+ *   nodeId, masterName, componentName, instanceName, dsLabel, contextPath, figmaUrl
+ *
+ * Phase 0.7 후속 (2026-04-30): masterName 컬럼 추가 — variant component 영역 master
+ * (componentSet.name) 노출. 단독 component 영역 (raw 영역에서 masterName null) 은
+ * CSV 출력 영역에서 componentName 강제 주입 — 사용자 인지 본질 (masterName === componentName
+ * 이면 단독 / 다르면 variant). instance JSON 영역은 raw 보존 (null 그대로).
  *
  * figmaUrl 자동 조립: `https://www.figma.com/design/{fileKey}/{fileName}?node-id={nodeId 콜론 → 하이픈}`
  *
@@ -46,6 +51,12 @@ export interface MigrationExportOptions {
 
 export interface MigrationExportRow {
   nodeId: string;
+  /**
+   * variant component 영역 master name (componentSet.name).
+   * 단독 component 영역 raw 에서 null — CSV 출력 영역에서 componentName 강제 주입.
+   * 매칭 실패 (unmatched) 영역 빈 문자열.
+   */
+  masterName: string;
   componentName: string;
   instanceName: string;
   dsLabel: string;
@@ -101,8 +112,14 @@ function buildRow(
   const figmaUrl = domain.fileKey
     ? `https://www.figma.com/design/${domain.fileKey}/${domain.fileName ?? ""}?node-id=${nodeIdHyphen}`
     : "";
+  // 단독 component 영역 강제 주입 (Phase 0.7 후속, 2026-04-30):
+  // masterName 영역 raw 에서 null (단독 component 영역) 이면 componentName 주입.
+  // 매칭 실패 (unmatched) 영역 둘 다 null — 빈 문자열.
+  // 사용자 인지 — masterName === componentName 이면 단독, 다르면 variant.
+  const masterName = inst.masterName ?? inst.componentName ?? "";
   return {
     nodeId: inst.nodeId,
+    masterName,
     componentName: inst.componentName ?? "",
     instanceName: inst.name,
     dsLabel: inst.dsLabel,
@@ -115,8 +132,10 @@ function buildRow(
  * CSV 직렬화 — RFC 4180 영역 본질 (콤마 / 따옴표 / 줄바꿈 영역 처리).
  */
 export function rowsToCsv(rows: MigrationExportRow[]): string {
+  // Phase 0.7 후속 (2026-04-30): masterName 컬럼 추가 (componentName 직전).
   const headers = [
     "nodeId",
+    "masterName",
     "componentName",
     "instanceName",
     "dsLabel",
@@ -128,6 +147,7 @@ export function rowsToCsv(rows: MigrationExportRow[]): string {
     lines.push(
       [
         csvEscape(r.nodeId),
+        csvEscape(r.masterName),
         csvEscape(r.componentName),
         csvEscape(r.instanceName),
         csvEscape(r.dsLabel),
