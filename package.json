@@ -1,7 +1,7 @@
 {
   "name": "dsmonitor",
-  "version": "0.1.1",
-  "description": "UI Health Monitoring Framework — 코드베이스 / 스타일 / 디자인 일관성을 정량 측정하는 도구",
+  "version": "0.1.2",
+  "description": "UI Health Monitoring Framework — 코드베이스 / 스타일 / 디자인 일관성을 정량 측정하는 도구. UI Health Monitoring Framework — quantifies codebase / style / design consistency.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -45,6 +45,16 @@
     "url": "git+https://github.com/jsiksn/dsmonitor.git"
   },
   "author": "jsiksn",
+  "contributors": [
+    {
+      "name": "chenjingdev",
+      "url": "https://github.com/chenjingdev"
+    },
+    {
+      "name": "servantcdh",
+      "url": "https://github.com/servantcdh"
+    }
+  ],
   "license": "MIT",
   "keywords": [
     "dsmonitor",
