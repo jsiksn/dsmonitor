@@ -1,11 +1,11 @@
 /**
- * vitaui plugin 시스템 타입 영역.
+ * dsmonitor plugin 시스템 타입 영역.
  *
- * 자료 형식 약속 — packages/vitaui/docs/plugin-development.md 영역과 정합.
+ * 자료 형식 약속 — packages/dsmonitor/docs/plugin-development.md 영역과 정합.
  * 외부 plugin 개발자 측 가이드와 인터페이스 동일.
  */
 
-export interface VitaUIPluginOutput {
+export interface DSMonitorPluginOutput {
   /** plugin 고유 id (폴더 이름과 일치) */
   id: string;
   /** 대시보드 탭 표시 이름 */
@@ -48,7 +48,7 @@ export interface DetailRow {
 export type DashboardPluginEntry =
   | {
       ok: true;
-      output: VitaUIPluginOutput;
+      output: DSMonitorPluginOutput;
       /** measuredAt 가 7일 이상 지난 시점 영역 */
       stale: boolean;
     }

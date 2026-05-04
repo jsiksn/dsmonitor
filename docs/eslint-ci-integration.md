@@ -30,7 +30,7 @@ ui-health:lint-summary:
   artifacts:
     when: always
     paths:
-      - vitaui/.lint-baseline.json
+      - dsmonitor/.lint-baseline.json
     expire_in: 1 week
   allow_failure: true   # Phase 1: 어떠한 경우에도 파이프라인 통과
 ```
@@ -43,7 +43,7 @@ image: node:20
 pipelines:
   default:
     - step:
-        name: VitaUI lint summary
+        name: DSMonitor lint summary
         caches:
           - node
         script:
@@ -62,7 +62,7 @@ pipeline {
     stage('Install') {
       steps { sh 'npm ci' }
     }
-    stage('VitaUI lint summary') {
+    stage('DSMonitor lint summary') {
       steps {
         // catchError로 실패를 기록만 하고 파이프라인 진행.
         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
@@ -78,7 +78,7 @@ pipeline {
 
 ### 공통 권장 사항
 - `lint:summary` 는 stdout에 **사람이 읽기 좋은 요약**을 출력한다. CI 로그 뷰어에서 바로 확인 가능.
-- baseline(`vitaui/.lint-baseline.json`)은 **PR 머지와 함께** 커밋하는 습관. 아무도 lint:update-baseline을 돌리지 않으면 증가 탐지가 무의미해진다.
+- baseline(`dsmonitor/.lint-baseline.json`)은 **PR 머지와 함께** 커밋하는 습관. 아무도 lint:update-baseline을 돌리지 않으면 증가 탐지가 무의미해진다.
 
 ---
 
@@ -115,7 +115,7 @@ set -e
 OUTPUT=$(npm run lint:summary)
 echo "$OUTPUT"
 if echo "$OUTPUT" | grep -qE 'Delta:\s*\+[1-9]'; then
-  echo "::warning::VitaUI lint warnings increased. See summary above."
+  echo "::warning::DSMonitor lint warnings increased. See summary above."
 fi
 # exit 0 유지 — 경고만 남긴다
 ```
@@ -140,7 +140,7 @@ echo "$OUTPUT"
 # Delta 가 +N (양수)이면 exit 1
 if echo "$OUTPUT" | grep -qE 'Delta:\s*\+[1-9]'; then
   echo ""
-  echo "ERROR: VitaUI lint warnings increased."
+  echo "ERROR: DSMonitor lint warnings increased."
   echo "Fix the newly-added forbidden classes, or run"
   echo "  'npm run lint:update-baseline'"
   echo "to consciously raise the baseline (document the reason in --note)."
@@ -171,7 +171,7 @@ ESLint 자체의 실패 메커니즘을 쓰는 방법. 모든 ESLint 룰의 warn
 `ui-health` 외 룰이 발생시키는 warning도 영향을 준다는 점 주의.
 
 ```bash
-MAX=$(node -p "require('./vitaui/.lint-baseline.json').maxWarnings")
+MAX=$(node -p "require('./dsmonitor/.lint-baseline.json').maxWarnings")
 next lint --max-warnings=$MAX
 ```
 

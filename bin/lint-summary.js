@@ -9,9 +9,9 @@
  * - **항상 exit 0** — CI 블로킹 용도 아님. Phase 1(가시화)용 도구.
  *
  * Usage:
- *   node packages/vitaui/bin/lint-summary.js
- *   node packages/vitaui/bin/lint-summary.js --baseline ./custom.json
- *   VITAUI_LINT_BASELINE=./custom.json node packages/vitaui/bin/lint-summary.js
+ *   node packages/dsmonitor/bin/lint-summary.js
+ *   node packages/dsmonitor/bin/lint-summary.js --baseline ./custom.json
+ *   VITAUI_LINT_BASELINE=./custom.json node packages/dsmonitor/bin/lint-summary.js
  */
 
 const path = require("path");
@@ -60,7 +60,7 @@ function main() {
 
   console.log("");
   console.log("=".repeat(64));
-  console.log(" VitaUI — Lint Summary (soft, non-blocking)");
+  console.log(" DSMonitor — Lint Summary (soft, non-blocking)");
   console.log("=".repeat(64));
   console.log(` rule: ${TARGET_RULE}`);
   console.log("");
@@ -70,7 +70,7 @@ function main() {
       " baseline 파일을 찾지 못했습니다 (fail-soft — 현재 수치만 출력 후 종료)."
     );
     console.log(
-      "   검색: <cwd>/vitaui/.lint-baseline.json"
+      "   검색: <cwd>/dsmonitor/.lint-baseline.json"
     );
     console.log(
       "   해결: --baseline <path> 인자 또는 VITAUI_LINT_BASELINE 환경변수,"

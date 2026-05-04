@@ -5,7 +5,7 @@
  * Root-level wrapper for `npm run report`. Spawns the TS CLI via tsx.
  *
  * 사용자 cwd 그대로 유지 — cli.ts 의 findConfigUpward 가 cwd 기반으로
- * vitaui.config.ts 를 자동 검색. --config 로 명시 지정도 가능.
+ * dsmonitor.config.ts 를 자동 검색. --config 로 명시 지정도 가능.
  *
  * Usage:
  *   npm run report

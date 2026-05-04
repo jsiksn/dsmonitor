@@ -156,7 +156,7 @@ export interface LighthouseTabData {
   averages: { perf: number; a11y: number; bp: number; seo: number };
   /**
    * v0.9 note 13 (2026-04-28): 시안 시점엔 1 URL 만 수집되어 단일 객체였으나, 본 환경엔
-   * 모든 URL 의 LHR raw 가 vitaui/lighthouse/reports/{date}/ 에 있어 배열로 변경.
+   * 모든 URL 의 LHR raw 가 dsmonitor/lighthouse/reports/{date}/ 에 있어 배열로 변경.
    * 매칭 실패한 URL 은 entry 에서 누락 (배열 길이 ≤ totalUrls).
    * 빈 배열이면 lighthouse-tab CwvSection 이 빈 상태 표시.
    */
@@ -233,14 +233,14 @@ export interface DashboardData {
   lighthouse: LighthouseTabData | null;
   /**
    * 사이드카 plugin 영역 entry 배열 (v0.15, 2026-04-30).
-   * vitaui/reports/plugins/{id}/{date}.json 영역 자동 검색 — id 알파벳 순 정렬.
+   * dsmonitor/reports/plugins/{id}/{date}.json 영역 자동 검색 — id 알파벳 순 정렬.
    * 검증 실패 영역도 entry 영역 (ok: false) 으로 보존 — dashboard 안 빨간 알림 영역.
    */
   plugins: DashboardPluginEntry[];
 }
 
 /**
- * Lighthouse summary.json shape — `vitaui/lighthouse/reports/{date}/summary.json` 출력.
+ * Lighthouse summary.json shape — `dsmonitor/lighthouse/reports/{date}/summary.json` 출력.
  * 입력 source.
  */
 export interface LighthouseSummaryFile {

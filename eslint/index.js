@@ -12,11 +12,11 @@ const rules = {
  *
  * Usage (in .eslintrc.js):
  *   const { fromPolicy } = require('eslint-plugin-ui-health');
- *   const policy = require('./vitaui/stylingPolicy');
+ *   const policy = require('./dsmonitor/stylingPolicy');
  *   module.exports = {
  *     extends: ['next/core-web-vitals'],
  *     ...fromPolicy(policy, {
- *       baselinePath: './vitaui/lint-baseline.json',
+ *       baselinePath: './dsmonitor/lint-baseline.json',
  *     }),
  *   };
  *

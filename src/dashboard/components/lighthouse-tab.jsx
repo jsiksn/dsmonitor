@@ -1,5 +1,5 @@
 /* global React */
-// VitaUI Dashboard — Lighthouse 탭. 시안 (Claude Design 핸드오프) 의 lighthouse-tab.jsx
+// DSMonitor Dashboard — Lighthouse 탭. 시안 (Claude Design 핸드오프) 의 lighthouse-tab.jsx
 // 의 React.createElement IIFE 형식을 JSX 로 변환. 동작 동일.
 
 const { useState: useStateLh } = React;

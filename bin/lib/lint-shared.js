@@ -17,7 +17,7 @@ function argOf(flag) {
  * Soft baseline 파일 경로 결정 (우선순위 순):
  *   1) --baseline CLI 인자
  *   2) VITAUI_LINT_BASELINE 환경변수
- *   3) <cwd>/vitaui/.lint-baseline.json (cwd 기반 단일 후보)
+ *   3) <cwd>/dsmonitor/.lint-baseline.json (cwd 기반 단일 후보)
  *
  * 후보 모두 실패 시 null 반환. 호출부 (lint-summary / lint-update-baseline) 가
  * fail-soft / fail-fast 정책에 따라 처리.
@@ -30,7 +30,7 @@ function resolveBaselinePath() {
   }
   const candidate = path.resolve(
     process.cwd(),
-    "vitaui",
+    "dsmonitor",
     DEFAULT_BASELINE_FILENAME
   );
   if (fs.existsSync(candidate)) return candidate;

@@ -6,7 +6,7 @@
  *   2. lighthouse summary 자동 검색 (옵션, 없어도 lighthouse 탭 빈 상태로 빌드)
  *   3. 4개 transformer 실행 → DashboardData 조립
  *   4. shell.ts 가 HTML 생성
- *   5. 파일 출력 (vitaui/reports/dashboard-{date}.html)
+ *   5. 파일 출력 (dsmonitor/reports/dashboard-{date}.html)
  */
 
 import fs from "node:fs/promises";

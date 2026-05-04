@@ -1,5 +1,5 @@
 /* global React */
-// VitaUI Dashboard — root JSX. 시안 (Claude Design 핸드오프) 의 root mount 코드 그대로
+// DSMonitor Dashboard — root JSX. 시안 (Claude Design 핸드오프) 의 root mount 코드 그대로
 // + const DATA hardcoded → window.__SUMMARY_DATA 로 변경 (자동 변환).
 //
 // 원본 시안: ui-health/project/Phase 0.5 Review Dashboard.html L532-862
@@ -21,7 +21,7 @@ const DATA = window.__SUMMARY_DATA;
           <div className="hdr-title">
             <div className="hdr-logo">UI</div>
             <div>
-              <h1>VitaUI 리뷰</h1>
+              <h1>DSMonitor 리뷰</h1>
               <div className="sub">portal-gateway-web · UI 건강 상태 스냅샷</div>
             </div>
           </div>
@@ -405,7 +405,7 @@ const DATA = window.__SUMMARY_DATA;
           {pluginId && <PluginTabWrapper pluginId={pluginId} />}
         </main>
         <footer>
-          <span>portal-gateway-web · VitaUI 리뷰</span>
+          <span>portal-gateway-web · DSMonitor 리뷰</span>
           <span className="mono">v0.1 · 2026-04-24</span>
         </footer>
       </div>

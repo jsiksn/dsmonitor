@@ -3,7 +3,7 @@
 /**
  * 예시 정책 — CSS Modules가 정식인 프로젝트.
  *
- * 사용: vitaui/stylingPolicy.js를 이 내용으로 교체.
+ * 사용: dsmonitor/stylingPolicy.js를 이 내용으로 교체.
  *
  * 특징:
  * - `styles.xxx` 접근을 AST 레벨에서 정확히 탐지하려면 detector 확장이 필요.

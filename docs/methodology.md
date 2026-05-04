@@ -1,4 +1,4 @@
-# VitaUI Methodology
+# DSMonitor Methodology
 
 (Phase B 분리 작업 시 packaging 으로부터 측정 방법론 / Phase 개념 / Decision Log 작성 규칙 / 용어 정의를 추출해 작성 예정. 현재는 placeholder.)
 
@@ -6,9 +6,9 @@
 
 방법론 / 진행 / Phase 정의 / 측정 도구 진화 historical 은 프로젝트 측 운영 기록 영역에 통합 정리:
 
-- **`vitaui/docs/planning.md`** — 프로젝트 측 메인 기획. Phase × 레이어 매트릭스 / 진행 상태 / Phase 정의 / §7 Decision Log (v0.1 ~ v0.15, 2026-04-20 ~ 2026-04-30).
-- **`vitaui/docs/phase-c-plan.md`** — Phase C 6 작업 (대시보드 고도화 + depth/parentInstance + case A/B 정정 + 레이어 3 + 패키지화 + 사이드카 plugin 시스템 ✅).
-- **`vitaui/vitaui.config.ts`** measurementHistory — v0.1 ~ v0.15 entry (각 버전의 정의 변경 / 신규 기능 / 본질 학습 historical).
+- **`dsmonitor/docs/planning.md`** — 프로젝트 측 메인 기획. Phase × 레이어 매트릭스 / 진행 상태 / Phase 정의 / §7 Decision Log (v0.1 ~ v0.15, 2026-04-20 ~ 2026-04-30).
+- **`dsmonitor/docs/phase-c-plan.md`** — Phase C 6 작업 (대시보드 고도화 + depth/parentInstance + case A/B 정정 + 레이어 3 + 패키지화 + 사이드카 plugin 시스템 ✅).
+- **`dsmonitor/dsmonitor.config.ts`** measurementHistory — v0.1 ~ v0.15 entry (각 버전의 정의 변경 / 신규 기능 / 본질 학습 historical).
 
 ## 패키지 측 사용자 가이드 reference
 

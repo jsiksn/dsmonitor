@@ -4,7 +4,7 @@ Phase 0.5 Figma baseline 측정을 위한 설정 안내. 한 번 설정 후에�
 
 ## 개요
 
-VitaUI 의 Figma analyzer 는 Figma REST API 를 통해 다음을 측정합니다.
+DSMonitor 의 Figma analyzer 는 Figma REST API 를 통해 다음을 측정합니다.
 
 - **DS 파일별 카운트**: Styles / Main Components / Variant 그룹 (Variables 는 Phase B 이월)
 - **도메인 파일 출처 미상 Instance 비율**: 등록된 DS 중 어디에도 매칭되지 않는 INSTANCE 비율 + Top N (마이그레이션 우선순위)
@@ -30,25 +30,25 @@ VitaUI 의 Figma analyzer 는 Figma REST API 를 통해 다음을 측정합니�
 ### 2. `.env.local` 에 토큰 저장
 
 ```bash
-cd vitaui
+cd dsmonitor
 cp .env.local.example .env.local   # 최초 1회
 # .env.local 을 편집해 FIGMA_API_TOKEN= 에 토큰 붙여넣기
 ```
 
 `.env.local` 은 `.gitignore` 에 등록되어 있어 커밋되지 않습니다.
 
-### 3. 측정 대상 파일 등록 (`vitaui.config.local.ts`)
+### 3. 측정 대상 파일 등록 (`dsmonitor.config.local.ts`)
 
 ```bash
-cp vitaui.config.local.example.ts vitaui.config.local.ts
-# vitaui.config.local.ts 를 편집해 실제 파일 URL 채우기
+cp dsmonitor.config.local.example.ts dsmonitor.config.local.ts
+# dsmonitor.config.local.ts 를 편집해 실제 파일 URL 채우기
 ```
 
 이 파일도 `.gitignore` 에 등록됨. 예시 템플릿 `.example.ts` 는 커밋 대상.
 
 ### 4. Figma 측정 활성화
 
-`vitaui/vitaui.config.ts` 에서:
+`dsmonitor/dsmonitor.config.ts` 에서:
 
 ```typescript
 metrics: {
@@ -144,7 +144,7 @@ Copy link 방법: Figma 캔버스에서 **프레임을 선택한 뒤 우클릭**
 }
 ```
 
-자세한 예시는 `vitaui.config.local.example.ts` 의 `domain-d` 참고.
+자세한 예시는 `dsmonitor.config.local.example.ts` 의 `domain-d` 참고.
 
 ## 측정 실행
 
@@ -173,9 +173,9 @@ npm run ui-health:export-migration -- --frame=<frame-comment> [--ds=<label>]
 - `--frame=<comment>` (필수): frame.comment 정확 일치 또는 `all`
 - `--ds=<label>` (옵션, 기본 `ds-legacy`): `ds-new` / `unmatched` / `all` 가능
 
-출력 — `vitaui/reports/migration/{frame}-{ds}-{date}.csv` (CSV 컬럼: nodeId / componentName / instanceName / dsLabel / contextPath / figmaUrl). figmaUrl 은 Figma 시안 직접 진입 가능한 형태로 자동 조립.
+출력 — `dsmonitor/reports/migration/{frame}-{ds}-{date}.csv` (CSV 컬럼: nodeId / componentName / instanceName / dsLabel / contextPath / figmaUrl). figmaUrl 은 Figma 시안 직접 진입 가능한 형태로 자동 조립.
 
-사전 조건: `ui-health:baseline` 실행으로 `vitaui/reports/figma-instances-{date}.json` 생성 (instance level raw, walk 시점에 같이 출력).
+사전 조건: `ui-health:baseline` 실행으로 `dsmonitor/reports/figma-instances-{date}.json` 생성 (instance level raw, walk 시점에 같이 출력).
 
 ## FAQ
 
@@ -214,7 +214,7 @@ A. 외주 옛 DS 에서 온 instance 가 여기로 분류됩니다. planning.md 
 A. 네. urlParser 가 `parsed.searchParams.get("node-id")` 로 node-id 만 추출 — 다른 query param (`&t=Yqb0SCoDaqckT0kw-4` 같은 share session token) 은 자연 무시됩니다. URL 에서 직접 제거할 필요 없음.
 
 **Q. ds-legacy / ds-new 양쪽 라이브러리 영역에 같은 컴포넌트가 published 됐을 때 어떻게 분류되나요?**
-A. componentMap 빌드 시 **first-come-first-serve** — config 의 `designSystemFiles` 순서가 우선. ds-legacy 가 1st 로 등록돼 있으면 같은 stable library key 영역 ds-new 측 항목은 무시 (warnings 영역에 conflict 기록). 본 프로젝트의 v0.14 측정에서 114 conflict 발견 — 모두 ds-legacy 우선. 이는 vitaui 의 issue 가 아니라 Figma 작업 영역 본질 (ds-legacy 컴포넌트 영역을 ds-new 파일에 복사 / import 시 같은 stable key 유지). 자세한 검증은 measurementHistory v0.14 entry 참조.
+A. componentMap 빌드 시 **first-come-first-serve** — config 의 `designSystemFiles` 순서가 우선. ds-legacy 가 1st 로 등록돼 있으면 같은 stable library key 영역 ds-new 측 항목은 무시 (warnings 영역에 conflict 기록). 본 프로젝트의 v0.14 측정에서 114 conflict 발견 — 모두 ds-legacy 우선. 이는 dsmonitor 의 issue 가 아니라 Figma 작업 영역 본질 (ds-legacy 컴포넌트 영역을 ds-new 파일에 복사 / import 시 같은 stable key 유지). 자세한 검증은 measurementHistory v0.14 entry 참조.
 
 ## 부록: Figma REST API 응답 구조 메모 (사전 조사 결과)
 

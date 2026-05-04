@@ -1,7 +1,7 @@
 /**
- * vitaui/reports/plugins/* 폴더 검색 + JSON 검증 영역.
+ * dsmonitor/reports/plugins/* 폴더 검색 + JSON 검증 영역.
  *
- * 폴더 구조: vitaui/reports/plugins/{id}/{date}.json
+ * 폴더 구조: dsmonitor/reports/plugins/{id}/{date}.json
  * - {id} = plugin 폴더 이름 (= JSON 의 id 필드와 일치)
  * - {date} = YYYY-MM-DD 형식
  * - 가장 최신 날짜 파일 1개만 활용 (과거 파일은 보존, 추후 시계열 영역 활용)
@@ -16,13 +16,13 @@ import fs from "node:fs";
 import path from "node:path";
 import type {
   DashboardPluginEntry,
-  VitaUIPluginOutput,
+  DSMonitorPluginOutput,
 } from "./types";
 
 const STALE_THRESHOLD_DAYS = 7;
 
 /**
- * vitaui/reports/plugins/ 폴더 영역 검색 + 모든 plugin entry 영역 반환.
+ * dsmonitor/reports/plugins/ 폴더 영역 검색 + 모든 plugin entry 영역 반환.
  * id 알파벳 순 정렬 (탭 / Summary Layer 영역 정렬 영역과 정합).
  */
 export function loadPlugins(pluginsRoot: string): DashboardPluginEntry[] {
@@ -51,7 +51,7 @@ function loadPluginFolder(
     return {
       ok: false,
       id: expectedId,
-      reason: `{date}.json 파일 빠짐 (vitaui/reports/plugins/${expectedId}/ 안 YYYY-MM-DD.json 형식 영역 빠짐)`,
+      reason: `{date}.json 파일 빠짐 (dsmonitor/reports/plugins/${expectedId}/ 안 YYYY-MM-DD.json 형식 영역 빠짐)`,
     };
   }
   const latestPath = path.join(folderPath, datedFiles[0]);
@@ -91,7 +91,7 @@ function validatePluginJson(
   raw: unknown,
   expectedId: string
 ):
-  | { ok: true; output: VitaUIPluginOutput }
+  | { ok: true; output: DSMonitorPluginOutput }
   | { ok: false; reason: string } {
   if (!raw || typeof raw !== "object") {
     return { ok: false, reason: "JSON root 가 객체 빠짐" };
@@ -129,7 +129,7 @@ function validatePluginJson(
       reason: "summary.primary.value 영역 빠짐 (string 또는 number 기대)",
     };
   }
-  return { ok: true, output: o as unknown as VitaUIPluginOutput };
+  return { ok: true, output: o as unknown as DSMonitorPluginOutput };
 }
 
 /**

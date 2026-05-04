@@ -3,3 +3,11 @@ package-lock.json
 pnpm-lock.yaml
 *.log
 .DS_Store
+
+# v0.1.0: 빌드 산출물 (tsup) + 패킹 산출물
+dist/
+*.tgz
+
+# v0.1.1: root .gitignore 안 .env* 패턴 영역 안 templates/.env.local.example.tpl
+# 영역 ignored — unignore (templates 안 사용자 측 자료 영역 = 발행본 영역 안 포함 본질).
+!templates/.env.local.example.tpl

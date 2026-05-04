@@ -3,7 +3,7 @@
 /**
  * 예시 정책 — SCSS가 정식, Bootstrap/Tailwind가 레거시인 프로젝트.
  *
- * 현재 repo(portal-gateway-web)가 이 케이스. 루트 `vitaui/stylingPolicy.js`
+ * 현재 repo(portal-gateway-web)가 이 케이스. 루트 `dsmonitor/stylingPolicy.js`
  * 참고(동일 구조).
  */
 
@@ -34,7 +34,7 @@ module.exports = {
         /^btn(?:-(?:sm|lg|primary|secondary|success|danger|warning|info|light|dark|link|outline-\w+))?$/,
         /^col(?:-(?:sm|md|lg|xl|xxl))?(?:-(?:auto|\d{1,2}))?$/,
         /^row$/,
-        // ... 전체 목록은 vitaui/stylingPolicy.js 참고
+        // ... 전체 목록은 dsmonitor/stylingPolicy.js 참고
       ],
     },
     {
@@ -47,7 +47,7 @@ module.exports = {
         /^text-(?:xs|sm|base|lg|xl|2xl|3xl|4xl)$/,
         /^font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)$/,
         /^rounded-(?:none|sm|md|lg|xl|2xl|3xl|full)$/,
-        // ... 전체 목록은 vitaui/stylingPolicy.js 참고
+        // ... 전체 목록은 dsmonitor/stylingPolicy.js 참고
       ],
     },
   ],

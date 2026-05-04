@@ -18,9 +18,23 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 import type { DashboardData } from "../transformers/types";
 
-const COMPONENTS_DIR = path.resolve(__dirname, "..", "components");
+// v0.1.0: ESM 호환 — __dirname 영역 빠짐. fileURLToPath(import.meta.url) 영역 활용.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+// 두 영역 호환 path —
+//  - dev (tsx + src 영역): __dirname = src/dashboard/builder/ → ../components
+//  - bundled (dist/cli.js): __dirname = dist/ → dashboard/components
+const TRY_COMPONENTS_DIRS = [
+  path.resolve(__dirname, "..", "components"),
+  path.resolve(__dirname, "dashboard", "components"),
+];
+const COMPONENTS_DIR =
+  TRY_COMPONENTS_DIRS.find((p) => fs.existsSync(path.join(p, "styles.css"))) ??
+  TRY_COMPONENTS_DIRS[0];
 
 function readComponent(name: string): string {
   return fs.readFileSync(path.join(COMPONENTS_DIR, name), "utf8");
@@ -46,7 +60,7 @@ export function buildHtmlShell(data: DashboardData): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VitaUI 리뷰</title>
+<title>DSMonitor 리뷰</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">

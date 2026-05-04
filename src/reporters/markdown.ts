@@ -164,7 +164,7 @@ export async function generateMarkdown(
   const improvements = rows.filter((r) => !r.informational && r.status === "bad");
 
   const lines: string[] = [];
-  lines.push(`# VitaUI Report`);
+  lines.push(`# DSMonitor Report`);
   lines.push("");
 
   // Phase 배지 (config.reportStatus 있을 때만)
@@ -404,7 +404,7 @@ export async function generateMarkdown(
 
   lines.push(`---`);
   lines.push(
-    `*자동 생성 — 수동 편집 금지. 갱신: \`npm run ui-health:report\`. 기획서: \`vitaui/docs/planning.md\`.*`
+    `*자동 생성 — 수동 편집 금지. 갱신: \`npm run ui-health:report\`. 기획서: \`dsmonitor/docs/planning.md\`.*`
   );
   lines.push("");
 
