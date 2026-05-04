@@ -10,7 +10,7 @@
  * `auth/portal-gateway.js`) 가 LHCI 내부에서 수행. run.js 는 인증 관련
  * 처리 없음.
  *
- * 상세 사용법: vitaui/lighthouse/README.md
+ * 상세 사용법: dsmonitor/lighthouse/README.md
  */
 
 "use strict";
@@ -19,14 +19,14 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-// vitaui/.env.local 로드 (LIGHTHOUSE_* 변수 공급).
+// dsmonitor/.env.local 로드 (LIGHTHOUSE_* 변수 공급).
 // LHCI 는 기본적으로 .env 파일을 읽지 않으므로 run.js 가 명시 로드 후
 // child process 로 전파 (lighthouse/plan-b.md §4-4 결정).
 //
 // 패키지 분리 후 .env.local / config.js / reports/ 모두 프로젝트 측
-// (vitaui/lighthouse/) 에 있음. run.js 는 패키지부 (packages/vitaui/lighthouse/)
-// 에 있어 자기 위치 (__dirname) 와 다름. cwd 기반으로 프로젝트 측 vitaui/ 검색.
-const PROJECT_VITAUI_DIR = path.resolve(process.cwd(), "vitaui");
+// (dsmonitor/lighthouse/) 에 있음. run.js 는 패키지부 (packages/dsmonitor/lighthouse/)
+// 에 있어 자기 위치 (__dirname) 와 다름. cwd 기반으로 프로젝트 측 dsmonitor/ 검색.
+const PROJECT_VITAUI_DIR = path.resolve(process.cwd(), "dsmonitor");
 const LH_DIR = path.join(PROJECT_VITAUI_DIR, "lighthouse");
 const ENV_FILE =
   process.env.VITAUI_ENV_FILE ?? path.join(PROJECT_VITAUI_DIR, ".env.local");
@@ -52,11 +52,11 @@ if (!process.env.LIGHTHOUSE_BASE_URL) {
       "LIGHTHOUSE_BASE_URL 환경변수가 설정되지 않았습니다.",
       "",
       "해결 방법:",
-      "  1) vitaui/.env.local.example 을 복사해 .env.local 생성",
+      "  1) dsmonitor/.env.local.example 을 복사해 .env.local 생성",
       "  2) LIGHTHOUSE_BASE_URL 포함 LIGHTHOUSE_* 변수들을 채움",
       "  3) 재실행",
       "",
-      "상세: vitaui/lighthouse/plan-b.md §6-5",
+      "상세: dsmonitor/lighthouse/plan-b.md §6-5",
     ].join("\n")
   );
 }
@@ -91,7 +91,7 @@ if (result.status !== 0) {
       "",
       "흔한 원인:",
       "  - 인증 실패 (Plan B 어댑터) → headful 재실행으로 진단",
-      "    (node vitaui/lighthouse/auth/run-headful.js keep-open)",
+      "    (node dsmonitor/lighthouse/auth/run-headful.js keep-open)",
       "  - 측정 URL 의 dev 환경 미구동 또는 네트워크 차단",
       "  - LIGHTHOUSE_* 환경변수 오설정 — .env.local 재확인",
     ].join("\n")

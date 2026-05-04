@@ -71,9 +71,9 @@ export async function analyzeFigma(
   if (!cfg.figma) {
     throw new Error(
       "figmaAnalysis 가 true 지만 `cfg.figma` 가 없습니다. " +
-        "vitaui.config.ts 에 figma 블록을 추가하거나, " +
-        "vitaui.config.local.ts 파일을 생성해 designSystemFiles/domainFiles 를 export 하세요. " +
-        "템플릿: vitaui.config.local.example.ts"
+        "dsmonitor.config.ts 에 figma 블록을 추가하거나, " +
+        "dsmonitor.config.local.ts 파일을 생성해 designSystemFiles/domainFiles 를 export 하세요. " +
+        "템플릿: dsmonitor.config.local.example.ts"
     );
   }
   const fc = cfg.figma;
@@ -82,7 +82,7 @@ export async function analyzeFigma(
   if (!token || token.trim() === "") {
     throw new Error(
       "FIGMA_API_TOKEN 환경변수가 없습니다. " +
-        "vitaui/.env.local 에 토큰을 설정하세요 " +
+        "dsmonitor/.env.local 에 토큰을 설정하세요 " +
         "(템플릿: .env.local.example). 발급: Figma > Settings > Personal access tokens."
     );
   }
@@ -90,8 +90,8 @@ export async function analyzeFigma(
   if (fc.designSystemFiles.length === 0 && fc.domainFiles.length === 0) {
     throw new Error(
       "figma.designSystemFiles 와 figma.domainFiles 가 모두 비어있습니다. " +
-        "vitaui.config.local.ts 에서 최소 한 개 이상 추가하세요. " +
-        "템플릿: vitaui.config.local.example.ts"
+        "dsmonitor.config.local.ts 에서 최소 한 개 이상 추가하세요. " +
+        "템플릿: dsmonitor.config.local.example.ts"
     );
   }
 

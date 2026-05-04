@@ -17,7 +17,7 @@
  * Usage:
  *   npm run lint:update-baseline
  *   npm run lint:update-baseline -- --note "cleaned up login flow"
- *   node packages/vitaui/bin/lint-update-baseline.js --baseline ./custom.json
+ *   node packages/dsmonitor/bin/lint-update-baseline.js --baseline ./custom.json
  */
 
 const path = require("path");
@@ -35,7 +35,7 @@ function main() {
   if (!baselinePath) {
     console.error(
       "[lint:update-baseline] baseline 파일 위치를 결정할 수 없습니다.\n" +
-        "  검색: <cwd>/vitaui/.lint-baseline.json\n" +
+        "  검색: <cwd>/dsmonitor/.lint-baseline.json\n" +
         "  해결: --baseline <path> 인자 또는 VITAUI_LINT_BASELINE 환경변수로 명시 지정.\n" +
         "        baseline 갱신은 위치 명시 없이는 안전하게 수행할 수 없습니다."
     );

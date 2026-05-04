@@ -3,7 +3,7 @@
 /**
  * 예시 정책 — Bootstrap이 정식, Tailwind/inline이 레거시인 프로젝트.
  *
- * 사용: vitaui/stylingPolicy.js를 이 내용으로 교체.
+ * 사용: dsmonitor/stylingPolicy.js를 이 내용으로 교체.
  */
 
 /** @type {import('../../src/policy').StylingPolicy} */

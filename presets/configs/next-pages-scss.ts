@@ -5,7 +5,7 @@
  * - TypeScript 점진 마이그레이션 중 (JS/TS 혼용)
  * - Module Federation으로 atoms/molecules/organisms/templates 노출
  *
- * 루트 `vitaui/vitaui.config.ts` 와 동일 구조(참고용 스냅샷).
+ * 루트 `dsmonitor/dsmonitor.config.ts` 와 동일 구조(참고용 스냅샷).
  */
 
 import type { UIHealthConfig } from "../../../src/types";
@@ -37,7 +37,7 @@ const config: UIHealthConfig = {
       "**/.next/**",
       "**/libs/**",
       "**/styles/lib/**",
-      "**/vitaui/**",
+      "**/dsmonitor/**",
       "**/public/**",
       "**/dist/**",
       "**/*.d.ts",

@@ -94,7 +94,7 @@ pipeline {
           credentialsId: 'lighthouse-cookies-dev',
           variable: 'COOKIES_JSON'
         )]) {
-          sh 'cp "$COOKIES_JSON" vitaui/lighthouse/.cookies.local.json'
+          sh 'cp "$COOKIES_JSON" dsmonitor/lighthouse/.cookies.local.json'
         }
       }
     }
@@ -110,7 +110,7 @@ pipeline {
     stage('Archive') {
       steps {
         archiveArtifacts(
-          artifacts: 'vitaui/lighthouse/reports/**/*',
+          artifacts: 'dsmonitor/lighthouse/reports/**/*',
           allowEmptyArchive: true
         )
       }
@@ -120,7 +120,7 @@ pipeline {
   post {
     always {
       // 쿠키 파일 제거 (보안)
-      sh 'rm -f vitaui/lighthouse/.cookies.local.json'
+      sh 'rm -f dsmonitor/lighthouse/.cookies.local.json'
     }
     unstable {
       // Slack/메일 알림 — 쿠키 만료 의심 시
@@ -158,15 +158,15 @@ lighthouse:weekly:
     - apt-get update -qq && apt-get install -y --no-install-recommends google-chrome-stable
     - npm ci
     # CI/CD Variables > File 타입: LIGHTHOUSE_COOKIES_JSON
-    - cp "$LIGHTHOUSE_COOKIES_JSON" vitaui/lighthouse/.cookies.local.json
+    - cp "$LIGHTHOUSE_COOKIES_JSON" dsmonitor/lighthouse/.cookies.local.json
   script:
     - npm run lighthouse
   after_script:
-    - rm -f vitaui/lighthouse/.cookies.local.json
+    - rm -f dsmonitor/lighthouse/.cookies.local.json
   artifacts:
     when: always
     paths:
-      - vitaui/lighthouse/reports/
+      - dsmonitor/lighthouse/reports/
     expire_in: 3 months
   allow_failure: true
 ```
@@ -204,7 +204,7 @@ jobs:
 
       - name: Restore Lighthouse cookies
         run: |
-          echo "$LIGHTHOUSE_COOKIES_JSON" > vitaui/lighthouse/.cookies.local.json
+          echo "$LIGHTHOUSE_COOKIES_JSON" > dsmonitor/lighthouse/.cookies.local.json
         env:
           LIGHTHOUSE_COOKIES_JSON: ${{ secrets.LIGHTHOUSE_COOKIES_JSON }}
 
@@ -218,12 +218,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-reports-${{ github.run_id }}
-          path: vitaui/lighthouse/reports/
+          path: dsmonitor/lighthouse/reports/
           retention-days: 90
 
       - name: Cleanup cookies
         if: always()
-        run: rm -f vitaui/lighthouse/.cookies.local.json
+        run: rm -f dsmonitor/lighthouse/.cookies.local.json
 ```
 
 **주의**:

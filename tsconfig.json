@@ -14,8 +14,8 @@
     "lib": ["ES2022"],
     "baseUrl": ".",
     "paths": {
-      "vitaui": ["./src/types"],
-      "vitaui/types": ["./src/types"]
+      "dsmonitor": ["./src/types"],
+      "dsmonitor/types": ["./src/types"]
     }
   },
   "include": ["src/**/*.ts"],

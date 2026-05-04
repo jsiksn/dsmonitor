@@ -1,6 +1,6 @@
 # ESLint Rules (eslint-plugin-ui-health)
 
-`packages/vitaui/eslint/`에 번들링된 커스텀 ESLint 플러그인.
+`packages/dsmonitor/eslint/`에 번들링된 커스텀 ESLint 플러그인.
 프로젝트 **스타일링 정책**(`stylingPolicy.js`)을 주입받아 동작한다.
 
 ## Policy Decisions
@@ -96,7 +96,7 @@ export default function Panel() {
 | `bootstrap-utilities` | `d-flex`, `mt-3`, `btn`, `col-6`, `text-center` | Bootstrap 5 유틸 |
 | `tailwind-classes` | `text-blue-500`, `text-xl`, `rounded-md`, `items-center` | Tailwind 유틸 |
 
-전체 패턴은 `vitaui/stylingPolicy.js` 참조.
+전체 패턴은 `dsmonitor/stylingPolicy.js` 참조.
 
 ## 임시 비활성화
 
@@ -130,12 +130,12 @@ export default function Panel() {
 루트 `.eslintrc.js`:
 ```js
 const { fromPolicy } = require("eslint-plugin-ui-health");
-const stylingPolicy = require("./vitaui/stylingPolicy");
+const stylingPolicy = require("./dsmonitor/stylingPolicy");
 
 module.exports = {
   extends: ["next/core-web-vitals"],
   ...fromPolicy(stylingPolicy, {
-    baselinePath: "./vitaui/lint-baseline.json",
+    baselinePath: "./dsmonitor/lint-baseline.json",
   }),
 };
 ```
@@ -177,7 +177,7 @@ module.exports = {
 ### `lint:summary` 출력 예 (증가 감지)
 ```
 ================================================================
- VitaUI — Lint Summary (soft, non-blocking)
+ DSMonitor — Lint Summary (soft, non-blocking)
 ================================================================
  rule: ui-health/no-forbidden-classes
 
@@ -201,12 +201,12 @@ module.exports = {
 2. **불가피하면** 의식적으로 baseline 상향:
    ```bash
    npm run lint:update-baseline -- --note "3rd party Chart 위젯이 Bootstrap 클래스 요구"
-   git add vitaui/.lint-baseline.json
+   git add dsmonitor/.lint-baseline.json
    ```
    PR description에도 이유 기재.
 
 ### Soft baseline 설정 위치
-- config 필드: `vitaui.config.ts` → `softBaseline: { path: "./.lint-baseline.json" }`
+- config 필드: `dsmonitor.config.ts` → `softBaseline: { path: "./.lint-baseline.json" }`
 - CLI override: `--baseline <path>`
 - env override: `VITAUI_LINT_BASELINE=<path>`
 - 파일 없음 → `lint:summary`는 "baseline 없음" 안내 후 그대로 종료. **신규 프로젝트에서는 `npm run lint:update-baseline` 한 번만 돌리면 시작**.

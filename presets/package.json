@@ -1,0 +1,7 @@
+{
+  "name": "dsmonitor-presets",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "dsmonitor presets (stylingPolicy 4종 + config 템플릿) — 본 영역은 dsmonitor 패키지 안 통합 영역 (별도 발행 빠짐). 사용자 측 require(\"dsmonitor/presets/*\") 영역 호환 위해 type:commonjs."
+}

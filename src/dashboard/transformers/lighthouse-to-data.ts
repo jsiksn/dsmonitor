@@ -2,7 +2,7 @@
  * Lighthouse summary.json [+ N LHR raw JSON] → LighthouseTabData 변환.
  *
  * 입력 source:
- *   - summary.json (vitaui/lighthouse/reports/{date}/summary.json — run.js 출력)
+ *   - summary.json (dsmonitor/lighthouse/reports/{date}/summary.json — run.js 출력)
  *   - LHR raw JSON N개 (cwvSample 용; 자동 검색)
  *
  * v0.9 note 13 (2026-04-28): 옛 흐름은 1 URL 의 LHR 만 검색했으나, 본 환경엔 모든 URL
@@ -151,7 +151,7 @@ function readLhr(filePath: string): {
 }
 
 /**
- * vitaui/lighthouse/reports/ 의 가장 최신 측정 디렉토리 찾기.
+ * dsmonitor/lighthouse/reports/ 의 가장 최신 측정 디렉토리 찾기.
  * 디렉토리명 형식: YYYY-MM-DD. 없으면 null.
  */
 export function findLatestLighthouseDir(lhRoot: string): string | null {

@@ -1,5 +1,5 @@
 /* global React */
-// VitaUI Dashboard — Plugin 탭 (generic). 사이드카 plugin 영역의 자료 형식 약속대로
+// DSMonitor Dashboard — Plugin 탭 (generic). 사이드카 plugin 영역의 자료 형식 약속대로
 // 카드 + 표 자동 표시 + 검증 실패 영역 시각.
 //
 // 자료 inject: window.__PLUGINS_DATA = DashboardPluginEntry[]
@@ -83,7 +83,7 @@ function PluginErrorView({ id, reason }) {
           <div className="mono" style={{ fontSize: 12, wordBreak: "break-word" }}>{reason}</div>
         </div>
         <div className="card-desc" style={{ marginTop: 12 }}>
-          <strong>해결 영역:</strong> vitaui/reports/plugins/{id}/{`{date}.json`} 영역 안
+          <strong>해결 영역:</strong> dsmonitor/reports/plugins/{id}/{`{date}.json`} 영역 안
           필수 필드 (id / label / measuredAt / summary.primary) 영역 + JSON 형식 영역 검증.
           plugin 개발자 측 가이드: <span className="mono">docs/plugin-development.md</span>.
         </div>

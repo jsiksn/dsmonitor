@@ -1,5 +1,5 @@
 /**
- * VitaUI Dashboard 모듈 entry.
+ * DSMonitor Dashboard 모듈 entry.
  * cli.ts 의 dashboard 명령이 이 파일의 buildDashboard 를 호출.
  */
 

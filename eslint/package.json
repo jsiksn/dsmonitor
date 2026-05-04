@@ -2,9 +2,10 @@
   "name": "eslint-plugin-ui-health",
   "version": "0.1.0",
   "private": true,
-  "description": "VitaUI lint rules: ban legacy Bootstrap/Tailwind utility classes",
+  "type": "commonjs",
+  "description": "DSMonitor lint rules — 본 영역은 dsmonitor 패키지 안 통합 영역 (별도 발행 빠짐). 사용자 측 require(\"dsmonitor/eslint\") 영역 호환 위해 type:commonjs.",
   "main": "index.js",
-  "files": ["index.js", "rules", "configs", "patterns.js"],
+  "files": ["index.js", "rules"],
   "peerDependencies": {
     "eslint": ">=8"
   }

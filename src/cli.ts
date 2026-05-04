@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import path from "node:path";
 import url from "node:url";
 import fs from "node:fs/promises";
@@ -22,25 +23,44 @@ import type {
 
 async function loadConfig(configPath: string): Promise<UIHealthConfig> {
   const abs = path.resolve(configPath);
-  const mod = await import(url.pathToFileURL(abs).href);
-  const cfg = (mod.default ?? mod) as UIHealthConfig;
+  // v0.1.0: 사용자 측 dsmonitor.config.ts (.ts) 영역 import 영역 = tsx/esm/api 활용.
+  // .js / .mjs 영역은 native dynamic import 영역 활용.
+  // tsx 영역 안 default export 영역 quirk — `{ default: { default: <config> } }` 형식 가능.
+  const isTs = abs.endsWith(".ts") || abs.endsWith(".mts") || abs.endsWith(".cts");
+  let mod: any;
+  if (isTs) {
+    const { tsImport } = await import("tsx/esm/api");
+    mod = await tsImport(url.pathToFileURL(abs).href, import.meta.url);
+  } else {
+    mod = await import(url.pathToFileURL(abs).href);
+  }
+  // default export 영역 unwrap — tsx quirk 정합 (mod.default.default → mod.default → mod)
+  const cfg = (mod?.default?.default ?? mod?.default ?? mod) as UIHealthConfig;
   return cfg;
 }
 
 /**
- * cwd 부터 위로 거슬러 올라가며 vitaui 설정 파일을 검색.
+ * cwd 부터 위로 거슬러 올라가며 dsmonitor 설정 파일을 검색.
  *
  * 후보 (각 디렉토리에서 순서대로):
- *   1. <dir>/vitaui.config.ts        ← cd vitaui 안에서 직접 실행 케이스
- *   2. <dir>/vitaui/vitaui.config.ts ← 루트에서 호출 시 프로젝트 측 디렉토리 케이스
+ *   1. <dir>/dsmonitor.config.ts          ← cd dsmonitor 안에서 직접 실행 케이스
+ *   2. <dir>/dsmonitor/dsmonitor.config.ts ← 루트에서 호출 시 프로젝트 측 디렉토리 케이스
+ *   3. <dir>/vitaui.config.ts             ← legacy (vitaui → dsmonitor rename, 0.2.0 영역 deprecation)
+ *   4. <dir>/vitaui/vitaui.config.ts      ← legacy (vitaui → dsmonitor rename, 0.2.0 영역 deprecation)
  */
 function findConfigUpward(startDir: string): string | null {
   let dir = path.resolve(startDir);
   while (true) {
-    const direct = path.join(dir, "vitaui.config.ts");
-    if (existsSync(direct)) return direct;
-    const nested = path.join(dir, "vitaui", "vitaui.config.ts");
-    if (existsSync(nested)) return nested;
+    const candidates = [
+      path.join(dir, "dsmonitor.config.ts"),
+      path.join(dir, "dsmonitor", "dsmonitor.config.ts"),
+      // legacy fallback — vitaui → dsmonitor rename (0.1.1 영역) 안 호환성 영역
+      path.join(dir, "vitaui.config.ts"),
+      path.join(dir, "vitaui", "vitaui.config.ts"),
+    ];
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate;
+    }
     const parent = path.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
@@ -77,7 +97,7 @@ function parseArgs(argv: string[]): {
     only = onlyRaw;
   } else if (onlyRaw !== undefined) {
     console.error(
-      `[vitaui] --only 인자는 "code" 또는 "figma" 만 허용. 받은 값: "${onlyRaw}"`
+      `[dsmonitor] --only 인자는 "code" 또는 "figma" 만 허용. 받은 값: "${onlyRaw}"`
     );
     process.exit(1);
   }
@@ -97,15 +117,25 @@ async function main() {
   const { cmd, baseline, configPath, only, envPath, inputPath, outputPath } =
     parseArgs(process.argv);
 
+  // v0.1.0: init subcommand — config 영역 빠져도 작동 (사용자 측 dsmonitor/ 부트스트랩).
+  if (cmd === "init") {
+    const { runInit } = await import("./cli/init");
+    await runInit();
+    return;
+  }
+
   if (!configPath) {
     console.error(
-      `[vitaui] vitaui.config.ts 를 찾지 못했습니다.\n` +
+      `[dsmonitor] dsmonitor.config.ts 를 찾지 못했습니다.\n` +
         `  검색: cwd(${process.cwd()}) 부터 부모 디렉토리로 올라가며\n` +
-        `    - <dir>/vitaui.config.ts\n` +
-        `    - <dir>/vitaui/vitaui.config.ts\n` +
+        `    - <dir>/dsmonitor.config.ts\n` +
+        `    - <dir>/dsmonitor/dsmonitor.config.ts\n` +
+        `    - <dir>/vitaui.config.ts (legacy)\n` +
+        `    - <dir>/vitaui/vitaui.config.ts (legacy)\n` +
         `  해결:\n` +
-        `    1) vitaui/ 디렉토리 안에서 실행하거나\n` +
-        `    2) --config <path> 로 명시 지정`
+        `    1) npx dsmonitor init   # 부트스트랩 (인터랙티브)\n` +
+        `    2) dsmonitor/ 디렉토리 안에서 실행하거나\n` +
+        `    3) --config <path> 로 명시 지정`
     );
     process.exit(1);
   }
@@ -118,18 +148,19 @@ async function main() {
     process.env.VITAUI_ENV_FILE ??
     path.join(path.dirname(configPath), ".env.local");
   if (existsSync(envCandidate)) {
+    // v0.1.0: ESM 호환 — dynamic import 영역. dotenv 가 dependencies 영역 안 보장됨.
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      require("dotenv").config({ path: envCandidate });
+      const dotenv = await import("dotenv");
+      dotenv.config({ path: envCandidate });
     } catch {
-      // dotenv 모듈 부재 등 — figmaAnalysis=true 일 때만 analyzer 에서 친절한 에러 발생.
+      // dotenv 모듈 부재 (사용자 측 미설치 환경) — figmaAnalysis=true 일 때만 analyzer 친절 오류.
     }
   }
 
-  console.log(`[vitaui] config: ${configPath}`);
+  console.log(`[dsmonitor] config: ${configPath}`);
   const rawCfg = await loadConfig(configPath);
   const cfg = attachAbsRoot(configPath, rawCfg);
-  console.log(`[vitaui] projectRoot: ${cfg.__absRoot}`);
+  console.log(`[dsmonitor] projectRoot: ${cfg.__absRoot}`);
 
   if (cmd === "audit") {
     // --only figma: 기존 reports/ 의 최신 JSON 을 base 로 읽어 figma 섹션만 갱신.
@@ -140,7 +171,7 @@ async function main() {
       const baseInput = findLatestReportJson(reportsDir, cfg.report.baselineFilenamePrefix);
       if (!baseInput) {
         console.error(
-          `[vitaui] --only figma 는 기존 reports/ JSON 을 base 로 사용합니다. ` +
+          `[dsmonitor] --only figma 는 기존 reports/ JSON 을 base 로 사용합니다. ` +
             `${reportsDir} 에 base 파일이 없습니다. ` +
             `먼저 'npm run ui-health' 또는 'npm run ui-health:code' 로 base 생성하세요.`
         );
@@ -148,11 +179,11 @@ async function main() {
       }
       if (!cfg.metrics.figmaAnalysis) {
         console.error(
-          `[vitaui] cfg.metrics.figmaAnalysis=false. --only figma 사용 불가.`
+          `[dsmonitor] cfg.metrics.figmaAnalysis=false. --only figma 사용 불가.`
         );
         process.exit(1);
       }
-      console.log(`[vitaui] --only figma — base: ${baseInput}`);
+      console.log(`[dsmonitor] --only figma — base: ${baseInput}`);
       const raw = await fs.readFile(baseInput, "utf8");
       const report = JSON.parse(raw) as CodebaseReport;
       const fT0 = Date.now();
@@ -161,21 +192,21 @@ async function main() {
         // --only figma 는 코드 측정을 다시 하지 않으므로 classIndex 미제공.
         // 컴포넌트 매칭 (B 그룹 단계 3) 영역 미생성 — 통합 측정 (npm run ui-health) 시점에만 산출.
         console.log(
-          `[vitaui]   note: --only figma 는 componentMatch 영역 미생성 ` +
+          `[dsmonitor]   note: --only figma 는 componentMatch 영역 미생성 ` +
             `(코드 인덱스 필요). 통합 측정 사용 권장.`
         );
         const result = await analyzeFigma(cfg);
         report.figma = result.report;
         instancesFile = result.instancesFile;
         const figmaElapsed = Date.now() - fT0;
-        console.log(`[vitaui] figma analysis done in ${figmaElapsed}ms`);
+        console.log(`[dsmonitor] figma analysis done in ${figmaElapsed}ms`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        console.error(`[vitaui] figma analysis failed: ${msg}`);
+        console.error(`[dsmonitor] figma analysis failed: ${msg}`);
         process.exit(1);
       }
       const target = await writeReport(report, cfg, configDir, { baseline });
-      console.log(`[vitaui] report: ${target}`);
+      console.log(`[dsmonitor] report: ${target}`);
       if (instancesFile) {
         await writeInstancesFile(instancesFile, cfg, configDir);
       }
@@ -184,42 +215,42 @@ async function main() {
     }
 
     // 기본 흐름 (--only 미지정 또는 --only code)
-    console.log(`[vitaui] analyzing codebase...`);
+    console.log(`[dsmonitor] analyzing codebase...`);
     const t0 = Date.now();
     // B 그룹 단계 3 (2026-04-29): analyzeCodebase 가 { report, classIndex } 반환.
     // classIndex 는 figma analyzer 의 컴포넌트 매칭 (B 그룹 단계 3) 분자 source.
     const { report, classIndex } = await analyzeCodebase(cfg);
     const codebaseElapsed = Date.now() - t0;
-    console.log(`[vitaui] codebase analysis done in ${codebaseElapsed}ms`);
+    console.log(`[dsmonitor] codebase analysis done in ${codebaseElapsed}ms`);
 
     // --only code 시 figma 강제 skip. 미지정 시 cfg.metrics.figmaAnalysis 그대로.
     const runFigma = only !== "code" && cfg.metrics.figmaAnalysis;
     let instancesFile: FigmaInstancesFile | undefined;
     if (runFigma) {
-      console.log(`[vitaui] figma baseline enabled — analyzing...`);
+      console.log(`[dsmonitor] figma baseline enabled — analyzing...`);
       const fT0 = Date.now();
       try {
         const result = await analyzeFigma(cfg, classIndex);
         report.figma = result.report;
         instancesFile = result.instancesFile;
         const figmaElapsed = Date.now() - fT0;
-        console.log(`[vitaui] figma analysis done in ${figmaElapsed}ms`);
+        console.log(`[dsmonitor] figma analysis done in ${figmaElapsed}ms`);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        console.error(`[vitaui] figma analysis failed: ${msg}`);
+        console.error(`[dsmonitor] figma analysis failed: ${msg}`);
         console.error(
-          `[vitaui] codebase 측정은 유지하고 figma 섹션 없이 리포트 생성합니다.`
+          `[dsmonitor] codebase 측정은 유지하고 figma 섹션 없이 리포트 생성합니다.`
         );
       }
     } else if (only === "code") {
-      console.log(`[vitaui] --only code — figma 단계 건너뜀`);
+      console.log(`[dsmonitor] --only code — figma 단계 건너뜀`);
     } else {
-      console.log(`[vitaui] figma baseline disabled (metrics.figmaAnalysis=false)`);
+      console.log(`[dsmonitor] figma baseline disabled (metrics.figmaAnalysis=false)`);
     }
 
     const configDir = path.dirname(configPath);
     const target = await writeReport(report, cfg, configDir, { baseline });
-    console.log(`[vitaui] report: ${target}`);
+    console.log(`[dsmonitor] report: ${target}`);
     if (instancesFile) {
       await writeInstancesFile(instancesFile, cfg, configDir);
     }
@@ -228,13 +259,13 @@ async function main() {
   }
 
   if (cmd === "baseline-lint") {
-    console.log(`[vitaui] scanning for legacy utility class violations...`);
+    console.log(`[dsmonitor] scanning for legacy utility class violations...`);
     const t0 = Date.now();
     const outPath = path.resolve(path.dirname(configPath), "lint-baseline.json");
     const baseline = await generateLintBaseline(cfg, outPath);
     const elapsed = Date.now() - t0;
-    console.log(`[vitaui] done in ${elapsed}ms`);
-    console.log(`[vitaui] baseline: ${outPath}`);
+    console.log(`[dsmonitor] done in ${elapsed}ms`);
+    console.log(`[dsmonitor] baseline: ${outPath}`);
     console.log(`
 === Lint Baseline Summary ===
 files scanned:           ${baseline.totals.filesScanned}
@@ -253,22 +284,22 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       : findLatestReportJson(reportsDir, cfg.report.baselineFilenamePrefix);
     if (!resolvedInput) {
       console.error(
-        `[vitaui] no report JSON found in ${reportsDir}. Run 'npm run audit' or 'npm run audit:baseline' first.`
+        `[dsmonitor] no report JSON found in ${reportsDir}. Run 'npm run audit' or 'npm run audit:baseline' first.`
       );
       process.exit(2);
     }
     const resolvedOutput = outputPath
       ? path.resolve(outputPath)
       : path.resolve(path.dirname(configPath), "docs/baseline.md");
-    console.log(`[vitaui] input:  ${resolvedInput}`);
-    console.log(`[vitaui] output: ${resolvedOutput}`);
+    console.log(`[dsmonitor] input:  ${resolvedInput}`);
+    console.log(`[dsmonitor] output: ${resolvedOutput}`);
     const raw = await fs.readFile(resolvedInput, "utf8");
     const report = JSON.parse(raw) as CodebaseReport;
     await generateMarkdown(report, cfg, {
       inputPath: resolvedInput,
       outputPath: resolvedOutput,
     });
-    console.log(`[vitaui] markdown report written.`);
+    console.log(`[dsmonitor] markdown report written.`);
 
     // Overview for stakeholders — 템플릿이 있으면 함께 생성
     const configDir2 = path.dirname(configPath);
@@ -285,10 +316,10 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       outputPath: overviewOutPath,
     });
     if (wroteOverview) {
-      console.log(`[vitaui] overview written: ${overviewOutPath}`);
+      console.log(`[dsmonitor] overview written: ${overviewOutPath}`);
     } else {
       console.log(
-        `[vitaui] overview template not found at ${templatePath} — skipped`
+        `[dsmonitor] overview template not found at ${templatePath} — skipped`
       );
     }
     return;
@@ -302,7 +333,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       : findLatestReportJson(reportsDir, cfg.report.baselineFilenamePrefix);
     if (!resolvedInput) {
       console.error(
-        `[vitaui] no baseline JSON found in ${reportsDir}. ` +
+        `[dsmonitor] no baseline JSON found in ${reportsDir}. ` +
           `Run 'npm run ui-health' or 'npm run ui-health:baseline' first.`
       );
       process.exit(2);
@@ -311,15 +342,15 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     const resolvedOutput = outputPath
       ? path.resolve(outputPath)
       : path.resolve(reportsDir, `dashboard-${stamp}.html`);
-    console.log(`[vitaui] input:  ${resolvedInput}`);
-    console.log(`[vitaui] output: ${resolvedOutput}`);
+    console.log(`[dsmonitor] input:  ${resolvedInput}`);
+    console.log(`[dsmonitor] output: ${resolvedOutput}`);
     await renderDashboard({
       inputPath: resolvedInput,
       outputPath: resolvedOutput,
       cfg,
       configDir,
     });
-    console.log(`[vitaui] dashboard written.`);
+    console.log(`[dsmonitor] dashboard written.`);
     return;
   }
 
@@ -331,7 +362,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     const ds = readArg(process.argv, "--ds") ?? "ds-legacy";
     if (!frame) {
       console.error(
-        `[vitaui] export-migration: --frame=<frame-comment> 필수.\n` +
+        `[dsmonitor] export-migration: --frame=<frame-comment> 필수.\n` +
           `  사용 예: ui-health:export-migration -- --frame=Test-Perform [--ds=ds-legacy]\n` +
           `  --ds 영역 기본값: ds-legacy. 다른 값: ds-new / unmatched / all`
       );
@@ -342,7 +373,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       : findLatestInstancesJson(reportsDir);
     if (!instancesPath) {
       console.error(
-        `[vitaui] export-migration: figma-instances-{date}.json 없음. ` +
+        `[dsmonitor] export-migration: figma-instances-{date}.json 없음. ` +
           `먼저 'npm run ui-health:baseline' 으로 측정 + 별도 파일 생성하세요.`
       );
       process.exit(2);
@@ -358,23 +389,23 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
           "migration",
           `${safeFrame}-${safeDs}-${stamp}.csv`
         );
-    console.log(`[vitaui] export-migration`);
-    console.log(`[vitaui]   input:  ${instancesPath}`);
-    console.log(`[vitaui]   output: ${resolvedOutput}`);
-    console.log(`[vitaui]   frame:  ${frame}`);
-    console.log(`[vitaui]   ds:     ${ds}`);
+    console.log(`[dsmonitor] export-migration`);
+    console.log(`[dsmonitor]   input:  ${instancesPath}`);
+    console.log(`[dsmonitor]   output: ${resolvedOutput}`);
+    console.log(`[dsmonitor]   frame:  ${frame}`);
+    console.log(`[dsmonitor]   ds:     ${ds}`);
     const result = await exportMigrationCsv(instancesPath, {
       frame,
       ds,
       outputPath: resolvedOutput,
     });
-    console.log(`[vitaui]   rows:   ${result.rowCount.toLocaleString()}`);
-    console.log(`[vitaui] CSV written.`);
+    console.log(`[dsmonitor]   rows:   ${result.rowCount.toLocaleString()}`);
+    console.log(`[dsmonitor] CSV written.`);
     return;
   }
 
   console.error(
-    `[vitaui] Unknown command: ${cmd}.\n` +
+    `[dsmonitor] Unknown command: ${cmd}.\n` +
       `  Supported:\n` +
       `    audit [--only code|figma] [--baseline]    — 측정 (code + figma 통합 또는 영역별)\n` +
       `    baseline-lint                             — ESLint 위반 baseline 생성\n` +
@@ -396,7 +427,7 @@ function readArg(argv: string[], key: string): string | undefined {
 }
 
 /**
- * vitaui/reports/ 영역에서 가장 최근 figma-instances-{date}.json 영역 검색.
+ * dsmonitor/reports/ 영역에서 가장 최근 figma-instances-{date}.json 영역 검색.
  * findLatestReportJson 영역과 같은 본질 — prefix "figma-instances" 만 우선.
  */
 function findLatestInstancesJson(reportsDir: string): string | null {
@@ -413,7 +444,7 @@ function findLatestInstancesJson(reportsDir: string): string | null {
 }
 
 /**
- * Phase 0.7 별도 파일 출력 — vitaui/reports/figma-instances-{date}.json.
+ * Phase 0.7 별도 파일 출력 — dsmonitor/reports/figma-instances-{date}.json.
  * baseline JSON 영역과 분리, 시계열 보존 본질.
  */
 async function writeInstancesFile(
@@ -435,7 +466,7 @@ async function writeInstancesFile(
     }
   }
   console.log(
-    `[vitaui] instances JSON: ${outPath} (${totalInstances.toLocaleString()} instance)`
+    `[dsmonitor] instances JSON: ${outPath} (${totalInstances.toLocaleString()} instance)`
   );
 }
 
@@ -452,7 +483,7 @@ function printSummary(r: any) {
     .join(", ") || "-";
 
   console.log(`
-=== VitaUI Baseline Summary ===
+=== DSMonitor Baseline Summary ===
 code files:            ${r.totals.codeFiles}
 style files:           ${r.totals.styleFiles}
 DS component files:    ${r.totals.dsComponentFiles}

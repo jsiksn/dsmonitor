@@ -1,5 +1,5 @@
 import type { StylingPolicy } from "./policy";
-// vitaui 패키지 진입점에서 StylingPolicy 도 함께 노출 (외부 config 작성자 편의).
+// dsmonitor 패키지 진입점에서 StylingPolicy 도 함께 노출 (외부 config 작성자 편의).
 export type { StylingPolicy } from "./policy";
 
 export interface UIHealthConfig {
@@ -97,7 +97,7 @@ export interface UIHealthConfig {
    * Figma baseline 측정 설정 (Phase 0.5 최소 버전 + Phase B 확장 예정).
    *
    * `metrics.figmaAnalysis` 가 true 일 때만 사용. 실제 파일 URL 은 민감 정보이므로
-   * `vitaui.config.local.ts` (.gitignore 대상) 에서 import 해서 주입.
+   * `dsmonitor.config.local.ts` (.gitignore 대상) 에서 import 해서 주입.
    */
   figma?: FigmaConfig;
 
@@ -685,7 +685,7 @@ export type FigmaReport = {
  * 본질: 마이그레이션 작업 진입 자료 (CSV export). frame 안 ds-legacy instance 의
  * 정확한 위치 (nodeId + Figma URL) + 컴포넌트 영역 (componentName master) 보존.
  *
- * baseline JSON 영역 회귀 회피 위해 별도 파일 (`vitaui/reports/figma-instances-{date}.json`)
+ * baseline JSON 영역 회귀 회피 위해 별도 파일 (`dsmonitor/reports/figma-instances-{date}.json`)
  * 로 출력 — domainScan walk 안 raw 영역 수집 → figma.ts 가 별도 파일 출력.
  */
 export interface FigmaInstanceEntry {
@@ -719,7 +719,7 @@ export interface FigmaInstanceEntry {
 }
 
 /**
- * Phase 0.7 별도 파일 (`vitaui/reports/figma-instances-{date}.json`) schema.
+ * Phase 0.7 별도 파일 (`dsmonitor/reports/figma-instances-{date}.json`) schema.
  *
  * domainResults 트리 보존 + frame 별 instances[] 추가. 사용자 인지 영역 (도메인/페이지/
  * 프레임) 일관 + CSV reporter 가 frame 필터링 자연.
