@@ -8,7 +8,7 @@
 
 **EN —** This is a **measurement tool** (not an improvement tool). Outputs analysis as baseline JSON + markdown reports.
 
-## 측정 영역 3가지 / Measurement Areas
+## 측정 항목 3가지 / Measurement Areas
 
 | 영역 / Area | 분석 대상 / Target | 출력 / Output |
 |------|-----------|------|
@@ -23,15 +23,15 @@
 
 ## 사이드카 plugin 시스템 / Sidecar Plugin System (v0.15, 2026-04-30)
 
-dsmonitor 자체 측정 외 외부 측정 자료 영역 (단위 테스트 / 번들 크기 / 접근성 검사 등) 영역 dashboard 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 빠짐.
+dsmonitor 자체 측정 외 외부 측정 자료 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard에 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 빠짐.
 
 **EN —** Beyond dsmonitor's own measurements, external measurement data (unit tests / bundle size / accessibility audit / etc.) is auto-displayed in the dashboard. Plugins run their own tools and emit a JSON file — no direct code dependency between dsmonitor and plugin.
 
 - 자료 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳 순 정렬)
 - 자동 표시: `npx dsmonitor dashboard` (별도 명령 빠짐 — dashboard 빌드 시점에 자동 검색)
 - Summary 탭 안 plugin 1개당 Layer 04+ 자동 추가 + plugin 탭 동적 생성
-- 검증 영역 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + stale 영역 (7일+) 회색 배지
-- 자세한 영역: [docs/plugin-development.md](./docs/plugin-development.md)
+- 검증 실패 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + 오래된 자료 (7일+) 회색 배지
+- 자세한 내용: [docs/plugin-development.md](./docs/plugin-development.md)
 
 **EN —**
 - Data location: `dsmonitor/reports/plugins/{id}/{date}.json` (sorted by id alphabetically)
@@ -69,7 +69,7 @@ npx dsmonitor init
 - Figma 측정 사용? (Y → 자료 형식만 토큰 치환)
 
 → 자동 생성:
-- `dsmonitor/dsmonitor.config.ts` (선택 토큰 정합)
+- `dsmonitor/dsmonitor.config.ts` (선택에 맞춰 토큰 치환)
 - `dsmonitor/.env.local.example`
 - `dsmonitor/reports/.gitkeep`
 
@@ -98,8 +98,8 @@ my-project/
 
 ```bash
 npx dsmonitor audit               # code + figma 측정 (전체 cycle) / full cycle
-npx dsmonitor audit --only code   # code 영역만 / code only
-npx dsmonitor audit --only figma  # figma 영역만 (base JSON 필요) / figma only (requires base JSON)
+npx dsmonitor audit --only code   # code만 / code only
+npx dsmonitor audit --only figma  # figma만 (base JSON 필요) / figma only (requires base JSON)
 npx dsmonitor audit --baseline    # 정식 baseline 모드 / official baseline mode (baseline-YYYY-MM-DD.json)
 npx dsmonitor report              # markdown 재생성 / regenerate markdown
 npx dsmonitor dashboard           # dashboard html 재빌드 (사이드카 plugin 자동 검색) / rebuild dashboard html (auto-discovers sidecar plugins)
@@ -118,7 +118,7 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 
 ### Lighthouse / 인증 어댑터 / Authentication Adapter
 
-Lighthouse 영역 활용 시점에 사용자 측 `dsmonitor/lighthouse/` 안 config + auth 작성 (자세한 영역 — `node_modules/dsmonitor/docs/lighthouse-ci-integration.md`).
+Lighthouse 측정 활용 시점에 사용자 측 `dsmonitor/lighthouse/` 안 config + auth 작성 (자세한 안내 — `node_modules/dsmonitor/docs/lighthouse-ci-integration.md`).
 
 **EN —** When using Lighthouse, write `config + auth` under `dsmonitor/lighthouse/` on the user side. Details: `node_modules/dsmonitor/docs/lighthouse-ci-integration.md`.
 
@@ -136,7 +136,7 @@ Lighthouse 영역 활용 시점에 사용자 측 `dsmonitor/lighthouse/` 안 con
 - `hardcodedValues` — 색상 정규식 + SCSS 변수 사용 / 정의 패턴 / Color regex + SCSS variable usage / definition patterns
 - `migrationTargets` — native HTML → DS 컴포넌트 매핑 / native HTML → DS component mapping
 - `stylingPolicy` — `presets/` 4종 중 선택 후 require / Choose one of 4 presets and require
-- `metrics` — 영역별 ON/OFF / Per-area ON/OFF
+- `metrics` — 측정 항목별 ON/OFF / Per-area ON/OFF
 - `figma` / `lighthouse` — 선택 / Optional. Figma 는 `FIGMA_API_TOKEN` 필요 / Figma needs `FIGMA_API_TOKEN`
 - `thresholds` — good/warn 임계값 / good/warn thresholds
 - `reportStatus` — Phase 진척 배지 / Phase progress badge
@@ -208,11 +208,12 @@ ratchet 동작 / Ratchet behavior:
 
 ## Acknowledgments
 
-본 프로젝트 = 다음 공동 개발자 영역 도움 영역 안 작성됨:
+본 프로젝트 = 다음 공동 개발자분들 도움으로 작성:
 
 **EN —** This project was built with help from the following contributors:
 
 - **[chenjingdev](https://github.com/chenjingdev)** — 기획 도움 / Planning support
+- **[june0-K](https://github.com/june0-K)** — 기획 도움 / Planning support
 - **[servantcdh](https://github.com/servantcdh)** — 플러그인 개발 도움 / Plugin development support
 
 ## 라이선스 / License

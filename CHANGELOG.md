@@ -1,16 +1,34 @@
 # Changelog
 
-본 형식 = [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 정합. 대응 의미 = [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+본 형식 = [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 형식을 따름. 대응 의미 = [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+
+- **README + CHANGELOG 한국어 표현 자연화** — 91건 단어 정리 ("영역" 76 / "본질" 6 / "정합" 9) + 추가 2건 (이중 반복 1 / 중복 단어 1).
+
+**EN —**
+
+- **Naturalized Korean expressions in README and CHANGELOG** — 91 word edits (영역 76 / 본질 6 / 정합 9) plus 2 additional cleanups (double-word repetition / duplicate phrase).
+
+### Added
+
+- **기획 도움 contributor 추가** — june0-K (https://github.com/june0-K).
+
+**EN —**
+
+- **Added planning contributor** — june0-K (https://github.com/june0-K).
 
 ## [0.1.2] — 2026-05-04
 
 ### Changed
 
-- **README + CHANGELOG 한/영 병기** — 각 섹션 안 한글 본질 + `**EN —**` prefix 영문 본질. npm 페이지 안 자동 노출 영역 정합.
-- **Acknowledgments 영역 신규** — README 안 License 영역 위 영역. 공동 개발자 영역 (chenjingdev / servantcdh) 명시.
-- **`package.json` 안 `contributors` 영역 추가** — chenjingdev (planning) / servantcdh (plugin development).
+- **README + CHANGELOG 한/영 병기** — 각 섹션은 한글이 우선 + `**EN —**` prefix 영문이 부가. npm 페이지 자동 노출과 호환.
+- **Acknowledgments 섹션 신규** — README의 License 섹션 위. 공동 개발자 (chenjingdev / servantcdh) 명시.
+- **`package.json`의 `contributors` 필드 추가** — chenjingdev (planning) / servantcdh (plugin development).
 
 **EN —**
 
@@ -20,7 +38,7 @@
 
 ### Note
 
-- 본 의뢰 영역 외 영역 (`docs/` / `templates/` / `cli.ts` 출력 메시지 영역) = 한글 본질 그대로. 다음 세션 안 검토 가능.
+- 본 의뢰 범위 외 (`docs/` / `templates/` / `cli.ts` 출력 메시지) = 한글 그대로. 다음 세션 안 검토 가능.
 - **EN —** Out of scope (`docs/` / `templates/` / `cli.ts` output messages) = Korean only. May be revisited in a later session.
 
 [0.1.2]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.2
@@ -29,9 +47,9 @@
 
 ### Changed (rename)
 
-- **패키지 이름 영역 = vitaui → dsmonitor** — npm 안 vitaui / vita-ui 유사 영역 + dsmon / bson / json 유사 영역 충돌 회피 본질. 0.1.0 영역 = `dsmonitor@0.1.0` 영역 안 발행 끝 (package.json name 영역만 정정), 0.1.1 영역 = 모든 자료 안 vitaui 단어 영역 → dsmonitor 영역 정합.
+- **패키지 이름 = vitaui → dsmonitor** — npm 안 vitaui / vita-ui 유사 이름 + dsmon / bson / json 유사 이름 충돌 회피 목적. 0.1.0 = `dsmonitor@0.1.0`로 발행 (package.json name만 변경), 0.1.1 = 모든 자료 안 vitaui 단어 → dsmonitor로 통일.
 - **bin 명령어** = `vitaui` → `dsmonitor` (`npx dsmonitor audit / init / dashboard / ...`)
-- **사용자 측 폴더** = `vitaui/` → `dsmonitor/` (init 안 자동 생성 영역)
+- **사용자 측 폴더** = `vitaui/` → `dsmonitor/` (init이 자동 생성)
 - **templates** = `vitaui.config.ts.tpl` → `dsmonitor.config.ts.tpl`
 - **import** = `from "vitaui"` → `from "dsmonitor"` / `require("vitaui/presets/...")` → `require("dsmonitor/presets/...")` / `require("eslint-plugin-ui-health")` → `require("dsmonitor/eslint")`
 - **GitHub repo** = vitaui → dsmonitor (rename 끝, https://github.com/jsiksn/dsmonitor)
@@ -47,15 +65,15 @@
 
 ### Fixed
 
-- **minimal config 영역 정합** — 0.1.0 안 사용자 측 `dsmonitor.config.ts` 영역 작성 시점에 audit --only code 실행 시점 throw 영역 영역. templates/dsmonitor.config.ts.tpl 영역 안 누락 항목 모두 영역 추가:
+- **minimal config 보강** — 0.1.0 안 사용자 측 `dsmonitor.config.ts` 작성 시점에 audit --only code 실행 시점 throw 발생. templates/dsmonitor.config.ts.tpl 안 누락 항목 모두 추가:
   - `framework: { id: "react" }` (analyzeCodebase 안 framework adapter 결정 — 빠짐 시점에 throw)
-  - `globalStyleSources` (orphan class 분류 영역 안 글로벌 스타일 영역 검색)
-  - `hardcodedValues` 안 `colorPatterns` / `scssVariableUsagePatterns` / `scssVariableDefFiles` 형식 정합 (RegExp 배열)
-  - `migrationTargets` 안 `Record<string, { aliases: string[]; nativeTags: string[] }>` 형식 정합
+  - `globalStyleSources` (orphan class 분류에서 글로벌 스타일 검색)
+  - `hardcodedValues` 안 `colorPatterns` / `scssVariableUsagePatterns` / `scssVariableDefFiles` 형식 일치 (RegExp 배열)
+  - `migrationTargets` 안 `Record<string, { aliases: string[]; nativeTags: string[] }>` 형식 일치
   - `migrationMinClassLength` (마이그레이션 후보 안 최소 className 길이)
   - `metrics` 안 모든 토글 (`tsMigration` / `dsCoverage` / `migrationCandidates` / `stylingDistribution` / `hardcodedColors` / `scssVariableCompliance` / `figmaAnalysis`)
-  - `thresholds` 안 모든 영역 안 `direction: "higher" | "lower"` 영역 추가 (good/warn 비교 방향)
-  - `designSystem.componentExts` (cli.js 안 isComponentFile 정합)
+  - `thresholds` 안 모든 항목에 `direction: "higher" | "lower"` 추가 (good/warn 비교 방향)
+  - `designSystem.componentExts` (cli.js의 isComponentFile과 일치)
 
 **EN —** Minimal config alignment — 0.1.0 had throws at `audit --only code` when users wrote a minimal `dsmonitor.config.ts`. `templates/dsmonitor.config.ts.tpl` now includes every required field:
 - `framework: { id: "react" }` (analyzeCodebase chooses the framework adapter — throws if missing)
@@ -69,18 +87,18 @@
 
 ### Note
 
-- **0.1.0 안 historical 영역** — 0.1.0 영역 안 [0.1.0] entry 영역 그대로 historical 본질 유지 (vitaui 단어 영역 = 0.1.0 시점 영역).
+- **[0.1.0] historical entry** — [0.1.0] entry는 historical 그대로 보존 (vitaui 단어 = 0.1.0 시점 명칭).
 - **EN —** [0.1.0] entry kept as historical — `vitaui` mentions are preserved as the legacy name at that point in time.
 
 [0.1.1]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.1
 
 ## [0.1.0] — 2026-XX-XX
 
-> ⓘ 본 entry 안 `vitaui` 영역 = legacy name (0.1.1 안에서 `dsmonitor` 영역 rename 끝). historical 본질 보존.
+> ⓘ 본 entry의 `vitaui` = legacy name (0.1.1 안에서 `dsmonitor`로 rename 끝). historical 기록 그대로 보존.
 >
 > **EN —** `vitaui` mentions in this entry refer to the legacy name (renamed to `dsmonitor` in 0.1.1). Preserved as historical.
 
-첫 npm 발행. 직전 portal-gateway-web monorepo 안 file: 의존 영역에서 분리 — 외부 사용자 측 `npm install vitaui` 영역 안 활용 가능.
+첫 npm 발행. 직전 portal-gateway-web monorepo 안 file: 의존에서 분리 — 외부 사용자 측 `npm install vitaui`로 활용 가능.
 
 **EN —** First npm release. Extracted from a `file:` dependency inside the portal-gateway-web monorepo — external users can `npm install vitaui` (legacy name).
 
@@ -88,14 +106,14 @@
 
 - **`vitaui` 단일 bin** subcommand (audit / report / dashboard / export-migration / baseline-lint / init)
 - **`vitaui init`** subcommand — 사용자 측 vitaui/ 폴더 인터랙티브 부트스트랩 (Lighthouse / Figma 옵션 prompt + @lhci/cli 자동 install + templates 토큰 치환)
-- **사이드카 plugin 시스템** (v0.15) — 외부 측정 자료 영역 dashboard 자동 표시
+- **사이드카 plugin 시스템** (v0.15) — 외부 측정 자료가 dashboard에 자동 표시
   - `vitaui/reports/plugins/{id}/{date}.json` 자동 검색 (id 알파벳 순)
   - 자료 형식 약속 (id / label / measuredAt / summary / details / meta)
   - plugin 1개당 Summary Layer 04+ 자동 추가 + plugin 탭 동적 생성
   - schema 검증 (필수 필드 / id 불일치 / JSON 형식 오류) 빨간 알림 + stale (7일+) 회색 배지
   - `meta` 필드 — 자료 형식 약속만 유지, 0.1.0 안 dashboard 표시 빠짐 (0.2.0 안 추가 검토)
-- **외부 plugin 개발자 자료실** (`docs/plugin-development.md`) — npm 사용자 / 추후 다른 plugin 개발자 영역
-- **ESLint plugin 통합** — `vitaui/eslint` subpath (별도 패키지 발행 빠짐). `eslint-plugin-ui-health` 영역 흡수.
+- **외부 plugin 개발자 자료실** (`docs/plugin-development.md`) — npm 사용자 / 추후 다른 plugin 개발자용
+- **ESLint plugin 통합** — `vitaui/eslint` subpath (별도 패키지 발행 빠짐). `eslint-plugin-ui-health` 흡수.
 
 **EN —**
 
@@ -113,9 +131,9 @@
 ### Changed
 
 - **빌드** — tsup 도입 / ESM only / dts 출력 / sourcemap 출력. `bin/vitaui` 단일 진입로 (shebang + chmod +x).
-- **Header 측정 시점 영역** — Code / Figma / Lighthouse 3행 stamp 영역 삭제. 측정 시점은 각 Layer stamp + 각 탭 인라인 2곳에서만.
-- **각 탭 측정 시점 표시 통일** — Figma 인라인 패턴 정합 (`.tab-stamp` 클래스). Code 탭 신규 추가, Lighthouse 박스 → 인라인 (URL / Run / Base URL 박스 그대로 유지), Plugin 별도 헤더 → 본문 시작 인라인.
-- **검증 실패 plugin Summary Layer 압축** — layer-head 만 (사유 영역은 plugin 탭 안 PluginErrorView 영역에서만).
+- **Header 측정 시점** — Code / Figma / Lighthouse 3행 stamp 삭제. 측정 시점은 각 Layer stamp + 각 탭 인라인 2곳에서만.
+- **각 탭 측정 시점 표시 통일** — Figma 인라인 패턴과 일치 (`.tab-stamp` 클래스). Code 탭 신규 추가, Lighthouse 박스 → 인라인 (URL / Run / Base URL 박스 그대로 유지), Plugin 별도 헤더 → 본문 시작 인라인.
+- **검증 실패 plugin Summary Layer 압축** — layer-head 만 (사유 본문은 plugin 탭 PluginErrorView에서만).
 
 **EN —**
 
@@ -128,22 +146,22 @@
 
 - `engines.node` `>=18.0.0`
 - `type: "module"` — ESM 진입로 / ESM entry
-- `peer optional` 영역: `eslint` / `@lhci/cli` / `typescript` (활용 시점에만 install) / install only when used
-- `dotenv` dependencies 영역 추가 (이전 monorepo 호이스팅 의존 영역 정정) / Added (replaces prior monorepo hoisting dependency)
-- `tsx` dependencies 영역 추가 — 사용자 측 `vitaui.config.ts` (.ts 영역) 자연 작동 / Added — makes user-side `vitaui.config.ts` (`.ts`) work out of the box
-- `prompts` dependencies 영역 추가 — `vitaui init` 인터랙티브 prompt / Added — for `vitaui init` interactive prompts
-- `eslint/` + `presets/` 폴더 = raw 영역 그대로 발행 (`type: "commonjs"` 영역 별도 package.json) — 사용자 측 `.eslintrc.js` (CJS) 영역 호환 / `eslint/` + `presets/` shipped raw (each with own `package.json` `type: "commonjs"`) — compatible with user-side `.eslintrc.js` (CJS)
-- `lighthouse/` 폴더 = files 화이트리스트 안 포함 — `lighthouse/run.js` (CJS) 영역 그대로 / `lighthouse/` is in the files whitelist — `lighthouse/run.js` (CJS) shipped as-is
+- `peer optional`: `eslint` / `@lhci/cli` / `typescript` (활용 시점에만 install) / install only when used
+- `dotenv` dependencies 추가 (이전 monorepo 호이스팅 의존 대체) / Added (replaces prior monorepo hoisting dependency)
+- `tsx` dependencies 추가 — 사용자 측 `vitaui.config.ts` (.ts) 자연 작동 / Added — makes user-side `vitaui.config.ts` (`.ts`) work out of the box
+- `prompts` dependencies 추가 — `vitaui init` 인터랙티브 prompt / Added — for `vitaui init` interactive prompts
+- `eslint/` + `presets/` 폴더 = raw 그대로 발행 (`type: "commonjs"` 별도 package.json) — 사용자 측 `.eslintrc.js` (CJS) 호환 / `eslint/` + `presets/` shipped raw (each with own `package.json` `type: "commonjs"`) — compatible with user-side `.eslintrc.js` (CJS)
+- `lighthouse/` 폴더 = files 화이트리스트 안 포함 — `lighthouse/run.js` (CJS) 그대로 / `lighthouse/` is in the files whitelist — `lighthouse/run.js` (CJS) shipped as-is
 
 ### Known limitations (0.1.0)
 
-- `vitaui init` 안 npm only (yarn / pnpm detect 빠짐) — 0.2.0 영역에서 추가 검토 / `vitaui init` is npm-only (no yarn / pnpm detection) — to be revisited in 0.2.0
-- plugin meta 영역 dashboard 표시 빠짐 — 0.2.0 영역에서 추가 검토 / Plugin `meta` not displayed in dashboard — to be revisited in 0.2.0
-- 시계열 영역 (과거 plugin 자료 누적 차트) 빠짐 — 0.2.0 영역에서 추가 검토 / Time-series (cumulative past plugin data charts) not yet — to be revisited in 0.2.0
+- `vitaui init` 안 npm only (yarn / pnpm detect 빠짐) — 0.2.0에서 추가 검토 / `vitaui init` is npm-only (no yarn / pnpm detection) — to be revisited in 0.2.0
+- plugin meta가 dashboard에 표시 빠짐 — 0.2.0에서 추가 검토 / Plugin `meta` not displayed in dashboard — to be revisited in 0.2.0
+- 시계열 (과거 plugin 자료 누적 차트) 빠짐 — 0.2.0에서 추가 검토 / Time-series (cumulative past plugin data charts) not yet — to be revisited in 0.2.0
 
 ### measurementHistory
 
-- `measurementHistory` v0.1 ~ v0.15 — 측정 도구 자체 변경 이력 보존 (`vitaui/vitaui.config.ts` 안 `measurementHistory` 필드 영역, 사용자 측 사용자 측 자체 측정 이력)
+- `measurementHistory` v0.1 ~ v0.15 — 측정 도구 자체 변경 이력 보존 (`vitaui/vitaui.config.ts` 안 `measurementHistory` 필드, 사용자 측 자체 측정 이력)
 - **EN —** `measurementHistory` v0.1 ~ v0.15 — internal change history of the measurement tool itself (preserved in the `measurementHistory` field of `vitaui/vitaui.config.ts`).
 
 [0.1.0]: https://github.com/jsiksn/vitaui/releases/tag/v0.1.0
