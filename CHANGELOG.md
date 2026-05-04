@@ -4,6 +4,18 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] — 2026-05-04
+
+### Added
+
+- **README 안 dashboard 스크린샷 추가** — `docs/images/dashboard.png` (1600 × 906 px, ~238 kB).
+
+**EN —**
+
+- **Added dashboard screenshot to README** — `docs/images/dashboard.png` (1600 × 906 px, ~238 kB).
+
+[0.1.4]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.4
+
 ## [0.1.3] — 2026-05-04
 
 ### Changed

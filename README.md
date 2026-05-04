@@ -8,6 +8,8 @@
 
 **EN —** This is a **measurement tool** (not an improvement tool). Outputs analysis as baseline JSON + markdown reports.
 
+![dsmonitor dashboard](docs/images/dashboard.png)
+
 ## 측정 항목 3가지 / Measurement Areas
 
 | 영역 / Area | 분석 대상 / Target | 출력 / Output |
