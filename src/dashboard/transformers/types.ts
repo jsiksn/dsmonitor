@@ -227,6 +227,12 @@ export interface SummaryTabData {
 // ═══════════════════════════════════════════════════════════════════
 
 export interface DashboardData {
+  /**
+   * 프로젝트 이름 — dashboard header / footer 안 표시.
+   *
+   * 자료 흐름: `UIHealthConfig.projectName` → `package.json` `name` → "Unknown Project".
+   */
+  projectName: string;
   summary: SummaryTabData;
   code: CodeTabData;
   figma: FigmaTabData | null;

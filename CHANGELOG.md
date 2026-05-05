@@ -1,8 +1,34 @@
 # Changelog
 
-본 형식 = [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 형식을 따름. 대응 의미 = [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+본 형식 = [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 형식을 따름. 버전 규칙 = [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.5] — 2026-05-06
+
+### Changed
+
+- **Dashboard UI 안 프로젝트명 자동 read** — `dsmonitor.config.ts` 안 `projectName` field 추가 또는 `package.json` 안 `name` 자료 자동 read. 본 시점까지 hardcoded 자료 (`portal-gateway-web`) 정정.
+- **코드 주석 안 generic 자료 정정** — `lighthouse/run.js` / `presets/configs/next-pages-scss.ts` / `presets/scss-project.js` / `src/types.ts` 안 hardcoded `portal-gateway-web` → generic 자료.
+- **README + CHANGELOG 한국어 표현 자연화 (추가)** — 직전 0.1.3 publish 자료 외 발견 자료 정정 ("rename 끝" → "rename 완료", "throw 영역 영역" → "throw 발생", "표시 빠짐" → "표시 안 됨", "발행 빠짐" → "발행 없음" 등) + README markdown 표 padding 자연화.
+
+### Fixed
+
+- **`npm pkg fix` 적용** — `bin[dsmonitor]` script name auto-corrected warning 정정 (`"./dist/cli.js"` → `"dist/cli.js"`).
+
+**EN —**
+
+### Changed
+
+- **Dashboard UI now reads project name automatically** — added `projectName` field to `dsmonitor.config.ts` or auto-reads from `package.json` `name` field. Replaces previously hardcoded `portal-gateway-web` value.
+- **Generic comments in code** — replaced hardcoded `portal-gateway-web` with generic placeholder in `lighthouse/run.js`, `presets/configs/next-pages-scss.ts`, `presets/scss-project.js`, and `src/types.ts`.
+- **Additional naturalization of Korean expressions in README and CHANGELOG** — follow-up to 0.1.3 ("rename 끝" → "rename 완료", "throw 영역 영역" → "throw 발생", "표시 빠짐" → "표시 안 됨", "발행 빠짐" → "발행 없음") + README markdown table padding cleanup.
+
+### Fixed
+
+- **Applied `npm pkg fix`** — resolved `bin[dsmonitor]` script name auto-correction warning (`"./dist/cli.js"` → `"dist/cli.js"`).
+
+[0.1.5]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.5
 
 ## [0.1.4] — 2026-05-04
 
@@ -66,7 +92,7 @@
 - **사용자 측 폴더** = `vitaui/` → `dsmonitor/` (init이 자동 생성)
 - **templates** = `vitaui.config.ts.tpl` → `dsmonitor.config.ts.tpl`
 - **import** = `from "vitaui"` → `from "dsmonitor"` / `require("vitaui/presets/...")` → `require("dsmonitor/presets/...")` / `require("eslint-plugin-ui-health")` → `require("dsmonitor/eslint")`
-- **GitHub repo** = vitaui → dsmonitor (rename 끝, https://github.com/jsiksn/dsmonitor)
+- **GitHub repo** = vitaui → dsmonitor (rename 완료, https://github.com/jsiksn/dsmonitor)
 
 **EN —**
 
@@ -79,8 +105,8 @@
 
 ### Fixed
 
-- **minimal config 보강** — 0.1.0 안 사용자 측 `dsmonitor.config.ts` 작성 시점에 audit --only code 실행 시점 throw 발생. templates/dsmonitor.config.ts.tpl 안 누락 항목 모두 추가:
-  - `framework: { id: "react" }` (analyzeCodebase 안 framework adapter 결정 — 빠짐 시점에 throw)
+- **minimal config 보강** — 0.1.0 안 사용자 측 `dsmonitor.config.ts` 작성 시점에 audit --only code 실행 시 throw 발생. templates/dsmonitor.config.ts.tpl 안 누락 항목 모두 추가:
+  - `framework: { id: "react" }` (analyzeCodebase 안 framework adapter 결정 — 없으면 throw)
   - `globalStyleSources` (orphan class 분류에서 글로벌 스타일 검색)
   - `hardcodedValues` 안 `colorPatterns` / `scssVariableUsagePatterns` / `scssVariableDefFiles` 형식 일치 (RegExp 배열)
   - `migrationTargets` 안 `Record<string, { aliases: string[]; nativeTags: string[] }>` 형식 일치
@@ -89,7 +115,8 @@
   - `thresholds` 안 모든 항목에 `direction: "higher" | "lower"` 추가 (good/warn 비교 방향)
   - `designSystem.componentExts` (cli.js의 isComponentFile과 일치)
 
-**EN —** Minimal config alignment — 0.1.0 had throws at `audit --only code` when users wrote a minimal `dsmonitor.config.ts`. `templates/dsmonitor.config.ts.tpl` now includes every required field:
+**EN —** Minimal config alignment — 0.1.0 threw errors at `audit --only code` when users wrote a minimal `dsmonitor.config.ts`. `templates/dsmonitor.config.ts.tpl` now includes every required field:
+
 - `framework: { id: "react" }` (analyzeCodebase chooses the framework adapter — throws if missing)
 - `globalStyleSources` (used by orphan-class classification to scan global styles)
 - `hardcodedValues` with `colorPatterns` / `scssVariableUsagePatterns` / `scssVariableDefFiles` shape (RegExp arrays)
@@ -108,7 +135,7 @@
 
 ## [0.1.0] — 2026-XX-XX
 
-> ⓘ 본 entry의 `vitaui` = legacy name (0.1.1 안에서 `dsmonitor`로 rename 끝). historical 기록 그대로 보존.
+> ⓘ 본 entry의 `vitaui` = legacy name (0.1.1 안에서 `dsmonitor`로 rename 완료). historical 기록 그대로 보존.
 >
 > **EN —** `vitaui` mentions in this entry refer to the legacy name (renamed to `dsmonitor` in 0.1.1). Preserved as historical.
 
@@ -125,9 +152,9 @@
   - 자료 형식 약속 (id / label / measuredAt / summary / details / meta)
   - plugin 1개당 Summary Layer 04+ 자동 추가 + plugin 탭 동적 생성
   - schema 검증 (필수 필드 / id 불일치 / JSON 형식 오류) 빨간 알림 + stale (7일+) 회색 배지
-  - `meta` 필드 — 자료 형식 약속만 유지, 0.1.0 안 dashboard 표시 빠짐 (0.2.0 안 추가 검토)
-- **외부 plugin 개발자 자료실** (`docs/plugin-development.md`) — npm 사용자 / 추후 다른 plugin 개발자용
-- **ESLint plugin 통합** — `vitaui/eslint` subpath (별도 패키지 발행 빠짐). `eslint-plugin-ui-health` 흡수.
+  - `meta` 필드 — 자료 형식 약속만 유지, 0.1.0 안 dashboard 표시 안 됨 (0.2.0 안 추가 검토)
+- **외부 plugin 개발자 참고 문서** (`docs/plugin-development.md`) — npm 사용자 / 추후 다른 plugin 개발자용
+- **ESLint plugin 통합** — `vitaui/eslint` subpath (별도 패키지 발행 없음). `eslint-plugin-ui-health` 흡수.
 
 **EN —**
 
@@ -162,16 +189,16 @@
 - `type: "module"` — ESM 진입로 / ESM entry
 - `peer optional`: `eslint` / `@lhci/cli` / `typescript` (활용 시점에만 install) / install only when used
 - `dotenv` dependencies 추가 (이전 monorepo 호이스팅 의존 대체) / Added (replaces prior monorepo hoisting dependency)
-- `tsx` dependencies 추가 — 사용자 측 `vitaui.config.ts` (.ts) 자연 작동 / Added — makes user-side `vitaui.config.ts` (`.ts`) work out of the box
+- `tsx` dependencies 추가 — 사용자 측 `vitaui.config.ts` (.ts) 정상 작동 / Added — makes user-side `vitaui.config.ts` (`.ts`) work out of the box
 - `prompts` dependencies 추가 — `vitaui init` 인터랙티브 prompt / Added — for `vitaui init` interactive prompts
 - `eslint/` + `presets/` 폴더 = raw 그대로 발행 (`type: "commonjs"` 별도 package.json) — 사용자 측 `.eslintrc.js` (CJS) 호환 / `eslint/` + `presets/` shipped raw (each with own `package.json` `type: "commonjs"`) — compatible with user-side `.eslintrc.js` (CJS)
 - `lighthouse/` 폴더 = files 화이트리스트 안 포함 — `lighthouse/run.js` (CJS) 그대로 / `lighthouse/` is in the files whitelist — `lighthouse/run.js` (CJS) shipped as-is
 
 ### Known limitations (0.1.0)
 
-- `vitaui init` 안 npm only (yarn / pnpm detect 빠짐) — 0.2.0에서 추가 검토 / `vitaui init` is npm-only (no yarn / pnpm detection) — to be revisited in 0.2.0
-- plugin meta가 dashboard에 표시 빠짐 — 0.2.0에서 추가 검토 / Plugin `meta` not displayed in dashboard — to be revisited in 0.2.0
-- 시계열 (과거 plugin 자료 누적 차트) 빠짐 — 0.2.0에서 추가 검토 / Time-series (cumulative past plugin data charts) not yet — to be revisited in 0.2.0
+- `vitaui init` 안 npm only (yarn / pnpm 감지 없음) — 0.2.0에서 추가 검토 / `vitaui init` is npm-only (no yarn / pnpm detection) — to be revisited in 0.2.0
+- plugin meta가 dashboard에 표시 안 됨 — 0.2.0에서 추가 검토 / Plugin `meta` not displayed in dashboard — to be revisited in 0.2.0
+- 시계열 (과거 plugin 자료 누적 차트) 미지원 — 0.2.0에서 추가 검토 / Time-series (cumulative past plugin data charts) not yet — to be revisited in 0.2.0
 
 ### measurementHistory
 

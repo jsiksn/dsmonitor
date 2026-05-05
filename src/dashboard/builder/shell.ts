@@ -6,7 +6,7 @@
  *   1. head + style (시안 인라인 CSS — components/styles.css)
  *   2. <body> + <div id="root">
  *   3. CDN scripts (React + ReactDOM + Babel)
- *   4. 데이터 inject (window.__SUMMARY_DATA / __CODE_DATA / __FIGMA_DATA / __LH_DATA)
+ *   4. 데이터 inject (window.__PROJECT_NAME / __SUMMARY_DATA / __CODE_DATA / __FIGMA_DATA / __LH_DATA)
  *   5. code-tab.jsx + figma-tab.jsx + lighthouse-tab.jsx 인라인 (text/babel) —
  *      각 jsx 가 자체 mini 컴포넌트 보유 (시안 그대로). 끝에 window.{Tab}_Detail
  *      export + dispatchEvent 로 root wrapper 와 동기화.
@@ -49,6 +49,7 @@ export function buildHtmlShell(data: DashboardData): string {
   const rootJsx = readComponent("root.jsx");
 
   // 데이터 inject — JSON.stringify, </script> 이스케이프 방어.
+  const projectNameJson = safeJson(data.projectName);
   const summaryJson = safeJson(data.summary);
   const codeJson = safeJson(data.code);
   const figmaJson = data.figma ? safeJson(data.figma) : "null";
@@ -75,6 +76,7 @@ ${styles}
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
   <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
+  <script id="project-name-data" type="application/json">${projectNameJson}</script>
   <script id="summary-tab-data" type="application/json">${summaryJson}</script>
   <script id="code-tab-data" type="application/json">${codeJson}</script>
   <script id="figma-tab-data" type="application/json">${figmaJson}</script>
@@ -82,6 +84,7 @@ ${styles}
   <script id="plugins-data" type="application/json">${pluginsJson}</script>
 
   <script>
+    window.__PROJECT_NAME = JSON.parse(document.getElementById("project-name-data").textContent);
     window.__SUMMARY_DATA = JSON.parse(document.getElementById("summary-tab-data").textContent);
     window.__CODE_DATA = JSON.parse(document.getElementById("code-tab-data").textContent);
     window.__FIGMA_DATA = JSON.parse(document.getElementById("figma-tab-data").textContent);

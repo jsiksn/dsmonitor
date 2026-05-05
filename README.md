@@ -12,30 +12,32 @@
 
 ## 측정 항목 3가지 / Measurement Areas
 
-| 영역 / Area | 분석 대상 / Target | 출력 / Output |
-|------|-----------|------|
-| **code** | TS/JS/JSX 코드베이스 정적 분석 (forbidden class, DS coverage, TS migration, hardcoded color, SCSS 변수 준수율, migration candidates, orphan class 등) | `dsmonitor/reports/baseline-*.json`, `dsmonitor/docs/baseline.md` |
-| **figma** | DS 파일 Styles/Components 카운트 + 도메인 파일 INSTANCE 의 출처 미상 비율 + DS↔코드 토큰 매트릭스 | 위 JSON 의 `figma` 필드 |
-| **lighthouse** | 페이지별 Performance / Accessibility / Best Practices / SEO 점수 | `dsmonitor/lighthouse/reports/YYYY-MM-DD/` |
+| 영역 / Area    | 분석 대상 / Target                                                                                                                                    | 출력 / Output                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **code**       | TS/JS/JSX 코드베이스 정적 분석 (forbidden class, DS coverage, TS migration, hardcoded color, SCSS 변수 준수율, migration candidates, orphan class 등) | `dsmonitor/reports/baseline-*.json`, `dsmonitor/docs/baseline.md` |
+| **figma**      | DS 파일 Styles/Components 카운트 + 도메인 파일 INSTANCE 의 출처 미상 비율 + DS↔코드 토큰 매트릭스                                                     | 위 JSON 의 `figma` 필드                                           |
+| **lighthouse** | 페이지별 Performance / Accessibility / Best Practices / SEO 점수                                                                                      | `dsmonitor/lighthouse/reports/YYYY-MM-DD/`                        |
 
 **EN —**
+
 - **code** — TS/JS/JSX codebase static analysis (forbidden class, DS coverage, TS migration, hardcoded color, SCSS variable compliance, migration candidates, orphan class, etc.). Output: `dsmonitor/reports/baseline-*.json`, `dsmonitor/docs/baseline.md`.
 - **figma** — DS file Styles/Components count + domain file INSTANCE source-unknown ratio + DS↔code token matrix. Output: `figma` field in the JSON above.
 - **lighthouse** — Per-page Performance / Accessibility / Best Practices / SEO scores. Output: `dsmonitor/lighthouse/reports/YYYY-MM-DD/`.
 
 ## 사이드카 plugin 시스템 / Sidecar Plugin System (v0.15, 2026-04-30)
 
-dsmonitor 자체 측정 외 외부 측정 자료 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard에 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 빠짐.
+dsmonitor 자체 측정 외 외부 측정 자료 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard에 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 없음.
 
 **EN —** Beyond dsmonitor's own measurements, external measurement data (unit tests / bundle size / accessibility audit / etc.) is auto-displayed in the dashboard. Plugins run their own tools and emit a JSON file — no direct code dependency between dsmonitor and plugin.
 
 - 자료 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳 순 정렬)
-- 자동 표시: `npx dsmonitor dashboard` (별도 명령 빠짐 — dashboard 빌드 시점에 자동 검색)
+- 자동 표시: `npx dsmonitor dashboard` (별도 명령 없음 — dashboard 빌드 시점에 자동 검색)
 - Summary 탭 안 plugin 1개당 Layer 04+ 자동 추가 + plugin 탭 동적 생성
 - 검증 실패 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + 오래된 자료 (7일+) 회색 배지
 - 자세한 내용: [docs/plugin-development.md](./docs/plugin-development.md)
 
 **EN —**
+
 - Data location: `dsmonitor/reports/plugins/{id}/{date}.json` (sorted by id alphabetically)
 - Auto-display: `npx dsmonitor dashboard` (no extra command needed — auto-discovered at dashboard build time)
 - One Layer 04+ auto-added per plugin in the Summary tab + dynamic plugin tab generated
@@ -54,11 +56,11 @@ npm install --save-dev dsmonitor
 
 **EN —** Optional peer dependencies (install only when used):
 
-| 영역 / Area | 시점 / When | 명령 / Command |
-|---|---|---|
-| `eslint` >=8 | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint` |
-| `@lhci/cli` >=0.13 | Lighthouse 측정 활용 / Lighthouse measurement | `dsmonitor init` 안 자동 / auto via `dsmonitor init` |
-| `typescript` >=5.0 | dsmonitor.config.ts 작성 시점 / Writing dsmonitor.config.ts | 보통 이미 install됨 / usually already installed |
+| 영역 / Area        | 시점 / When                                                  | 명령 / Command                                       |
+| ------------------ | ------------------------------------------------------------ | ---------------------------------------------------- |
+| `eslint` >=8       | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint`                      |
+| `@lhci/cli` >=0.13 | Lighthouse 측정 활용 / Lighthouse measurement                | `dsmonitor init` 안 자동 / auto via `dsmonitor init` |
+| `typescript` >=5.0 | dsmonitor.config.ts 작성 시점 / Writing dsmonitor.config.ts  | 보통 이미 install됨 / usually already installed      |
 
 ### 2. 부트스트랩 / Bootstrap (`dsmonitor init`)
 
@@ -67,10 +69,12 @@ npx dsmonitor init
 ```
 
 → 인터랙티브 prompt:
+
 - Lighthouse 측정 사용? (Y → @lhci/cli 자동 install)
 - Figma 측정 사용? (Y → 자료 형식만 토큰 치환)
 
 → 자동 생성:
+
 - `dsmonitor/dsmonitor.config.ts` (선택에 맞춰 토큰 치환)
 - `dsmonitor/.env.local.example`
 - `dsmonitor/reports/.gitkeep`
@@ -78,15 +82,18 @@ npx dsmonitor init
 **EN —**
 
 → Interactive prompts:
+
 - Use Lighthouse measurement? (Y → auto-install `@lhci/cli`)
 - Use Figma measurement? (Y → token-substitute only)
 
 → Auto-generated files:
+
 - `dsmonitor/dsmonitor.config.ts` (token-aligned with the choices)
 - `dsmonitor/.env.local.example`
 - `dsmonitor/reports/.gitkeep`
 
-수동 부트스트랩 (init 빠짐 시점) / Manual bootstrap (without init):
+수동 부트스트랩 (init 없이) / Manual bootstrap (without init):
+
 ```
 my-project/
 └── dsmonitor/
@@ -112,9 +119,10 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 ### Phase 0.6 호환성 / Compatibility (B 가설 / B hypothesis)
 
 - **codebase 측정 = 필수** — dsmonitor 자체 정체성 (코드 분석 도구)
-- **figma / Lighthouse 측정 = optional** — config 안 빠지면 자연 hide. 다른 프로젝트 도입 시점에 부담 빠짐.
+- **figma / Lighthouse 측정 = optional** — config 안 빠지면 자동 hide. 다른 프로젝트 도입 시점에 부담 없음.
 
 **EN —**
+
 - **codebase measurement = required** — core identity of dsmonitor (a code-analysis tool)
 - **figma / Lighthouse measurement = optional** — auto-hidden when missing from config. Lowers adoption cost in other projects.
 
@@ -164,17 +172,18 @@ module.exports = {
 ```
 
 ratchet 동작 / Ratchet behavior:
+
 - `baselinePath` JSON 의 `files` 에 등록된 파일 → `warn` / Files listed in `baselinePath` JSON's `files` → `warn`
 - 그 외 (신규 파일 포함) → `error` / Otherwise (including new files) → `error`
 
 ## presets/ 4종 비교 / 4-Preset Comparison
 
-| preset | 권장 (allowed) | 금지 (forbidden) | 적합 프로젝트 / Suitable for |
-|--------|----------------|------------------|---------------|
-| `scss-project.js` | SCSS / CSS imports | Bootstrap utility / Tailwind utility | SCSS 기반 (Bootstrap·Tailwind 레거시 정리 대상) / SCSS-based (with legacy Bootstrap·Tailwind cleanup target) |
-| `bootstrap-project.js` | Bootstrap (utility + component) | Tailwind / inline | 정식 Bootstrap / Bootstrap-first |
-| `tailwind-project.js` | Tailwind utility | Bootstrap / inline | Tailwind 정식 / Tailwind-first |
-| `css-modules-project.js` | CSS Modules import | global utility | 모듈화 우선 / Modularity-first |
+| preset                   | 권장 (allowed)                  | 금지 (forbidden)                     | 적합 프로젝트 / Suitable for                                                                                 |
+| ------------------------ | ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `scss-project.js`        | SCSS / CSS imports              | Bootstrap utility / Tailwind utility | SCSS 기반 (Bootstrap·Tailwind 레거시 정리 대상) / SCSS-based (with legacy Bootstrap·Tailwind cleanup target) |
+| `bootstrap-project.js`   | Bootstrap (utility + component) | Tailwind / inline                    | Bootstrap 우선 / Bootstrap-first                                                                             |
+| `tailwind-project.js`    | Tailwind utility                | Bootstrap / inline                   | Tailwind 우선 / Tailwind-first                                                                               |
+| `css-modules-project.js` | CSS Modules import              | global utility                       | 모듈화 우선 / Modularity-first                                                                               |
 
 자세한 차이: 각 파일 상단 docstring + [docs/eslint-rules.md](./docs/eslint-rules.md).
 
@@ -186,18 +195,18 @@ ratchet 동작 / Ratchet behavior:
 
 ## 출력물 위치 / Output Locations
 
-| 파일 / File | 내용 / Content |
-|------|------|
-| `dsmonitor/reports/baseline-YYYY-MM-DD.json` | 측정 결과 (정식 baseline) / Measurement result (official baseline) |
-| `dsmonitor/reports/YYYY-MM-DD.json` | non-baseline (gitignored) |
-| `dsmonitor/reports/figma-instances-YYYY-MM-DD.json` | Figma instance level raw (v0.14) — frame 별 nodeId / componentName / dsLabel / contextPath |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html` | 4 탭 dashboard / 4-tab dashboard (Summary / Code / Lighthouse / Figma, since v0.9) |
-| `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV / Migration CSV (v0.14, `dsmonitor export-migration` output) |
-| `dsmonitor/docs/baseline.md` | markdown 리포트 (자동 생성, 수동 편집 금지) / markdown report (auto-generated, do not edit manually) |
-| `dsmonitor/docs/overview-for-stakeholders.md` | 비개발자용 간결 요약 / Concise summary for non-developers |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/manifest.json` | LHCI manifest |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/summary.json` | 페이지별 4점수 요약 / Per-page 4-score summary |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/*-report.html` | 개별 LHR HTML (브라우저로 확인) / Individual LHR HTML (open in browser) |
+| 파일 / File                                               | 내용 / Content                                                                                       |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | 측정 결과 (정식 baseline) / Measurement result (official baseline)                                   |
+| `dsmonitor/reports/YYYY-MM-DD.json`                       | non-baseline (gitignored)                                                                            |
+| `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance level raw (v0.14) — frame 별 nodeId / componentName / dsLabel / contextPath           |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4 탭 dashboard / 4-tab dashboard (Summary / Code / Lighthouse / Figma, since v0.9)                   |
+| `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV / Migration CSV (v0.14, `dsmonitor export-migration` output)                        |
+| `dsmonitor/docs/baseline.md`                              | markdown 리포트 (자동 생성, 수동 편집 금지) / markdown report (auto-generated, do not edit manually) |
+| `dsmonitor/docs/overview-for-stakeholders.md`             | 비개발자용 간결 요약 / Concise summary for non-developers                                            |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/manifest.json`   | LHCI manifest                                                                                        |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/summary.json`    | 페이지별 4점수 요약 / Per-page 4-score summary                                                       |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/*-report.html`   | 개별 LHR HTML (브라우저로 확인) / Individual LHR HTML (open in browser)                              |
 
 ## 더 읽기 / Further Reading
 
@@ -205,7 +214,7 @@ ratchet 동작 / Ratchet behavior:
 - [docs/eslint-rules.md](./docs/eslint-rules.md) — ESLint 룰 상세 + ratchet 동작 / ESLint rule details + ratchet behavior
 - [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) — CI 통합 패턴 / CI integration patterns
 - [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) — Lighthouse CI 통합 / Lighthouse CI integration
-- [docs/plugin-development.md](./docs/plugin-development.md) — 사이드카 plugin 개발 자료실 (자료 위치 / 자료 형식 / 자동 표시 / 검증 / 예시 코드 — v0.15) / Sidecar plugin development reference (data location / format / auto-display / validation / example code — v0.15)
+- [docs/plugin-development.md](./docs/plugin-development.md) — 사이드카 plugin 개발 참고 문서 (자료 위치 / 자료 형식 / 자동 표시 / 검증 / 예시 코드 — v0.15) / Sidecar plugin development reference (data location / format / auto-display / validation / example code — v0.15)
 - [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (**Phase B 작성 예정** — 현재 placeholder) / Measurement methodology (**to be written in Phase B** — currently a placeholder)
 
 ## Acknowledgments
