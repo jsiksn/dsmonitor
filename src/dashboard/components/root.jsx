@@ -8,6 +8,7 @@
 const { useState } = React;
 
 const DATA = window.__SUMMARY_DATA;
+const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
 
 
   const pct = (x, d = 1) => (x * 100).toFixed(d);
@@ -22,7 +23,7 @@ const DATA = window.__SUMMARY_DATA;
             <div className="hdr-logo">UI</div>
             <div>
               <h1>DSMonitor 리뷰</h1>
-              <div className="sub">portal-gateway-web · UI 건강 상태 스냅샷</div>
+              <div className="sub">{PROJECT_NAME} · UI 건강 상태 스냅샷</div>
             </div>
           </div>
         </div>
@@ -405,7 +406,7 @@ const DATA = window.__SUMMARY_DATA;
           {pluginId && <PluginTabWrapper pluginId={pluginId} />}
         </main>
         <footer>
-          <span>portal-gateway-web · DSMonitor 리뷰</span>
+          <span>{PROJECT_NAME} · DSMonitor 리뷰</span>
           <span className="mono">v0.1 · 2026-04-24</span>
         </footer>
       </div>

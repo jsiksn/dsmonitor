@@ -5,6 +5,13 @@ export type { StylingPolicy } from "./policy";
 export interface UIHealthConfig {
   projectRoot: string;
 
+  /**
+   * 프로젝트 이름 — dashboard header / footer 안 표시.
+   *
+   * 미지정 시 `package.json` 안 `name` 자동 read. 둘 다 빠짐 시점 = "Unknown Project".
+   */
+  projectName?: string;
+
   /** 프로젝트별 스타일링 정책 — 허용/금지/권장 스타일링 방식. */
   stylingPolicy: StylingPolicy;
 
@@ -446,7 +453,7 @@ export type LighthouseConfig = {
   /**
    * Puppeteer 인증 어댑터 파일 경로 (config 디렉토리 기준 상대경로 또는 절대경로).
    *
-   * 미지정 시 lighthouse/config.js 의 형제 auth/portal-gateway.js 자동 발견
+   * 미지정 시 lighthouse/config.js 의 형제 auth/<프로젝트명>.js 자동 발견
    * (현 default 동작 유지). 정식 시그니처는 Phase B 에서 AuthAdapter 인터페이스로 정의.
    */
   authAdapter?: string;

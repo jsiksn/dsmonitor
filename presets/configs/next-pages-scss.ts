@@ -1,5 +1,5 @@
 /**
- * 예시 config — 현재 프로젝트(portal-gateway-web):
+ * 예시 config — Next.js Pages Router + SCSS 프로젝트:
  * - Next.js 13 (Pages Router)
  * - SCSS 정식, Bootstrap/Tailwind 레거시
  * - TypeScript 점진 마이그레이션 중 (JS/TS 혼용)

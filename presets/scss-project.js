@@ -3,8 +3,8 @@
 /**
  * 예시 정책 — SCSS가 정식, Bootstrap/Tailwind가 레거시인 프로젝트.
  *
- * 현재 repo(portal-gateway-web)가 이 케이스. 루트 `dsmonitor/stylingPolicy.js`
- * 참고(동일 구조).
+ * Next.js + SCSS 프로젝트(예: Pages Router 안)가 이 케이스. 루트
+ * `dsmonitor/stylingPolicy.js` 참고(동일 구조).
  */
 
 /** @type {import('../../src/policy').StylingPolicy} */

@@ -10,7 +10,7 @@
  */
 
 import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { CodebaseReport, UIHealthConfig } from "../../types";
 import { baselineToCodeData } from "../transformers/baseline-to-code-data";
@@ -93,7 +93,10 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
   );
   const pluginEntries = pluginsToData(loadPlugins(pluginsRoot));
 
+  const projectName = resolveProjectName(opts.cfg);
+
   const data: DashboardData = {
+    projectName,
     summary,
     code,
     figma,
@@ -105,4 +108,33 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
   const html = buildHtmlShell(data);
   await fs.mkdir(path.dirname(opts.outputPath), { recursive: true });
   await fs.writeFile(opts.outputPath, html, "utf8");
+}
+
+/**
+ * 프로젝트 이름 자동 read.
+ *
+ * 우선순위:
+ *   1. `UIHealthConfig.projectName` 명시 자료
+ *   2. `package.json` 안 `name` 자동 read
+ *   3. fallback "Unknown Project"
+ */
+function resolveProjectName(
+  cfg: UIHealthConfig & { __absRoot: string }
+): string {
+  if (cfg.projectName && cfg.projectName.trim() !== "") {
+    return cfg.projectName.trim();
+  }
+  try {
+    const pkgPath = path.join(cfg.__absRoot, "package.json");
+    if (existsSync(pkgPath)) {
+      const raw = readFileSync(pkgPath, "utf8");
+      const pkg = JSON.parse(raw) as { name?: string };
+      if (pkg.name && pkg.name.trim() !== "") {
+        return pkg.name.trim();
+      }
+    }
+  } catch {
+    // ignore — fallback 사용.
+  }
+  return "Unknown Project";
 }

@@ -7,7 +7,7 @@
  *  2) manifest.json 을 읽어 페이지별 점수(perf/a11y/bp/seo) 요약 summary.json 생성
  *
  * 인증은 config.js 의 `puppeteerScript` (Plan B Puppeteer 어댑터,
- * `auth/portal-gateway.js`) 가 LHCI 내부에서 수행. run.js 는 인증 관련
+ * `auth/<프로젝트명>.js`) 가 LHCI 내부에서 수행. run.js 는 인증 관련
  * 처리 없음.
  *
  * 상세 사용법: dsmonitor/lighthouse/README.md

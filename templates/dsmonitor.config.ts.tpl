@@ -12,6 +12,11 @@ import type { UIHealthConfig } from "dsmonitor";
 const config: UIHealthConfig = {
   projectRoot: ".",
 
+  // ────── 프로젝트 이름 (선택) ──────
+  // dashboard header / footer 안 표시 자료. 미지정 시 = `package.json` 안
+  // `name` 자동 read. 둘 다 빠짐 시점 = "Unknown Project".
+  // projectName: "MyProject",
+
   // ────── 스타일링 정책 ──────
   // 4종 preset 중 골라 require:
   //   - dsmonitor/presets/scss-project       (SCSS 기반)
