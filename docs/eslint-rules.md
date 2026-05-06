@@ -1,4 +1,4 @@
-# ESLint Rules (eslint-plugin-ui-health)
+# ESLint Rules (eslint-plugin-dsmonitor)
 
 `packages/dsmonitor/eslint/`에 번들링된 커스텀 ESLint 플러그인.
 프로젝트 **스타일링 정책**(`stylingPolicy.js`)을 주입받아 동작한다.
@@ -23,7 +23,7 @@
 
 ## 룰 목록 (v0.2)
 
-### `ui-health/no-forbidden-classes`
+### `dsmonitor/no-forbidden-classes`
 
 #### 의도
 프로젝트 정책에 의해 금지된 className 토큰(+ 선택적으로 금지 모듈 import)이 코드에 들어오는 것을 차단한다.
@@ -63,11 +63,11 @@ export default function Panel() {
 
 ESLint 출력:
 ```
-3:10  error  'd-flex' is forbidden (Bootstrap utility classes).                 ui-health/no-forbidden-classes
-3:10  error  'mt-3' is forbidden (Bootstrap utility classes).                   ui-health/no-forbidden-classes
-3:10  error  'justify-content-between' is forbidden (Bootstrap utility classes).ui-health/no-forbidden-classes
-4:15  error  'btn' is forbidden (Bootstrap utility classes).                    ui-health/no-forbidden-classes
-4:15  error  'btn-primary' is forbidden (Bootstrap utility classes).            ui-health/no-forbidden-classes
+3:10  error  'd-flex' is forbidden (Bootstrap utility classes).                 dsmonitor/no-forbidden-classes
+3:10  error  'mt-3' is forbidden (Bootstrap utility classes).                   dsmonitor/no-forbidden-classes
+3:10  error  'justify-content-between' is forbidden (Bootstrap utility classes).dsmonitor/no-forbidden-classes
+4:15  error  'btn' is forbidden (Bootstrap utility classes).                    dsmonitor/no-forbidden-classes
+4:15  error  'btn-primary' is forbidden (Bootstrap utility classes).            dsmonitor/no-forbidden-classes
 ```
 
 **✅ After — SCSS + DS로 교체**
@@ -102,26 +102,26 @@ export default function Panel() {
 
 ### 한 줄만 비활성화
 ```jsx
-{/* eslint-disable-next-line ui-health/no-forbidden-classes */}
+{/* eslint-disable-next-line dsmonitor/no-forbidden-classes */}
 <div className="d-flex">legacy reason</div>
 ```
 
 ### 블록 단위
 ```jsx
-/* eslint-disable ui-health/no-forbidden-classes */
+/* eslint-disable dsmonitor/no-forbidden-classes */
 <table className="table">
   <thead className="text-center">...</thead>
 </table>
-/* eslint-enable ui-health/no-forbidden-classes */
+/* eslint-enable dsmonitor/no-forbidden-classes */
 ```
 
 ### 파일 전체 (비추천)
 ```jsx
-/* eslint-disable ui-health/no-forbidden-classes */
+/* eslint-disable dsmonitor/no-forbidden-classes */
 ```
 
 ### 남용 방지
-- `eslint-disable` 주석은 **이유 주석을 함께** 쓴다: `eslint-disable-next-line ui-health/no-forbidden-classes -- 3rd party <Tooltip> 요구사항`
+- `eslint-disable` 주석은 **이유 주석을 함께** 쓴다: `eslint-disable-next-line dsmonitor/no-forbidden-classes -- 3rd party <Tooltip> 요구사항`
 - 일시적 회피는 PR description에 기록
 - 가능하면 `lint-baseline.json` 재생성으로 기존 위반을 warn으로 돌리는 쪽이 기록 추적에 유리
 
@@ -129,7 +129,7 @@ export default function Panel() {
 
 루트 `.eslintrc.js`:
 ```js
-const { fromPolicy } = require("eslint-plugin-ui-health");
+const { fromPolicy } = require("eslint-plugin-dsmonitor");
 const stylingPolicy = require("./dsmonitor/stylingPolicy");
 
 module.exports = {
@@ -157,7 +157,7 @@ module.exports = {
 
 ## Soft Baseline 메커니즘 (Phase 1: 가시화)
 
-현재 CI는 `ui-health/no-forbidden-classes` 위반으로 차단하지 않는다. 대신 `lint:summary` 가 baseline 대비 변동을 표시한다.
+현재 CI는 `dsmonitor/no-forbidden-classes` 위반으로 차단하지 않는다. 대신 `lint:summary` 가 baseline 대비 변동을 표시한다.
 
 ### `.lint-baseline.json` 스키마
 ```json
@@ -169,7 +169,7 @@ module.exports = {
     "Bootstrap utility classes": 982,
     "Tailwind utility classes": 2
   },
-  "stats": { "rule": "ui-health/no-forbidden-classes", "filesWithViolations": 254 },
+  "stats": { "rule": "dsmonitor/no-forbidden-classes", "filesWithViolations": 254 },
   "files": { "apps/login/index.jsx": 31, ... }
 }
 ```
@@ -179,7 +179,7 @@ module.exports = {
 ================================================================
  DSMonitor — Lint Summary (soft, non-blocking)
 ================================================================
- rule: ui-health/no-forbidden-classes
+ rule: dsmonitor/no-forbidden-classes
 
  Baseline:  984  (updated 2026-04-20T...)
             breakdown: Bootstrap utility classes=982, Tailwind utility classes=2

@@ -18,7 +18,7 @@
  * figmaUrl 자동 조립: `https://www.figma.com/design/{fileKey}/{fileName}?node-id={nodeId 콜론 → 하이픈}`
  *
  * 사용 예:
- *   npm run ui-health:export-migration -- --frame=Test-Perform [--ds=ds-legacy]
+ *   npx dsmonitor export-migration --frame=Test-Perform [--ds=ds-legacy]
  */
 
 import fs from "node:fs/promises";

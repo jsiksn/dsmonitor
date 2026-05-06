@@ -173,7 +173,7 @@ async function main() {
         console.error(
           `[dsmonitor] --only figma 는 기존 reports/ JSON 을 base 로 사용합니다. ` +
             `${reportsDir} 에 base 파일이 없습니다. ` +
-            `먼저 'npm run ui-health' 또는 'npm run ui-health:code' 로 base 생성하세요.`
+            `먼저 'npx dsmonitor audit' 또는 'npx dsmonitor audit --only code' 로 base 생성하세요.`
         );
         process.exit(1);
       }
@@ -190,7 +190,7 @@ async function main() {
       let instancesFile: FigmaInstancesFile | undefined;
       try {
         // --only figma 는 코드 측정을 다시 하지 않으므로 classIndex 미제공.
-        // 컴포넌트 매칭 (B 그룹 단계 3) 영역 미생성 — 통합 측정 (npm run ui-health) 시점에만 산출.
+        // 컴포넌트 매칭 (B 그룹 단계 3) 영역 미생성 — 통합 측정 (npx dsmonitor audit) 시점에만 산출.
         console.log(
           `[dsmonitor]   note: --only figma 는 componentMatch 영역 미생성 ` +
             `(코드 인덱스 필요). 통합 측정 사용 권장.`
@@ -334,7 +334,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     if (!resolvedInput) {
       console.error(
         `[dsmonitor] no baseline JSON found in ${reportsDir}. ` +
-          `Run 'npm run ui-health' or 'npm run ui-health:baseline' first.`
+          `Run 'npx dsmonitor audit' or 'npx dsmonitor audit --baseline' first.`
       );
       process.exit(2);
     }
@@ -363,7 +363,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     if (!frame) {
       console.error(
         `[dsmonitor] export-migration: --frame=<frame-comment> 필수.\n` +
-          `  사용 예: ui-health:export-migration -- --frame=Test-Perform [--ds=ds-legacy]\n` +
+          `  사용 예: npx dsmonitor export-migration --frame=Test-Perform [--ds=ds-legacy]\n` +
           `  --ds 영역 기본값: ds-legacy. 다른 값: ds-new / unmatched / all`
       );
       process.exit(2);
@@ -374,7 +374,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     if (!instancesPath) {
       console.error(
         `[dsmonitor] export-migration: figma-instances-{date}.json 없음. ` +
-          `먼저 'npm run ui-health:baseline' 으로 측정 + 별도 파일 생성하세요.`
+          `먼저 'npx dsmonitor audit --baseline' 으로 측정 + 별도 파일 생성하세요.`
       );
       process.exit(2);
     }

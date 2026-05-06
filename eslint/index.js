@@ -11,7 +11,10 @@ const rules = {
  * Build an ESLint shareable config fragment from a StylingPolicy.
  *
  * Usage (in .eslintrc.js):
- *   const { fromPolicy } = require('eslint-plugin-ui-health');
+ *   // Required: install both `dsmonitor` and `eslint-plugin-dsmonitor`.
+ *   // The wrapper package satisfies ESLint legacy config's automatic
+ *   // `eslint-plugin-{name}` resolution.
+ *   const { fromPolicy } = require('dsmonitor/eslint');
  *   const policy = require('./dsmonitor/stylingPolicy');
  *   module.exports = {
  *     extends: ['next/core-web-vitals'],
@@ -27,7 +30,7 @@ const rules = {
  */
 function fromPolicy(policy, opts) {
   const options = opts || {};
-  const ruleName = "ui-health/no-forbidden-classes";
+  const ruleName = "dsmonitor/no-forbidden-classes";
   const serialized = serializePolicy(policy);
   const errorRule = ["error", { forbidden: serialized }];
   const warnRule = ["warn", { forbidden: serialized }];
@@ -37,7 +40,7 @@ function fromPolicy(policy, opts) {
     baseline && baseline.files ? Object.keys(baseline.files) : [];
 
   return {
-    plugins: ["ui-health"],
+    plugins: ["dsmonitor"],
     rules: {
       [ruleName]: errorRule,
     },

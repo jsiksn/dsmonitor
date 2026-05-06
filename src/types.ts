@@ -65,7 +65,7 @@ export interface UIHealthConfig {
    * 비교·표시한다. CI 실패 처리는 하지 않는다. 파일이 없으면 summary는
    * "baseline 없음" 메시지만 출력하고 종료 (신규 프로젝트 대비).
    *
-   * 참고: 이 파일과 `lint-baseline.json`(eslint-plugin-ui-health 의 파일별
+   * 참고: 이 파일과 `lint-baseline.json`(dsmonitor/eslint 의 파일별
    * 심각도 오버라이드 맵)은 **다른 파일**이다. 헷갈리지 말 것.
    */
   softBaseline?: {

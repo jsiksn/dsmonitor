@@ -52,15 +52,24 @@ dsmonitor 자체 측정 외 외부 측정 자료 (단위 테스트 / 번들 크�
 npm install --save-dev dsmonitor
 ```
 
+ESLint plugin 활용 시점 = wrapper 패키지 (`eslint-plugin-dsmonitor`) 도 추가 install. ESLint legacy config(`.eslintrc.js`) 안 plugin 자동 검색 흐름 호환 위해 별도 패키지 형태로 publish.
+
+**EN —** When using the ESLint plugin, also install the wrapper package (`eslint-plugin-dsmonitor`). It is published separately to satisfy ESLint legacy config's automatic `eslint-plugin-{name}` resolution.
+
+```bash
+npm install --save-dev dsmonitor eslint-plugin-dsmonitor
+```
+
 선택 의존 (peer optional — 활용 시점에만 install):
 
 **EN —** Optional peer dependencies (install only when used):
 
-| 영역 / Area        | 시점 / When                                                  | 명령 / Command                                       |
-| ------------------ | ------------------------------------------------------------ | ---------------------------------------------------- |
-| `eslint` >=8       | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint`                      |
-| `@lhci/cli` >=0.13 | Lighthouse 측정 활용 / Lighthouse measurement                | `dsmonitor init` 안 자동 / auto via `dsmonitor init` |
-| `typescript` >=5.0 | dsmonitor.config.ts 작성 시점 / Writing dsmonitor.config.ts  | 보통 이미 install됨 / usually already installed      |
+| 영역 / Area                     | 시점 / When                                                  | 명령 / Command                                       |
+| ------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| `eslint` >=8                    | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint`                      |
+| `eslint-plugin-dsmonitor`       | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint-plugin-dsmonitor`     |
+| `@lhci/cli` >=0.13              | Lighthouse 측정 활용 / Lighthouse measurement                | `dsmonitor init` 안 자동 / auto via `dsmonitor init` |
+| `typescript` >=5.0              | dsmonitor.config.ts 작성 시점 / Writing dsmonitor.config.ts  | 보통 이미 install됨 / usually already installed      |
 
 ### 2. 부트스트랩 / Bootstrap (`dsmonitor init`)
 
@@ -154,6 +163,14 @@ Lighthouse 측정 활용 시점에 사용자 측 `dsmonitor/lighthouse/` 안 con
 
 ## ESLint plugin 사용법 / ESLint Plugin Usage
 
+사전 install (한 번만) / Prerequisite install (one-time):
+
+```bash
+npm install --save-dev dsmonitor eslint-plugin-dsmonitor
+```
+
+`.eslintrc.js`:
+
 ```js
 // .eslintrc.js
 const { fromPolicy } = require("dsmonitor/eslint");
@@ -170,6 +187,10 @@ module.exports = {
   overrides: policyConfig.overrides,
 };
 ```
+
+`policyConfig.plugins`는 `["dsmonitor"]`를 반환. ESLint legacy config가 `eslint-plugin-dsmonitor` (wrapper 패키지)를 자동 검색.
+
+**EN —** `policyConfig.plugins` returns `["dsmonitor"]`. ESLint legacy config auto-resolves to `eslint-plugin-dsmonitor` (wrapper package).
 
 ratchet 동작 / Ratchet behavior:
 
