@@ -4,6 +4,17 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] — 2026-05-06
+
+### 정정 / Fixed
+
+- **한 —** `lighthouse/run.js` 가 root `"type": "module"` 자료 자료 ES module 자료 자료 → `require()` 호출 시 throw 짚힘 정정. `lighthouse/package.json` 안 `{"type": "commonjs"}` override 추가. 0.1.6 시점에 `bin/` 자료 자료 자료 자료, `lighthouse/` 자료 자료 자료 자료라 같은 짚힘 재발.
+- **한 — 전수 검증**: `require()` 사용하는 모든 `.js` 파일 (6건) 자료 폴더별 `package.json` `"type": "commonjs"` override 자료 자료. 본 시점 정합: `bin/`, `bin/lib/`, `eslint/`, `lighthouse/`, `presets/` 모두 commonjs override 자료. 추후 새 폴더 추가 시점에 같은 자료 본질.
+- **EN —** Fixed `lighthouse/run.js` being treated as ES module due to root `"type": "module"`, causing `require()` to throw. Added `{"type": "commonjs"}` override in `lighthouse/package.json`. The 0.1.6 fix only covered `bin/` and `bin/lib/`, leaving `lighthouse/` for the same regression.
+- **EN — Audit**: Verified all `.js` files using `require()` (6 total) have a sibling `package.json` `"type": "commonjs"` override. Currently aligned: `bin/`, `bin/lib/`, `eslint/`, `lighthouse/`, `presets/`. Same convention applies to any future folders.
+
+[0.1.8]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.8
+
 ## [0.1.7] — 2026-05-06
 
 ### 변경 / Changed
