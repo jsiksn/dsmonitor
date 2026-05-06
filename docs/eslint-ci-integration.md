@@ -20,7 +20,7 @@
 stages:
   - analyze
 
-ui-health:lint-summary:
+dsmonitor:lint-summary:
   stage: analyze
   image: node:20
   script:
@@ -49,7 +49,7 @@ pipelines:
         script:
           - npm ci
           - npm run lint:summary
-        # Phase 1: 실패해도 전체 파이프라인을 블록하지 않는 단독 스텝.
+        # Phase 1: 실패해도 전체 파이프라인을 블록하지 않는`dsmonitor:figma` 단독 스텝.
         # 메인 빌드/테스트 스텝은 병렬로 돌려서 독립적으로 동작하도록.
 ```
 
@@ -96,7 +96,7 @@ curl -X POST -H 'Content-type: application/json' \
 
 정기 리포트(`docs/baseline.md`)도 함께 발송:
 ```bash
-npm run report -- --output /tmp/ui-health-report.md
+npm run report -- --output /tmp/dsmonitor-report.md
 # 그 다음 사내 메신저 업로드
 ```
 
@@ -156,7 +156,7 @@ fi
 그리고 CI 설정에서 `allow_failure` 제거:
 ```yaml
 # GitLab CI
-ui-health:lint-ci:
+dsmonitor:lint-ci:
   stage: test
   script:
     - npm ci
@@ -168,7 +168,7 @@ ui-health:lint-ci:
 
 baseline의 `maxWarnings` 값을 `next lint --max-warnings=N` 으로 주입해서
 ESLint 자체의 실패 메커니즘을 쓰는 방법. 모든 ESLint 룰의 warning 합계를 기준으로 하기 때문에
-`ui-health` 외 룰이 발생시키는 warning도 영향을 준다는 점 주의.
+`dsmonitor` 외 룰이 발생시키는 warning도 영향을 준다는 점 주의.
 
 ```bash
 MAX=$(node -p "require('./dsmonitor/.lint-baseline.json').maxWarnings")

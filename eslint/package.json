@@ -1,5 +1,5 @@
 {
-  "name": "eslint-plugin-ui-health",
+  "name": "dsmonitor-eslint-internal",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",

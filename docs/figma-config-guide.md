@@ -1,6 +1,6 @@
 # Figma 측정 설정 가이드
 
-Phase 0.5 Figma baseline 측정을 위한 설정 안내. 한 번 설정 후에는 `npm run ui-health` 에 자동 편승.
+Phase 0.5 Figma baseline 측정을 위한 설정 안내. 한 번 설정 후에는 `npx dsmonitor audit` 에 자동 편승.
 
 ## 개요
 
@@ -150,24 +150,24 @@ Copy link 방법: Figma 캔버스에서 **프레임을 선택한 뒤 우클릭**
 
 ```bash
 # 프로젝트 루트에서 실행 (영역 통합 cycle):
-npm run ui-health:baseline     # codebase + Figma 측정 + markdown + dashboard 자동 chain
+npx dsmonitor audit --baseline     # codebase + Figma 측정 + markdown + dashboard 자동 chain
 
 # 또는 영역별:
-npm run ui-health:figma        # figma 만 (base JSON 필요, 단독 측정 시 제약 — 아래 주의 참조)
-npm run ui-health:report       # markdown 만 재생성
-npm run ui-health:dashboard    # dashboard html 만 재빌드
+npx dsmonitor audit --only figma        # figma 만 (base JSON 필요,`dsmonitor:figma` 단독 측정 시 제약 — 아래 주의 참조)
+npx dsmonitor report       # markdown 만 재생성
+npx dsmonitor dashboard    # dashboard html 만 재빌드
 ```
 
-### `ui-health:figma` 단독 측정의 제약
+### `dsmonitor:figma` 단독 측정의 제약
 
-`--only figma` 흐름은 코드 인덱스 (`classIndex`) 가 없어 **componentMatch 영역 미생성** 합니다 (B 그룹 단계 3, v0.11 시점부터). componentMatch = Figma DS 컴포넌트 ↔ 코드 className 매칭. 해당 측정값이 필요하면 통합 측정 (`ui-health:baseline`) 사용 권장.
+`--only figma` 흐름은 코드 인덱스 (`classIndex`) 가 없어 **componentMatch 영역 미생성** 합니다 (B 그룹 단계 3, v0.11 시점부터). componentMatch = Figma DS 컴포넌트 ↔ 코드 className 매칭. 해당 측정값이 필요하면 통합 측정 (`dsmonitor:baseline`) 사용 권장.
 
 ### 마이그레이션 자료 추출 (v0.14, Phase 0.7 단계 1+6)
 
 frame 단위 instance 목록을 CSV 로 추출 — 마이그레이션 작업 진입 사전 자료.
 
 ```bash
-npm run ui-health:export-migration -- --frame=<frame-comment> [--ds=<label>]
+npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 ```
 
 - `--frame=<comment>` (필수): frame.comment 정확 일치 또는 `all`
@@ -175,7 +175,7 @@ npm run ui-health:export-migration -- --frame=<frame-comment> [--ds=<label>]
 
 출력 — `dsmonitor/reports/migration/{frame}-{ds}-{date}.csv` (CSV 컬럼: nodeId / componentName / instanceName / dsLabel / contextPath / figmaUrl). figmaUrl 은 Figma 시안 직접 진입 가능한 형태로 자동 조립.
 
-사전 조건: `ui-health:baseline` 실행으로 `dsmonitor/reports/figma-instances-{date}.json` 생성 (instance level raw, walk 시점에 같이 출력).
+사전 조건: `dsmonitor:baseline` 실행으로 `dsmonitor/reports/figma-instances-{date}.json` 생성 (instance level raw, walk 시점에 같이 출력).
 
 ## FAQ
 

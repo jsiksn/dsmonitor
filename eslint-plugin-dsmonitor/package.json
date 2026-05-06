@@ -1,0 +1,34 @@
+{
+  "name": "eslint-plugin-dsmonitor",
+  "version": "0.1.0",
+  "description": "ESLint plugin wrapper for dsmonitor. Re-exports dsmonitor/eslint to satisfy ESLint legacy config's automatic plugin resolution.",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "jsiksn",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "dsmonitor",
+    "design-system",
+    "ui-health"
+  ],
+  "peerDependencies": {
+    "dsmonitor": "^0.1.7",
+    "eslint": ">=8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsiksn/dsmonitor.git",
+    "directory": "eslint-plugin-dsmonitor"
+  },
+  "homepage": "https://github.com/jsiksn/dsmonitor/tree/main/eslint-plugin-dsmonitor#readme",
+  "bugs": {
+    "url": "https://github.com/jsiksn/dsmonitor/issues"
+  },
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ]
+}

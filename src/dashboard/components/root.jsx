@@ -2,7 +2,7 @@
 // DSMonitor Dashboard — root JSX. 시안 (Claude Design 핸드오프) 의 root mount 코드 그대로
 // + const DATA hardcoded → window.__SUMMARY_DATA 로 변경 (자동 변환).
 //
-// 원본 시안: ui-health/project/Phase 0.5 Review Dashboard.html L532-862
+// 원본 시안: dsmonitor/project/Phase 0.5 Review Dashboard.html L532-862
 // 변경: const DATA = { ... }; 하드코딩 블록 제거, const DATA = window.__SUMMARY_DATA 로 대체.
 
 const { useState } = React;

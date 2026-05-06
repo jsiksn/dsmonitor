@@ -4,7 +4,7 @@
 /**
  * Soft lint summary.
  *
- * - 현재 ui-health/no-forbidden-classes 위반 수와 baseline을 비교해서 출력.
+ * - 현재 dsmonitor/no-forbidden-classes 위반 수와 baseline을 비교해서 출력.
  * - baseline 파일이 없으면 "baseline 없음" 메시지만 출력 후 그대로 종료.
  * - **항상 exit 0** — CI 블로킹 용도 아님. Phase 1(가시화)용 도구.
  *

@@ -4,6 +4,26 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] — 2026-05-06
+
+### 변경 / Changed
+
+- **한 —** ESLint plugin 이름 변경: `ui-health` → `dsmonitor`. 기존 이름은 npm 패키지명(`dsmonitor`)과 달라 ESLint legacy config(`.eslintrc.js`)의 자동 plugin 검색 흐름과 호환 안 됨. plugin 이름을 패키지명과 통일.
+- **한 —** 새 wrapper 패키지 `eslint-plugin-dsmonitor` 0.1.0 publish. ESLint legacy config 가 plugin 을 자동 검색할 수 있도록 다리 역할 (1줄짜리 re-export, `module.exports = require("dsmonitor/eslint")`).
+- **한 —** `bin/lib/lint-shared.js`, `bin/lint-summary.js`, `eslint/index.js`, `src/cli.ts`, `src/types.ts`, `src/dashboard/components/root.jsx`, `src/reporters/migrationCsv.ts`, `src/reporters/markdown.ts` 안 `ui-health` 표기 → `dsmonitor` 일괄 정정.
+- **한 —** `README.md` + `docs/eslint-rules.md` + `docs/eslint-ci-integration.md` + `docs/figma-config-guide.md` 안 옛 `npm run ui-health:*` 스크립트 자료 → 새 `npx dsmonitor *` 자료 일괄 정정. `eslint-plugin-ui-health` → `eslint-plugin-dsmonitor`.
+- **한 — Breaking change**: 0.1.7 사용자는 (1) `eslint-plugin-dsmonitor` 도 추가 install + (2) `.eslintrc.js` + soft baseline JSON 안 `ui-health/...` → `dsmonitor/...` 정정 필요.
+
+### EN — Changed
+
+- **EN —** Renamed ESLint plugin from `ui-health` to `dsmonitor` to align with npm package name. The old name was incompatible with ESLint legacy config's automatic plugin resolution.
+- **EN —** Published new wrapper package `eslint-plugin-dsmonitor` 0.1.0. Acts as a bridge for ESLint legacy config (1-line re-export of `dsmonitor/eslint`).
+- **EN —** Replaced `ui-health` mentions with `dsmonitor` across `bin/lib/lint-shared.js`, `bin/lint-summary.js`, `eslint/index.js`, `src/cli.ts`, `src/types.ts`, `src/dashboard/components/root.jsx`, `src/reporters/migrationCsv.ts`, `src/reporters/markdown.ts`.
+- **EN —** Replaced legacy `npm run ui-health:*` script references with new `npx dsmonitor *` invocations across `README.md`, `docs/eslint-rules.md`, `docs/eslint-ci-integration.md`, `docs/figma-config-guide.md`. Replaced `eslint-plugin-ui-health` with `eslint-plugin-dsmonitor`.
+- **EN — Breaking change**: Users upgrading must (1) additionally install `eslint-plugin-dsmonitor` + (2) update `.eslintrc.js` and soft baseline JSON to replace `ui-health/...` with `dsmonitor/...`.
+
+[0.1.7]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.7
+
 ## [0.1.6] — 2026-05-06
 
 ### 정정 / Fixed

@@ -404,7 +404,7 @@ export async function generateMarkdown(
 
   lines.push(`---`);
   lines.push(
-    `*자동 생성 — 수동 편집 금지. 갱신: \`npm run ui-health:report\`. 기획서: \`dsmonitor/docs/planning.md\`.*`
+    `*자동 생성 — 수동 편집 금지. 갱신: \`npx dsmonitor report\`. 기획서: \`dsmonitor/docs/planning.md\`.*`
   );
   lines.push("");
 

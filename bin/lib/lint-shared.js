@@ -5,7 +5,7 @@ const fs = require("fs");
 const os = require("os");
 const { spawnSync } = require("child_process");
 
-const TARGET_RULE = "ui-health/no-forbidden-classes";
+const TARGET_RULE = "dsmonitor/no-forbidden-classes";
 const DEFAULT_BASELINE_FILENAME = ".lint-baseline.json";
 
 function argOf(flag) {
@@ -44,7 +44,7 @@ function resolveBaselinePath() {
 function runLintJson() {
   const tmp = path.join(
     os.tmpdir(),
-    `ui-health-lint-${process.pid}-${Date.now()}.json`
+    `dsmonitor-lint-${process.pid}-${Date.now()}.json`
   );
   const isWin = process.platform === "win32";
   const cmd = isWin
