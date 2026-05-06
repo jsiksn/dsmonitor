@@ -4,12 +4,23 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] — 2026-05-06
+
+### 정정 / Fixed
+
+- **한 —** `bin/` 폴더 안 자료(`lint-summary.js`, `lint-update-baseline.js`, `report.js`, `lib/lint-shared.js`)가 패키지 root의 `"type": "module"` 자료로 인해 ES module로 처리되어 `require()` 호출 시 throw하는 결함 정정. `bin/package.json` + `bin/lib/package.json` 안 `{"type": "commonjs"}` override 추가하여 해당 폴더 안 자료를 CJS로 처리.
+- **한 —** `bin/report.js` 안 `tsx src/cli.ts` 호출 자료 정정. npm publish 자료 안 `src/` 폴더 미포함 자료라 `ERR_MODULE_NOT_FOUND` 발생. `dist/cli.js` 자료 자료 자료 변경 (`process.execPath` 안 직접 spawn).
+- **EN —** Fixed CJS bin scripts (`lint-summary.js`, `lint-update-baseline.js`, `report.js`, `lib/lint-shared.js`) being treated as ES modules due to package root's `"type": "module"` setting, causing `require()` calls to throw. Added `{"type": "commonjs"}` override in `bin/package.json` and `bin/lib/package.json` to ensure scripts in those directories are processed as CommonJS.
+- **EN —** Fixed `bin/report.js` invoking `tsx src/cli.ts` which fails on the published package because the `src/` directory is excluded from publish. Now spawns `dist/cli.js` directly via `process.execPath`.
+
+[0.1.6]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.6
+
 ## [0.1.5] — 2026-05-06
 
 ### Changed
 
-- **Dashboard UI 안 프로젝트명 자동 read** — `dsmonitor.config.ts` 안 `projectName` field 추가 또는 `package.json` 안 `name` 자료 자동 read. 본 시점까지 hardcoded 자료 (`portal-gateway-web`) 정정.
-- **코드 주석 안 generic 자료 정정** — `lighthouse/run.js` / `presets/configs/next-pages-scss.ts` / `presets/scss-project.js` / `src/types.ts` 안 hardcoded `portal-gateway-web` → generic 자료.
+- **Dashboard UI 안 프로젝트명 자동 read** — `dsmonitor.config.ts` 안 `projectName` field 추가 또는 `package.json` 안 `name` 자료 자동 read. 본 시점까지 hardcoded 자료 (`monorepo`) 정정.
+- **코드 주석 안 generic 자료 정정** — `lighthouse/run.js` / `presets/configs/next-pages-scss.ts` / `presets/scss-project.js` / `src/types.ts` 안 hardcoded `monorepo` → generic 자료.
 - **README + CHANGELOG 한국어 표현 자연화 (추가)** — 직전 0.1.3 publish 자료 외 발견 자료 정정 ("rename 끝" → "rename 완료", "throw 영역 영역" → "throw 발생", "표시 빠짐" → "표시 안 됨", "발행 빠짐" → "발행 없음" 등) + README markdown 표 padding 자연화.
 
 ### Fixed
@@ -20,8 +31,8 @@
 
 ### Changed
 
-- **Dashboard UI now reads project name automatically** — added `projectName` field to `dsmonitor.config.ts` or auto-reads from `package.json` `name` field. Replaces previously hardcoded `portal-gateway-web` value.
-- **Generic comments in code** — replaced hardcoded `portal-gateway-web` with generic placeholder in `lighthouse/run.js`, `presets/configs/next-pages-scss.ts`, `presets/scss-project.js`, and `src/types.ts`.
+- **Dashboard UI now reads project name automatically** — added `projectName` field to `dsmonitor.config.ts` or auto-reads from `package.json` `name` field. Replaces previously hardcoded `monorepo` value.
+- **Generic comments in code** — replaced hardcoded `monorepo` with generic placeholder in `lighthouse/run.js`, `presets/configs/next-pages-scss.ts`, `presets/scss-project.js`, and `src/types.ts`.
 - **Additional naturalization of Korean expressions in README and CHANGELOG** — follow-up to 0.1.3 ("rename 끝" → "rename 완료", "throw 영역 영역" → "throw 발생", "표시 빠짐" → "표시 안 됨", "발행 빠짐" → "발행 없음") + README markdown table padding cleanup.
 
 ### Fixed
@@ -139,9 +150,9 @@
 >
 > **EN —** `vitaui` mentions in this entry refer to the legacy name (renamed to `dsmonitor` in 0.1.1). Preserved as historical.
 
-첫 npm 발행. 직전 portal-gateway-web monorepo 안 file: 의존에서 분리 — 외부 사용자 측 `npm install vitaui`로 활용 가능.
+첫 npm 발행. 직전 monorepo 안 file: 의존에서 분리 — 외부 사용자 측 `npm install vitaui`로 활용 가능.
 
-**EN —** First npm release. Extracted from a `file:` dependency inside the portal-gateway-web monorepo — external users can `npm install vitaui` (legacy name).
+**EN —** First npm release. Extracted from a `file:` dependency inside the monorepo — external users can `npm install vitaui` (legacy name).
 
 ### Added
 
