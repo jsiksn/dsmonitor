@@ -166,8 +166,15 @@ function renderLighthouseBlock(): string {
 function renderFigmaBlock(): string {
   return `figma: {
     apiToken: process.env.FIGMA_API_TOKEN ?? "",
+    // 라벨 규칙 / Label rules:
+    //   - "ds-new"    = primary (마이그레이션 목표, 자라야 하는 DS / migration target, the DS that should grow)
+    //   - "ds-legacy" = 옛 DS (없어져야 하는 DS / legacy DS that should shrink)
+    // dashboard 안 "primary 비중 높을수록" = ds-new 비중 자료.
+    // DS 파일이 1개뿐이면 "ds-new" 라벨로 등록 권고.
+    // (0.2.0 영역에서 primary 자료 라벨이 아닌 별도 필드(예: primary: true)로 받을 자료 — breaking change 자료.)
     designSystemFiles: [
-      // TODO: { label: "ds", fileKey: "<Figma file key>", nodes: [...] }
+      // TODO: { label: "ds-new", fileKey: "<Figma file key>", nodes: [...] }
+      // TODO: { label: "ds-legacy", fileKey: "<Figma file key>", nodes: [...] }
     ],
     domainFiles: [
       // TODO: { label: "domain", fileKey: "<Figma file key>", frames: [...] }

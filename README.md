@@ -125,6 +125,34 @@ npx dsmonitor export-migration --frame=<comment> [--ds=<label>]
 npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / generate ESLint forbidden class baseline
 ```
 
+#### 측정 명령 차이 / Measurement Command Differences
+
+사용자 측 `package.json` 안 npm scripts 권고 패턴 / Recommended npm scripts in user-side `package.json`:
+
+| 명령 / Command | baseline-{date}.json 생성 / Creates baseline JSON | dashboard 반영 / Reflected in dashboard | 사용 시점 / When to use |
+|---|---|---|---|
+| `npx dsmonitor audit && report && dashboard` | ✗ | ✓ | 빠른 측정 + dashboard 재생성 / Quick measure + rebuild |
+| `npx dsmonitor audit --baseline && report && dashboard` | ✓ | ✓ | **권고 / Recommended** — baseline 갱신 + dashboard / Update baseline + dashboard |
+| `npx dsmonitor audit --only code` | ✗ | ✗ | code만 빠르게 / code only |
+| `npx dsmonitor audit --only figma` | ✗ | ✗ | figma raw 자료 (`figma-instances-{date}.json`) / figma raw only |
+| `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 (~25분 / ~25 min) |
+
+**짚어드릴 점 / Notes**:
+- `--only figma` 단독 = `figma-instances-{date}.json` (raw) 만 생성. dashboard input 자료 빠짐 / standalone `--only figma` only writes `figma-instances-{date}.json` (raw); not picked up by dashboard.
+- dashboard 자료 = 가장 최근 `baseline-*.json` (prefix 자료) 자료 자료 자료 자료 / dashboard reads the latest `baseline-*.json` (prefixed file).
+- 자세 안내 / Details: [docs/measurement-flow.md](./docs/measurement-flow.md).
+
+### DS 파일 라벨 / DS File Labels
+
+`figmaDesignSystemFiles` 안 라벨 규칙 / Label rules for `figmaDesignSystemFiles`:
+
+- **`ds-new`** = primary (마이그레이션 목표, 자라야 하는 DS / migration target, the DS that should grow)
+- **`ds-legacy`** = 옛 DS (없어져야 하는 DS / legacy DS that should shrink)
+
+Dashboard 안 "primary 비중 높을수록" = `ds-new` 비중 자료. DS 파일이 1개뿐이면 `ds-new` 라벨로 등록 권고 / In the dashboard, "higher primary ratio is better" refers to `ds-new`. If only one DS file exists, label it `ds-new`.
+
+> **Note**: 0.2.0 자료 = primary 자료 라벨이 아닌 별도 필드(예: `primary: true`)로 받을 자료 (breaking change). 자세 안내 = [CHANGELOG](./CHANGELOG.md) 자료 자료 / In 0.2.0, `primary` will be specified as a separate field (e.g. `primary: true`) instead of the label name (breaking change). See [CHANGELOG](./CHANGELOG.md) for details.
+
 ### Phase 0.6 호환성 / Compatibility (B 가설 / B hypothesis)
 
 - **codebase 측정 = 필수** — dsmonitor 자체 정체성 (코드 분석 도구)
