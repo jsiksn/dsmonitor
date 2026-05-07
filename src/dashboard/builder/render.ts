@@ -84,9 +84,9 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
     figmaTabData: figma,
   });
 
-  // ─── plugins 영역 자동 검색 (v0.15, 사이드카 plugin) ───
+  // ─── plugins 자동 검색 (v0.15, 사이드카 plugin) ───
   // 폴더 구조: configDir/reports/plugins/{id}/{date}.json
-  // cfg.report.outputDir 영역 안 plugins/ 영역 — id 알파벳 순 정렬.
+  // cfg.report.outputDir 안 plugins/ — id 알파벳 순 정렬.
   const pluginsRoot = path.resolve(
     opts.configDir,
     opts.cfg.report.outputDir,
@@ -115,7 +115,7 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
  * 프로젝트 이름 자동 read.
  *
  * 우선순위:
- *   1. `UIHealthConfig.projectName` 명시 자료
+ *   1. `UIHealthConfig.projectName` 명시 값
  *   2. `package.json` 안 `name` 자동 read
  *   3. fallback "Unknown Project"
  */

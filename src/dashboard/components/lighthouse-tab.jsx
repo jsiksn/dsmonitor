@@ -265,7 +265,7 @@ function LighthouseTabDetail() {
   }
   return (
     <div className="lh-tab">
-      {/* v0.15: 측정 시점 박스 → 인라인 영역 (Figma 패턴 정합). URL / Run / Base URL 박스는 정보 영역 그대로 유지. */}
+      {/* v0.15: 측정 시점 박스 → 인라인 (Figma 패턴 일치). URL / Run / Base URL 박스는 정보 부분 그대로 유지. */}
       <div className="tab-stamp">
         <span className="mono dim">측정</span>
         <span className="mono">{d.measuredAt}</span>

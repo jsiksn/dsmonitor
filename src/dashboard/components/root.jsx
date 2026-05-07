@@ -14,7 +14,7 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
   const pct = (x, d = 1) => (x * 100).toFixed(d);
 
   function Header() {
-    // v0.15 (2026-04-30): hdr-meta 영역 (Code / Figma / Lighthouse 3행 stamp) 삭제.
+    // v0.15 (2026-04-30): hdr-meta 부분 (Code / Figma / Lighthouse 3행 stamp) 삭제.
     // 측정 시점은 각 Layer 의 layer-head stamp + plugin 탭 헤더 2곳에서만 표시.
     return (
       <header className="hdr">
@@ -34,7 +34,7 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
   function Tabs({ tab, setTab }) {
     // v0.10 (2026-04-29): 카운트 자동 derive. 각 탭 jsx 가 window.{Tab}_CardCount export.
     // Lighthouse 는 카드 카운트 아닌 URL 카운트 (window.__LH_DATA.totalUrls).
-    // v0.12 (2026-04-29, Phase 0.6): 빠진 영역 탭 헤더 hide — figma / Lighthouse optional 본질.
+    // v0.12 (2026-04-29, Phase 0.6): 누락된 부분 탭 헤더 hide — figma / Lighthouse optional 핵심.
     // v0.15 (2026-04-30): 사이드카 plugin 탭 동적 추가 (id 알파벳 순) + 검증 실패 / stale 배지.
     const codeCardCount = window.CodeTab_CardCount;
     const figmaCardCount = window.FigmaTab_CardCount;
@@ -262,7 +262,7 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
                     <div className="card-desc">
                       전체 instance 중 primary DS ({primaryLabel}) 사용 비율.
                       {nonPrimaryLabels.length > 0 && totalInst > 0 && (
-                        <> 참고 자료 합계 {((inNonPrimary/totalInst)*100).toFixed(1)}%,</>
+                        <> 참고 합계 {((inNonPrimary/totalInst)*100).toFixed(1)}%,</>
                       )}
                       {totalInst > 0 && <> unmatched {((d.figma.unmatchedInstances/totalInst)*100).toFixed(1)}%</>}
                       {" 는 Figma 탭 통합 카드에서 분포 확인."}
@@ -288,24 +288,24 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
           </div>
         </div>}
 
-        {/* v0.15: 사이드카 plugin Layer 영역 — plugin 1개당 Layer 1개 자동 추가.
-            Layer 번호 = activeLayerCount + idx + 1 (figma 빠짐 환경 등 동적 영역). */}
+        {/* v0.15: 사이드카 plugin Layer — plugin 1개당 Layer 1개 자동 추가.
+            Layer 번호 = activeLayerCount + idx + 1 (figma 누락 환경 등 동적). */}
         {(() => {
           const plugins = window.__PLUGINS_DATA ?? [];
           if (plugins.length === 0) return null;
-          // codebase 항상 활성 + lighthouse / figma 가드 영역 정합.
+          // codebase 항상 활성 + lighthouse / figma 가드 흐름 일치.
           const activeLayerCount = 1 + (d.lh ? 1 : 0) + (d.figma ? 1 : 0);
           return plugins.map((p, idx) => {
             const layerNum = String(activeLayerCount + 1 + idx).padStart(2, "0");
             if (!p.ok) {
-              // 정정 1 (B-2 안): grid 카드 영역 삭제 — layer-head 만 표시. 사유 영역은 plugin 탭 (PluginErrorView) 영역에서만.
+              // 정정 1 (B-2 안): grid 카드 부분 삭제 — layer-head 만 표시. 사유 본문은 plugin 탭 (PluginErrorView) 안에서만.
               return (
                 <div key={`plugin-${p.id}-err`} className="layer">
                   <div className="layer-head">
                     <div className="layer-title">
                       <div className="layer-tag">Layer {layerNum} / {p.id}</div>
                       <h2>{p.id}</h2>
-                      <div className="desc">plugin 자료 영역 검증 실패 — 탭 영역 클릭해서 사유 확인</div>
+                      <div className="desc">plugin 정보 검증 실패 — 탭 클릭해서 사유 확인</div>
                     </div>
                     <div className="stamp"><span className="tag below"><span className="tdot" />검증 실패</span></div>
                   </div>
@@ -388,7 +388,7 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
     return <Comp />;
   }
 
-  // v0.15: 사이드카 plugin 탭 wrapper — plugin id 영역 받아 entry 영역 분기.
+  // v0.15: 사이드카 plugin 탭 wrapper — plugin id 받아 entry 분기.
   function PluginTabWrapper({ pluginId }) {
     const [, force] = React.useReducer(x => x + 1, 0);
     React.useEffect(() => {
@@ -400,7 +400,7 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
     if (!Comp) return <div className="skeleton-note"><span className="tdot" />Plugin 탭 모듈 로딩 중…</div>;
     const plugins = window.__PLUGINS_DATA ?? [];
     const entry = plugins.find((p) => (p.ok ? p.output.id : p.id) === pluginId);
-    if (!entry) return <div className="skeleton-note"><span className="tdot" />plugin 영역 빠짐: {pluginId}</div>;
+    if (!entry) return <div className="skeleton-note"><span className="tdot" />plugin 누락: {pluginId}</div>;
     return <Comp entry={entry} />;
   }
 

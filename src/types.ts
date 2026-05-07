@@ -8,7 +8,7 @@ export interface UIHealthConfig {
   /**
    * 프로젝트 이름 — dashboard header / footer 안 표시.
    *
-   * 미지정 시 `package.json` 안 `name` 자동 read. 둘 다 빠짐 시점 = "Unknown Project".
+   * 미지정 시 `package.json` 안 `name` 자동 read. 둘 다 없는 시점 = "Unknown Project".
    */
   projectName?: string;
 
@@ -254,7 +254,7 @@ export interface CodebaseReport {
      *
      * 1-depth 기준, 단 `apps/` 는 2-depth (예: "apps/material") 까지.
      * 정렬: jsFiles 내림차순 — JS 비중 높은 디렉토리 우선.
-     * 필터링 없음 — raw 보존 (작은 디렉토리 표시 여부는 시각화 영역).
+     * 필터링 없음 — raw 보존 (작은 디렉토리 표시 여부는 시각화 부분).
      */
     byDir: Array<{
       dir: string;
@@ -342,7 +342,7 @@ export interface SourceFile {
  * `analyzeCodebase` 가 산출하는 부산물 — globalCss 정의 + jsx 사용. baseline JSON
  * 직렬화 대상은 아니며, in-process 로 figma analyzer 의 컴포넌트 매칭에 전달.
  *
- * 두 영역 모두 token 단위 (className 속성 1개 안 여러 토큰을 split 한 결과) Set.
+ * 두 부분 모두 token 단위 (className 속성 1개 안 여러 토큰을 split 한 결과) Set.
  * Set 으로 출력해 has() 매칭 비용 O(1).
  */
 export interface ClassIndex {
@@ -409,9 +409,9 @@ export type FigmaDesignSystemFile = {
    * primary DS 명시 (0.2.0).
    *
    * - DS 1개뿐이면 자동 primary (생략 가능).
-   * - DS 2개 이상이면 정확히 1개에 `primary: true` 명시 본질. 아니면 throw.
+   * - DS 2개 이상이면 정확히 1개에 `primary: true` 명시 필수. 아니면 throw.
    *
-   * 0.1.x 자료 자료 = `"ds-new"` 라벨 자동 primary 처리 (자료 자료 = 0.2.0 자료 자료).
+   * 0.1.x 흐름 = `"ds-new"` 라벨 자동 primary 처리 (변경 시점 = 0.2.0 부터).
    */
   primary?: boolean;
   /**
@@ -696,13 +696,13 @@ export type FigmaReport = {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * 도메인 파일 안 INSTANCE 노드 1개의 raw 영역.
+ * 도메인 파일 안 INSTANCE 노드 1개의 raw 정보.
  *
- * 본질: 마이그레이션 작업 진입 자료 (CSV export). frame 안 ds-legacy instance 의
- * 정확한 위치 (nodeId + Figma URL) + 컴포넌트 영역 (componentName master) 보존.
+ * 핵심: 마이그레이션 작업 진입 정보 (CSV export). frame 안 ds-legacy instance 의
+ * 정확한 위치 (nodeId + Figma URL) + 컴포넌트 정보 (componentName master) 보존.
  *
- * baseline JSON 영역 회귀 회피 위해 별도 파일 (`dsmonitor/reports/figma-instances-{date}.json`)
- * 로 출력 — domainScan walk 안 raw 영역 수집 → figma.ts 가 별도 파일 출력.
+ * baseline JSON 회귀 회피 위해 별도 파일 (`dsmonitor/reports/figma-instances-{date}.json`)
+ * 로 출력 — domainScan walk 안 raw 정보 수집 → figma.ts 가 별도 파일 출력.
  */
 export interface FigmaInstanceEntry {
   /** Figma node-id (콜론 표기, 예: "5569:62500"). */
@@ -720,7 +720,7 @@ export interface FigmaInstanceEntry {
   /**
    * 매칭된 컴포넌트의 master name (componentSet.name).
    * - variant component (componentSet 안): componentSet 의 name (예: "btn")
-   * - 단독 component (componentSet 외): null (CSV reporter 영역에서 componentName 강제 주입)
+   * - 단독 component (componentSet 외): null (CSV reporter 안에서 componentName 강제 주입)
    * 매칭 실패 (unmatched) 시 null.
    * (Phase 0.7 후속, 2026-04-30)
    */
@@ -737,7 +737,7 @@ export interface FigmaInstanceEntry {
 /**
  * Phase 0.7 별도 파일 (`dsmonitor/reports/figma-instances-{date}.json`) schema.
  *
- * domainResults 트리 보존 + frame 별 instances[] 추가. 사용자 인지 영역 (도메인/페이지/
+ * domainResults 트리 보존 + frame 별 instances[] 추가. 사용자 인지 부분 (도메인/페이지/
  * 프레임) 일관 + CSV reporter 가 frame 필터링 자연.
  */
 export interface FigmaInstancesFile {
@@ -748,18 +748,18 @@ export interface FigmaInstancesFile {
 export interface FigmaInstancesDomain {
   label: string;
   fileKey: string;
-  /** Figma URL 영역 fileName (예: "Machine-Learning"). figmaUrl 조립 시 가독성. */
+  /** Figma URL 안 fileName (예: "Machine-Learning"). figmaUrl 조립 시 가독성. */
   fileName: string;
   pages: FigmaInstancesPage[];
 }
 
 export interface FigmaInstancesPage {
   comment?: string;
-  /** 패턴 B 일 때만 (페이지 자체 url 영역). */
+  /** 패턴 B 일 때만 (페이지 자체 url 부분). */
   url?: string;
   nodeId?: string;
   frames?: FigmaInstancesFrame[];
-  /** 패턴 B 면 페이지 자체 instances 영역 (frames 없음). */
+  /** 패턴 B 면 페이지 자체 instances 부분 (frames 없음). */
   instances?: FigmaInstanceEntry[];
 }
 
@@ -915,7 +915,7 @@ export interface FigmaComponentMatchEntry {
  *
  * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족하는
  * "DS 외부 정상 사용" className 만. appearsIn 필드 제거 (모두 동일 값이라 자명).
- * dead 가능성 (globalCss 만 정의되고 jsx 미사용) 영역은 별도 트랙 검토 (v0.12 이후).
+ * dead 가능성 (globalCss 만 정의되고 jsx 미사용) 부분은 별도 트랙 검토 (v0.12 이후).
  */
 export interface FigmaComponentCodeOnlyEntry {
   /** 코드 className 이름. */
@@ -946,7 +946,7 @@ export interface FigmaComponentMatchSummary {
 /**
  * Figma DS 컴포넌트 ↔ 코드 className 매칭 분석 결과.
  *
- * 측정 본질: 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case
+ * 측정 핵심: 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case
  * 직접 비교 가능 — case sensitive 정확 일치 (B1 알고리즘).
  *
  * 분모 (Figma DS 컴포넌트):
@@ -971,8 +971,8 @@ export interface FigmaComponentMatch {
    * 코드에만 있는 className — Figma DS 정의 없음 (DS 외부 정상 사용).
    *
    * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족 +
-   * Figma 미매칭. 옛 β 의 "globalCss 만 정의 + jsx 미사용" (dead 가능성) 영역은
-   * 별도 트랙 검토 — codeOnly 의미 명확화 ("DS 외부 영역").
+   * Figma 미매칭. 옛 β 의 "globalCss 만 정의 + jsx 미사용" (dead 가능성) 부분은
+   * 별도 트랙 검토 — codeOnly 의미 명확화 ("DS 외부 부분").
    */
   codeOnly: FigmaComponentCodeOnlyEntry[];
   /** 합계 카운트 (대시보드 카드 메인용). */

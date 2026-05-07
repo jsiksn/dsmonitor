@@ -28,13 +28,13 @@ const PRIMARY_RATIO_STRONG_BELOW_THRESHOLD = 0.1;
  *
  * 규칙:
  *   - DS 1개 = 자동 primary (primary 필드 검증 안 함)
- *   - DS 2개 이상 = 정확히 1개에 `primary: true` 명시 본질
+ *   - DS 2개 이상 = 정확히 1개에 `primary: true` 명시 필수
  *     - primary 0개 → throw
  *     - primary 2개 이상 → throw
  *   - DS 0개 = null
  *
- * 0.1.x 자료 자료 (`ds-new` 라벨 자동 primary) = 0.2.0 자료 자료.
- * 사용자 자료 정정 = `dsmonitor.config.local.ts` 안 ds-new 자료에 `primary: true` 1줄 추가.
+ * 0.1.x 흐름 (`ds-new` 라벨 자동 primary) = 0.2.0 부터 변경.
+ * 사용자 측 정정 = `dsmonitor.config.local.ts` 안 ds-new 항목에 `primary: true` 1줄 추가.
  */
 function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
   const files = cfg.designSystemFiles;
@@ -46,7 +46,7 @@ function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
     return files[0].label;
   }
 
-  // DS 2개 이상 = primary 정확히 1개 본질
+  // DS 2개 이상 = primary 정확히 1개 필수
   const primaries = files.filter((f) => f.primary === true);
 
   if (primaries.length === 0) {
@@ -59,7 +59,7 @@ function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
 
   if (primaries.length > 1) {
     throw new Error(
-      `[dsmonitor] figmaDesignSystemFiles 안 \`primary: true\` 자료가 ${primaries.length}건 발견되었습니다. ` +
+      `[dsmonitor] figmaDesignSystemFiles 안 \`primary: true\` 항목이 ${primaries.length}건 발견되었습니다. ` +
       "정확히 1개만 명시해 주세요. " +
       `현재 primary 라벨: ${primaries.map((p) => p.label).join(", ")}`
     );
@@ -98,11 +98,11 @@ export function baselineToFigmaData(
   const frameRanking = buildFrameRanking(figma.domainResults, primaryLabel);
   const domainSummary = buildDomainSummary(figma.domainResults, primaryLabel);
 
-  // tokenMatrix 영역 derive (3차 시각 검증 후 보정 2, 2026-04-29 후속).
+  // tokenMatrix derive (3차 시각 검증 후 보정 2, 2026-04-29 후속).
   // v0.9 note 12 의 transformer flat 화 패턴 누락 보완 — 시안 figma-tab.jsx
   // TokenMatrixSection 이 기대하는 형식 (rows c/dn/dl + summary both/codeOnly/dsOnly).
-  // 0.2.0 자료 = primary / non-primary 자료 자료 자료 (옛 ds-new/ds-legacy hardcoded 자료).
-  // baseline JSON 영역은 안 건드림 (시계열 보존). 다른 프로젝트 호환성 별도 트랙.
+  // 0.2.0 부터 = primary / non-primary 형태로 변경 (옛 ds-new/ds-legacy hardcoded 제거).
+  // baseline JSON 부분은 안 건드림 (시계열 보존). 다른 프로젝트 호환성 별도 트랙.
   const tokenMatrixForUi = enrichTokenMatrix(
     figma.tokenMatrix,
     primaryLabel,
@@ -126,7 +126,7 @@ export function baselineToFigmaData(
     totalInstances: figma.instanceAnalysis.totalInstances,
     frameRanking,
     domainSummary,
-    // B 그룹 단계 3 (2026-04-29): 컴포넌트 매칭 — baseline 에 영역 미존재 시 null.
+    // B 그룹 단계 3 (2026-04-29): 컴포넌트 매칭 — baseline 안 미존재 시 null.
     componentMatch: figma.componentMatch ?? null,
   };
 }
@@ -134,12 +134,12 @@ export function baselineToFigmaData(
 /**
  * tokenMatrix 를 시안 figma-tab.jsx TokenMatrixSection 기대 형식으로 enrich.
  *
- * 추가 영역:
+ * 추가 부분:
  *   - rows[i].n / .c / .dn / .dl  — flat 형식 (시안 직접 접근)
  *   - summary.both / .codeOnly / .dsOnly — 분류 카운트
  *
  * 옛 형식 (rows[i].name / .inCode / .inDs, summary.totalUniqueTokens 등) 도 보존
- * — baseline JSON 형식과 호환 (다른 코드 영역 의존 시).
+ * — baseline JSON 형식과 호환 (다른 코드 의존 시).
  *
  * derive 정의:
  *   - both     = code 매칭 + 어떤 DS 에라도 매칭
@@ -168,8 +168,8 @@ function enrichTokenMatrix(
   let codeOnly = 0;
   let dsOnly = 0;
 
-  // 0.2.0: ds-new/ds-legacy hardcoded 자료 → primary / non-primary 자료 자료.
-  // dn = primary 매칭 / dl = non-primary 자료 매칭 합집합.
+  // 0.2.0: ds-new/ds-legacy hardcoded 형태 → primary / non-primary 형태로 변경.
+  // dn = primary 매칭 / dl = non-primary 매칭 합집합.
   const enrichedRows = tm.rows.map((r) => {
     const inCode = r.inCode.exists;
     const inPrimary = primaryLabel ? r.inDs[primaryLabel]?.exists ?? false : false;

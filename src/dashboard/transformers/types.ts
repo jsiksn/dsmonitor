@@ -52,14 +52,14 @@ export interface CodeTabData {
 export interface FigmaTabData {
   stamp: string;
   /**
-   * primary DS 라벨 (사용자 측 `figmaDesignSystemFiles[].primary === true` 자료).
+   * primary DS 라벨 (사용자 측 `figmaDesignSystemFiles[].primary === true` 항목).
    * DS 1개뿐이면 자동 첫 라벨. DS 0개 = null.
-   * 0.2.0 자료 자료 — 옛 0.1.x `ds-new` hardcoded 자료.
+   * 0.2.0 부터 추가 — 옛 0.1.x `ds-new` hardcoded 흐름 대체.
    */
   primaryLabel: string | null;
   /**
    * primary 외 모든 DS 라벨 (config.designSystemFiles 순서 보존).
-   * dashboard 자료 "참고" / "non-primary" 자료 자료 자료.
+   * dashboard 안 "참고" / "non-primary" 표시에 사용.
    */
   nonPrimaryLabels: string[];
   measurementScope: {
@@ -223,12 +223,12 @@ export interface SummaryTabData {
   figma: {
     /** primary DS 라벨 (0.2.0). DS 1개 = 자동 첫 라벨. DS 0개 = null. */
     primaryLabel: string | null;
-    /** primary 외 DS 라벨 (config 순서 보존). dashboard 자료 "참고" 자료 자료 자료. */
+    /** primary 외 DS 라벨 (config 순서 보존). dashboard 안 "참고" 표시. */
     nonPrimaryLabels: string[];
-    /** primary DS 토큰 수 (Styles 자료). 옛 dsNew 변수 이름 호환. */
+    /** primary DS 토큰 수 (Styles 카운트). 옛 dsNew 변수 이름 호환. */
     dsNewTotal: number;
     dsNewMatched: number;
-    /** 첫 non-primary DS 토큰 수 (Styles 자료). 옛 dsLegacy 변수 이름 호환. */
+    /** 첫 non-primary DS 토큰 수 (Styles 카운트). 옛 dsLegacy 변수 이름 호환. */
     dsLegacyTotal: number;
     dsLegacyMatched: number;
     tokenRowsTotal: number;
@@ -247,7 +247,7 @@ export interface DashboardData {
   /**
    * 프로젝트 이름 — dashboard header / footer 안 표시.
    *
-   * 자료 흐름: `UIHealthConfig.projectName` → `package.json` `name` → "Unknown Project".
+   * 흐름: `UIHealthConfig.projectName` → `package.json` `name` → "Unknown Project".
    */
   projectName: string;
   summary: SummaryTabData;
@@ -255,9 +255,9 @@ export interface DashboardData {
   figma: FigmaTabData | null;
   lighthouse: LighthouseTabData | null;
   /**
-   * 사이드카 plugin 영역 entry 배열 (v0.15, 2026-04-30).
-   * dsmonitor/reports/plugins/{id}/{date}.json 영역 자동 검색 — id 알파벳 순 정렬.
-   * 검증 실패 영역도 entry 영역 (ok: false) 으로 보존 — dashboard 안 빨간 알림 영역.
+   * 사이드카 plugin entry 배열 (v0.15, 2026-04-30).
+   * dsmonitor/reports/plugins/{id}/{date}.json 자동 검색 — id 알파벳 순 정렬.
+   * 검증 실패 케이스도 entry (ok: false) 형태로 보존 — dashboard 안 빨간 알림.
    */
   plugins: DashboardPluginEntry[];
 }

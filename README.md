@@ -12,7 +12,7 @@
 
 ## 측정 항목 3가지 / Measurement Areas
 
-| 영역 / Area    | 분석 대상 / Target                                                                                                                                    | 출력 / Output                                                     |
+| 부분 / Area    | 분석 대상 / Target                                                                                                                                    | 출력 / Output                                                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | **code**       | TS/JS/JSX 코드베이스 정적 분석 (forbidden class, DS coverage, TS migration, hardcoded color, SCSS 변수 준수율, migration candidates, orphan class 등) | `dsmonitor/reports/baseline-*.json`, `dsmonitor/docs/baseline.md` |
 | **figma**      | DS 파일 Styles/Components 카운트 + 도메인 파일 INSTANCE 의 출처 미상 비율 + DS↔코드 토큰 매트릭스                                                     | 위 JSON 의 `figma` 필드                                           |
@@ -26,14 +26,14 @@
 
 ## 사이드카 plugin 시스템 / Sidecar Plugin System (v0.15, 2026-04-30)
 
-dsmonitor 자체 측정 외 외부 측정 자료 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard에 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 없음.
+dsmonitor 자체 측정 외 외부 측정 결과 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard에 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 없음.
 
 **EN —** Beyond dsmonitor's own measurements, external measurement data (unit tests / bundle size / accessibility audit / etc.) is auto-displayed in the dashboard. Plugins run their own tools and emit a JSON file — no direct code dependency between dsmonitor and plugin.
 
-- 자료 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳 순 정렬)
+- 정보 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳 순 정렬)
 - 자동 표시: `npx dsmonitor dashboard` (별도 명령 없음 — dashboard 빌드 시점에 자동 검색)
 - Summary 탭 안 plugin 1개당 Layer 04+ 자동 추가 + plugin 탭 동적 생성
-- 검증 실패 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + 오래된 자료 (7일+) 회색 배지
+- 검증 실패 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + 오래된 정보 (7일+) 회색 배지
 - 자세한 내용: [docs/plugin-development.md](./docs/plugin-development.md)
 
 **EN —**
@@ -64,7 +64,7 @@ npm install --save-dev dsmonitor eslint-plugin-dsmonitor
 
 **EN —** Optional peer dependencies (install only when used):
 
-| 영역 / Area                     | 시점 / When                                                  | 명령 / Command                                       |
+| 부분 / Area                     | 시점 / When                                                  | 명령 / Command                                       |
 | ------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
 | `eslint` >=8                    | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint`                      |
 | `eslint-plugin-dsmonitor`       | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint-plugin-dsmonitor`     |
@@ -80,7 +80,7 @@ npx dsmonitor init
 → 인터랙티브 prompt:
 
 - Lighthouse 측정 사용? (Y → @lhci/cli 자동 install)
-- Figma 측정 사용? (Y → 자료 형식만 토큰 치환)
+- Figma 측정 사용? (Y → 정보 형식만 토큰 치환)
 
 → 자동 생성:
 
@@ -134,23 +134,23 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 | `npx dsmonitor audit && report && dashboard` | ✗ | ✓ | 빠른 측정 + dashboard 재생성 / Quick measure + rebuild |
 | `npx dsmonitor audit --baseline && report && dashboard` | ✓ | ✓ | **권고 / Recommended** — baseline 갱신 + dashboard / Update baseline + dashboard |
 | `npx dsmonitor audit --only code` | ✗ | ✗ | code만 빠르게 / code only |
-| `npx dsmonitor audit --only figma` | ✗ | ✗ | figma raw 자료 (`figma-instances-{date}.json`) / figma raw only |
+| `npx dsmonitor audit --only figma` | ✗ | ✗ | figma raw (`figma-instances-{date}.json`) / figma raw only |
 | `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 (~25분 / ~25 min) |
 
 **짚어드릴 점 / Notes**:
-- `--only figma` 단독 = `figma-instances-{date}.json` (raw) 만 생성. dashboard input 자료 빠짐 / standalone `--only figma` only writes `figma-instances-{date}.json` (raw); not picked up by dashboard.
-- dashboard 자료 = 가장 최근 `baseline-*.json` (prefix 자료) 자료 자료 자료 자료 / dashboard reads the latest `baseline-*.json` (prefixed file).
-- 자세 안내 / Details: [docs/measurement-flow.md](./docs/measurement-flow.md).
+- `--only figma` 단독 = `figma-instances-{date}.json` (raw) 만 생성. dashboard input 누락 / standalone `--only figma` only writes `figma-instances-{date}.json` (raw); not picked up by dashboard.
+- dashboard 흐름 = 가장 최근 `baseline-*.json` (prefix 매칭) read / dashboard reads the latest `baseline-*.json` (prefixed file).
+- 자세한 안내 / Details: [docs/measurement-flow.md](./docs/measurement-flow.md).
 
 ### DS 파일 라벨 / DS File Labels
 
-`figmaDesignSystemFiles` 라벨 자료 = 사용자 자유 결정 (예: `"v1"`, `"v2"`, `"main"`, `"legacy"`). dashboard 자료 자료 자료 사용자 라벨 그대로 표시.
+`figmaDesignSystemFiles` 라벨 형태 = 사용자 자유 결정 (예: `"v1"`, `"v2"`, `"main"`, `"legacy"`). dashboard 안 사용자 라벨 그대로 표시.
 
 **EN —** `figmaDesignSystemFiles` labels are free-form (e.g. `"v1"`, `"v2"`, `"main"`, `"legacy"`). The dashboard displays user-defined labels verbatim.
 
 #### Primary 명시 / Primary specification (0.2.0)
 
-DS 2개 이상 자료 정확히 1개에 `primary: true` 명시 본질 / When you have 2 or more DS files, exactly one must have `primary: true`:
+DS 2개 이상이면 정확히 1개에 `primary: true` 명시 필수 / When you have 2 or more DS files, exactly one must have `primary: true`:
 
 ```typescript
 export const figmaDesignSystemFiles = [
@@ -172,14 +172,14 @@ DS 1개뿐 = 자동 primary (`primary` 필드 생략 가능) / Single DS = auto-
 
 ### Migration from 0.1.x
 
-0.1.x 자료 자료 = `ds-new` 라벨 자료 자동 primary 처리. 0.2.0 자료 = 명시 자료 자료. 옛 사용자 측 `dsmonitor.config.local.ts` 안 `ds-new` 자료에 `primary: true` 1줄 추가:
+0.1.x 흐름 = `ds-new` 라벨이 자동 primary 처리. 0.2.0 부터 = 명시 필수. 옛 사용자 측 `dsmonitor.config.local.ts` 안 `ds-new` 항목에 `primary: true` 1줄 추가:
 
 ```diff
 - { url: "...", label: "ds-new" },
 + { url: "...", label: "ds-new", primary: true },
 ```
 
-라벨 자료 = 그대로 유지 가능 (`ds-new` / `ds-legacy`). 새 라벨 자료 자유 변경.
+라벨 형태 = 그대로 유지 가능 (`ds-new` / `ds-legacy`). 새 라벨로 자유 변경.
 
 **EN —** 0.1.x auto-treated `ds-new` label as primary. 0.2.0 requires explicit specification. Existing users: add `primary: true` 1 line to the `ds-new` entry in `dsmonitor.config.local.ts`. Labels themselves can stay (`ds-new` / `ds-legacy`) or be freely renamed.
 
@@ -293,7 +293,7 @@ ratchet 동작 / Ratchet behavior:
 - [docs/eslint-rules.md](./docs/eslint-rules.md) — ESLint 룰 상세 + ratchet 동작 / ESLint rule details + ratchet behavior
 - [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) — CI 통합 패턴 / CI integration patterns
 - [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) — Lighthouse CI 통합 / Lighthouse CI integration
-- [docs/plugin-development.md](./docs/plugin-development.md) — 사이드카 plugin 개발 참고 문서 (자료 위치 / 자료 형식 / 자동 표시 / 검증 / 예시 코드 — v0.15) / Sidecar plugin development reference (data location / format / auto-display / validation / example code — v0.15)
+- [docs/plugin-development.md](./docs/plugin-development.md) — 사이드카 plugin 개발 참고 문서 (정보 위치 / 정보 형식 / 자동 표시 / 검증 / 예시 코드 — v0.15) / Sidecar plugin development reference (data location / format / auto-display / validation / example code — v0.15)
 - [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (**Phase B 작성 예정** — 현재 placeholder) / Measurement methodology (**to be written in Phase B** — currently a placeholder)
 
 ## Acknowledgments

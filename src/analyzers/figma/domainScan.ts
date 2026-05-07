@@ -66,7 +66,7 @@ export type TargetMeasurement = {
   /**
    * Per-target instance level raw (Phase 0.7, 2026-04-29).
    * walk 안 모든 INSTANCE node 의 nodeId + name + 매칭 결과 보존.
-   * baseline JSON 영역 외 별도 파일로 출력 (figma.ts 가 처리).
+   * baseline JSON 외 별도 파일로 출력 (figma.ts 가 처리).
    */
   instances: FigmaInstanceEntry[];
 };
@@ -156,7 +156,7 @@ export async function scanDomain(
     const localComponents = entry.components ?? {};
 
     // Per-target measurement (B-2 단계 2). 도메인 합산과 동시 누적.
-    // Phase 0.7 (2026-04-29): instances raw 영역도 같은 walk 에서 누적.
+    // Phase 0.7 (2026-04-29): instances raw 도 같은 walk 에서 누적.
     const targetMeasure: TargetMeasurement = {
       nodeId: target.nodeId,
       contextPath: target.contextPath,
@@ -376,7 +376,7 @@ function tallyUnknown(
  *
  * 컨테이너는 모두 "frame" 카테고리. 사용자 (디자이너 / 개발자) 가 "frame URL" 이라고
  * 부르는 것이 Figma 내부 타입은 다양 (variant/state 구현용 COMPONENT 등) — 측정
- * 도구 관점에서 동일한 측정 영역이라 한 카테고리로 통일.
+ * 도구 관점에서 동일한 측정 단위라 한 카테고리로 통일.
  *
  * nodeTypeResolver 의 컨테이너 화이트리스트와 일관 ("비컨테이너가 아니면 컨테이너").
  * 비컨테이너는 scanDomain 진입부에서 warning 출력 — 측정값은 빈 subtree 라 0.
