@@ -81,6 +81,7 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
     report,
     lighthouse,
     figmaWarningsCount: report.figma?.warnings?.length ?? 0,
+    figmaTabData: figma,
   });
 
   // ─── plugins 영역 자동 검색 (v0.15, 사이드카 plugin) ───

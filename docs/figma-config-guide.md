@@ -70,27 +70,34 @@ export const figmaDesignSystemFiles: FigmaDesignSystemFile[] = [
 
 **label 규칙**: 여기 등록한 label 이 리포트의 "정상 Instance 출처 분포" 에서 **그대로 버킷 키로 사용**됩니다 (`figma.instanceSources[label]`). 위 예시처럼 `"ds-new"` / `"ds-legacy"` 로 등록하면 두 개의 버킷이 생기고, 세 번째 DS 를 예컨대 `"ds-external"` 로 추가하면 자동으로 세 번째 버킷이 추가됩니다. label 에 대한 특별 취급 / 하드코딩 분류 없음 — config 에 등록된 수만큼 동적으로 집계. 등록되지 않은 DS 에서 유래한 INSTANCE 는 `figma.instanceAnalysis.unmatchedInstances` (매칭 실패 = 등록 DS 범위 밖, 마이그레이션 대상) 로 집계됩니다.
 
-### `ds-new` = primary 라벨 / `ds-new` is the primary label
+### Primary 명시 / Primary specification (0.2.0)
 
-본 시점 dashboard 자료 자료 자료 **`ds-new` 라벨 자료 primary 자료 자료** (`src/dashboard/transformers/baseline-to-figma-data.ts` 안 `resolvePrimaryDsLabel`):
+`primary: true` 자료 명시 본질. dashboard 자료 자료 자료 `primaryLabel` 자료 자료:
 
-- `"ds-new"` 라벨 자료 자료 자료 자료 자료 자료 → primary 자료
-- `"ds-new"` 자료 자료 자료 자료 → `designSystemFiles[0]` 자료 fallback
-- 빈 배열 자료 자료 → primary 자료 (`null`)
+- DS 1개 = 자동 primary (primary 필드 생략 가능)
+- DS 2개 이상 = 정확히 1개에 `primary: true` 명시 본질
+- primary 0개 또는 2개 이상 = 에러 throw
 
-Dashboard 안 "primary 비중 높을수록" / "마이그레이션 자료 우선순위" 자료 자료 자료 = `ds-new` 비중 자료. **DS 파일이 1개뿐이면 `"ds-new"` 라벨로 등록 권고**.
+Dashboard 자료 자료 자료 사용자 라벨 그대로 표시. 라벨 자료 = 자유 결정 (예: `"v1"`, `"v2"`, `"legacy"`, `"main"` 등).
 
-> **Note**: 0.2.0 자료 = primary 자료 라벨이 아닌 별도 필드 (예: `primary: true`) 자료 자료 자료 자료 (breaking change).
+**EN —** Specify primary explicitly with `primary: true`. The dashboard reads `primaryLabel` from the transformer:
 
-**EN —** As of now, the dashboard treats the **`ds-new` label as primary** (`resolvePrimaryDsLabel` in `src/dashboard/transformers/baseline-to-figma-data.ts`):
+- 1 DS file = auto-primary (`primary` field can be omitted)
+- 2+ files = exactly one must have `primary: true`
+- 0 or 2+ primaries = throws error
 
-- If `"ds-new"` exists in `designSystemFiles`, it is selected as primary.
-- Otherwise, `designSystemFiles[0]` is used as a fallback.
-- An empty array yields `null` (no primary).
+The dashboard displays user-defined labels verbatim. Labels are free-form (e.g. `"v1"`, `"v2"`, `"legacy"`, `"main"`).
 
-The dashboard's "higher primary ratio is better" / "migration priority" panels read the `ds-new` ratio. **If only one DS file is registered, label it `"ds-new"`**.
+#### 자료 / Example
 
-> **Note**: In 0.2.0, `primary` will be specified as a separate field (e.g. `primary: true`) instead of the label name (breaking change).
+```typescript
+export const figmaDesignSystemFiles = [
+  { url: "...", label: "ds-legacy" },
+  { url: "...", label: "ds-new", primary: true },   // ← primary 명시
+];
+```
+
+> **Migration from 0.1.x**: 0.1.x 자료 자료 = `ds-new` 라벨 자동 primary 자료. 0.2.0 자료 자료 = 명시 자료 자료. 옛 자료에 `primary: true` 1줄 추가 자료. Labels themselves (`ds-new` / `ds-legacy`) can stay or be freely renamed.
 
 ## 도메인 파일 등록 — 3가지 패턴
 

@@ -101,28 +101,28 @@ function MeasurementScope({ d }) {
 // ---------- A1: 통합 DS 토큰 매칭률 ----------
 function TokenMatchSection({ d }) {
   const stats = d.dsStats;
-  const newS = stats["ds-new"];
-  const legacyS = stats["ds-legacy"];
-  const newRatio = newS.matchedWithCode / newS.total;
-  const newPct = (newRatio * 100).toFixed(1);
-  const legacyRatio = legacyS.matchedWithCode / legacyS.total;
-  const legacyPct = (legacyRatio * 100).toFixed(1);
+  const primaryLabel = d.primaryLabel;
+  const nonPrimaryLabels = d.nonPrimaryLabels ?? [];
+  const primaryS = primaryLabel ? stats[primaryLabel] : null;
+  if (!primaryS) return null;
+  const primaryRatio = primaryS.matchedWithCode / primaryS.total;
+  const primaryPct = (primaryRatio * 100).toFixed(1);
 
   return (
     <FSection
       id="token-match"
       field="figma.tokenMatrix.summary.dsStats"
       title="DS 토큰 매칭률 (Styles + Variables)"
-      status={{ kind: "below", label: `기준 미달 · ${newS.matchedWithCode}/${newS.total}` }}
+      status={{ kind: "below", label: `기준 미달 · ${primaryS.matchedWithCode}/${primaryS.total}` }}
       direction={{ kind: "up-good" }}
     >
       {/* primary big number */}
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{newPct}</div>
+          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{primaryPct}</div>
           <div className="kv-unit">%</div>
           <div className="kv-cap">
-            <strong>Primary (ds-new)</strong> · {newS.matchedWithCode} / {newS.total}
+            <strong>{primaryLabel}</strong> · 기준 · {primaryS.matchedWithCode} / {primaryS.total}
           </div>
         </div>
         <div className="kv-side">
@@ -131,13 +131,19 @@ function TokenMatchSection({ d }) {
             <span className="v">Styles만</span>
           </div>
           <div className="kv-row">
-            <span className="k">Primary (ds-new)</span>
-            <span className="v mono">{newS.matchedWithCode} / {newS.total}</span>
+            <span className="k mono">{primaryLabel}</span>
+            <span className="v mono">{primaryS.matchedWithCode} / {primaryS.total}</span>
           </div>
-          <div className="kv-row">
-            <span className="k">참고 (ds-legacy)</span>
-            <span className="v mono">{legacyS.matchedWithCode} / {legacyS.total}</span>
-          </div>
+          {nonPrimaryLabels.map((label) => {
+            const s = stats[label];
+            if (!s) return null;
+            return (
+              <div key={label} className="kv-row">
+                <span className="k mono">{label}</span>
+                <span className="v mono">{s.matchedWithCode} / {s.total}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -147,58 +153,40 @@ function TokenMatchSection({ d }) {
         <span className="csect-field mono">dsStats[label]</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-        {/* ds-new */}
-        <div className="ds-token-row" style={{
-          display: "grid",
-          gridTemplateColumns: "200px 1fr 120px 90px",
-          alignItems: "center",
-          gap: 14,
-          padding: "12px 14px",
-          borderRadius: 6,
-          background: "var(--bg-sunken)",
-          border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--bad)",
-        }}>
-          <div>
-            <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>ds-new</div>
-            <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>기준</div>
-          </div>
-          <div className="bar-track" style={{ margin: 0 }}>
-            <div className="bar-track-fill" style={{ width: `${newRatio * 100}%`, background: "var(--bad)" }} />
-          </div>
-          <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)", textAlign: "right" }}>
-            {newS.matchedWithCode} / {newS.total}
-          </div>
-          <div className="mono" style={{ fontSize: 16, fontWeight: 600, color: "var(--bad-ink)", textAlign: "right" }}>
-            {newPct}%
-          </div>
-        </div>
-
-        {/* ds-legacy */}
-        <div className="ds-token-row" style={{
-          display: "grid",
-          gridTemplateColumns: "200px 1fr 120px 90px",
-          alignItems: "center",
-          gap: 14,
-          padding: "12px 14px",
-          borderRadius: 6,
-          background: "var(--bg-sunken)",
-          border: "1px solid var(--border)",
-        }}>
-          <div>
-            <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>ds-legacy</div>
-            <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>참고</div>
-          </div>
-          <div className="bar-track" style={{ margin: 0 }}>
-            <div className="bar-track-fill" style={{ width: `${legacyRatio * 100}%`, background: "var(--good)" }} />
-          </div>
-          <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)", textAlign: "right" }}>
-            {legacyS.matchedWithCode} / {legacyS.total}
-          </div>
-          <div className="mono" style={{ fontSize: 16, fontWeight: 600, color: "var(--good-ink)", textAlign: "right" }}>
-            {legacyPct}%
-          </div>
-        </div>
+        {[primaryLabel, ...nonPrimaryLabels].map((label, i) => {
+          const s = stats[label];
+          if (!s) return null;
+          const ratio = s.matchedWithCode / s.total;
+          const pct = (ratio * 100).toFixed(1);
+          const isPrimary = label === primaryLabel;
+          return (
+            <div key={label} className="ds-token-row" style={{
+              display: "grid",
+              gridTemplateColumns: "200px 1fr 120px 90px",
+              alignItems: "center",
+              gap: 14,
+              padding: "12px 14px",
+              borderRadius: 6,
+              background: "var(--bg-sunken)",
+              border: "1px solid var(--border)",
+              borderLeft: isPrimary ? "3px solid var(--bad)" : "1px solid var(--border)",
+            }}>
+              <div>
+                <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{label}</div>
+                <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>{isPrimary ? "기준" : "참고"}</div>
+              </div>
+              <div className="bar-track" style={{ margin: 0 }}>
+                <div className="bar-track-fill" style={{ width: `${ratio * 100}%`, background: isPrimary ? "var(--bad)" : "var(--good)" }} />
+              </div>
+              <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)", textAlign: "right" }}>
+                {s.matchedWithCode} / {s.total}
+              </div>
+              <div className="mono" style={{ fontSize: 16, fontWeight: 600, color: isPrimary ? "var(--bad-ink)" : "var(--good-ink)", textAlign: "right" }}>
+                {pct}%
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <FNote>
@@ -213,7 +201,9 @@ function TokenMatrixSection({ d }) {
   const tm = d.tokenMatrix;
   if (!tm) return null;
   const { rows, duplicates, summary } = tm;
-  const dsLabels = ["ds-new", "ds-legacy"];
+  // 0.2.0: ds-new/ds-legacy hardcoded 자료 → primary + non-primary 자료 자료.
+  // dn = primary 매칭 / dl = non-primary 자료 매칭 합집합 (transformer enrichTokenMatrix 자료 자료).
+  const dsLabels = [d.primaryLabel, ...(d.nonPrimaryLabels ?? [])].filter(Boolean);
 
   return (
     <FSection
@@ -316,21 +306,32 @@ function TokenMatrixSection({ d }) {
 
 // ---------- (통합) DS 피그마 Instance 비중 ----------
 function DsInstanceShareSection({ d }) {
-  const newCnt = d.instanceSources["ds-new"];
-  const legacyCnt = d.instanceSources["ds-legacy"];
+  const primaryLabel = d.primaryLabel;
+  const nonPrimaryLabels = d.nonPrimaryLabels ?? [];
+  const primaryCnt = primaryLabel ? (d.instanceSources[primaryLabel] ?? 0) : 0;
+  const nonPrimaryEntries = nonPrimaryLabels.map((label) => ({
+    label,
+    cnt: d.instanceSources[label] ?? 0,
+  }));
+  const nonPrimaryTotal = nonPrimaryEntries.reduce((s, e) => s + e.cnt, 0);
   const unmatched = d.unmatchedInstances;
-  const total = newCnt + legacyCnt + unmatched;
-  const newRatio = newCnt / total;
-  const legacyRatio = legacyCnt / total;
-  const unmatchedRatio = unmatched / total;
-  const newPct = (newRatio * 100).toFixed(1);
-  const legacyPct = (legacyRatio * 100).toFixed(1);
+  const total = primaryCnt + nonPrimaryTotal + unmatched;
+  const primaryRatio = total === 0 ? 0 : primaryCnt / total;
+  const unmatchedRatio = total === 0 ? 0 : unmatched / total;
+  const primaryPct = (primaryRatio * 100).toFixed(1);
   const unmatchedPct = (unmatchedRatio * 100).toFixed(1);
 
   const rows = [
-    { k: "ds-new",    v: newCnt,    pct: newPct,       color: "var(--accent)", primary: false, note: "기준" },
-    { k: "ds-legacy", v: legacyCnt, pct: legacyPct,    color: "var(--ink-3)",  primary: false, note: "참고 · 장기 감소 기대" },
-    { k: "unmatched", v: unmatched, pct: unmatchedPct, color: "var(--bad)",    primary: false, note: "DS 범위 밖" },
+    { k: primaryLabel, v: primaryCnt, pct: primaryPct, color: "var(--accent)", primary: false, note: "기준" },
+    ...nonPrimaryEntries.map((e) => ({
+      k: e.label,
+      v: e.cnt,
+      pct: total === 0 ? "0.0" : ((e.cnt / total) * 100).toFixed(1),
+      color: "var(--ink-3)",
+      primary: false,
+      note: "참고 · 장기 감소 기대",
+    })),
+    { k: "unmatched", v: unmatched, pct: unmatchedPct, color: "var(--bad)", primary: false, note: "DS 범위 밖" },
   ];
 
   return (
@@ -344,10 +345,10 @@ function DsInstanceShareSection({ d }) {
       {/* primary big number */}
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{newPct}</div>
+          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{primaryPct}</div>
           <div className="kv-unit">%</div>
           <div className="kv-cap">
-            <strong>Primary (ds-new)</strong> · {newCnt.toLocaleString()} / {total.toLocaleString()}
+            <strong>{primaryLabel}</strong> · 기준 · {primaryCnt.toLocaleString()} / {total.toLocaleString()}
           </div>
         </div>
         <div className="kv-side">
@@ -408,29 +409,36 @@ function DsInstanceShareSection({ d }) {
 
       {/* stacked bar */}
       <div className="stack-bar" style={{ display: "flex", height: 14, borderRadius: 4, overflow: "hidden", marginTop: 14, background: "var(--bg-sunken)" }}>
-        <div title={`ds-legacy: ${legacyCnt.toLocaleString()}`} style={{ width: `${legacyRatio*100}%`, background: "var(--ink-3)" }} />
-        <div title={`ds-new: ${newCnt.toLocaleString()}`} style={{ width: `${newRatio*100}%`, background: "var(--accent)" }} />
+        {nonPrimaryEntries.map((e) => (
+          <div key={e.label} title={`${e.label}: ${e.cnt.toLocaleString()}`}
+            style={{ width: total === 0 ? '0%' : `${(e.cnt/total)*100}%`, background: "var(--ink-3)" }} />
+        ))}
+        <div title={`${primaryLabel}: ${primaryCnt.toLocaleString()}`} style={{ width: `${primaryRatio*100}%`, background: "var(--accent)" }} />
         <div title={`unmatched: ${unmatched.toLocaleString()}`} style={{ width: `${unmatchedRatio*100}%`, background: "var(--bad)" }} />
       </div>
       <div className="bar-track-legend" style={{ marginTop: 6 }}>
-        <span className="mono dim">ds-legacy {legacyPct}%</span>
-        <span className="mono dim" style={{ color: "var(--accent-ink)" }}>ds-new {newPct}%</span>
+        {nonPrimaryEntries.map((e) => (
+          <span key={e.label} className="mono dim">{e.label} {total === 0 ? '0.0' : ((e.cnt/total)*100).toFixed(1)}%</span>
+        ))}
+        <span className="mono dim" style={{ color: "var(--accent-ink)" }}>{primaryLabel} {primaryPct}%</span>
         <span className="mono dim" style={{ color: "var(--bad-ink)" }}>unmatched {unmatchedPct}%</span>
       </div>
 
       <FNote>
-        ds-legacy 가 전체의 {legacyPct}% 로 의존도가 매우 높음. 장기적으로 primary (ds-new) 비중 증가 + 기타 DS 감소 기대 방향. (현재 측정은 도메인 파일 2개 / 프레임 3개 합산 — 도메인별 분리는 다음 측정 시 계획)
+        primary 자료 ({primaryLabel}) {primaryPct}% / 참고 자료 합계 {total === 0 ? '0.0' : ((nonPrimaryTotal/total)*100).toFixed(1)}% / unmatched {unmatchedPct}%. 장기적으로 primary 비중 증가 + 참고 자료 감소 기대.
       </FNote>
     </FSection>
   );
 }
 
 // ---------- migration priority (v0.9 note 17) ----------
-// figma.domainResults 활용 — frame flat 리스트 + primary (ds-new) 비중 오름차순.
+// figma.domainResults 활용 — frame flat 리스트 + primary 비중 오름차순.
 // transformer (baseline-to-figma-data.ts) 가 frameRanking + domainSummary derive.
 function MigrationPrioritySection({ d }) {
   const frames = d.frameRanking;
   const summary = d.domainSummary;
+  const primaryLabel = d.primaryLabel ?? "primary";
+  const nonPrimaryLabel = (d.nonPrimaryLabels && d.nonPrimaryLabels[0]) || "참고";
   if (!Array.isArray(frames) || frames.length === 0) return null;
 
   return (
@@ -443,7 +451,7 @@ function MigrationPrioritySection({ d }) {
     >
       <FNote>
         분모는 프레임 안 INSTANCE (DS 컴포넌트 사용)만. 직접 그린 도형 / 텍스트는 미카운트.
-        primary (ds-new) 비중 낮은 프레임 우선 작업.
+        primary ({primaryLabel}) 비중 낮은 프레임 우선 작업.
       </FNote>
 
       <div className="prio-list">
@@ -476,7 +484,7 @@ function MigrationPrioritySection({ d }) {
                   <div className="prio-bar-fill unmatched" style={{ width: `${unmatchedPct}%` }} />
                 </div>
                 <div className="prio-counts mono">
-                  ds-new {f.counts.dsNew.toLocaleString()} / ds-legacy {f.counts.dsLegacy.toLocaleString()} / unmatched {f.counts.unmatched.toLocaleString()} (총 {f.total.toLocaleString()})
+                  {primaryLabel} {f.counts.dsNew.toLocaleString()} / {nonPrimaryLabel} {f.counts.dsLegacy.toLocaleString()} / unmatched {f.counts.unmatched.toLocaleString()} (총 {f.total.toLocaleString()})
                 </div>
               </div>
             </div>
@@ -491,7 +499,7 @@ function MigrationPrioritySection({ d }) {
             <div key={i} className="prio-domain-row">
               <span className="prio-domain-name">{s.label}</span>
               <span className="mono prio-domain-meta">
-                ds-new {(s.primaryRatio * 100).toFixed(1)}% ({s.counts.dsNew.toLocaleString()} / {s.total.toLocaleString()})
+                {primaryLabel} {(s.primaryRatio * 100).toFixed(1)}% ({s.counts.dsNew.toLocaleString()} / {s.total.toLocaleString()})
               </span>
             </div>
           ))}
@@ -522,11 +530,12 @@ function ComponentMatchSection({ d }) {
     : badgeKind === "met" ? "var(--good-ink)"
     : "var(--ink)";
 
-  // DS 별 row — ds-new 우선 정렬 (다른 카드와 시각 일관성).
+  // DS 별 row — primary 우선 정렬 (다른 카드와 시각 일관성).
   // analyzer 는 config 순서 보존 (Phase 0.6 호환). 표시 단에서 정렬.
+  const primaryLabel = d.primaryLabel;
   const dsLabels = Object.keys(summary).sort((a, b) => {
-    if (a === "ds-new") return -1;
-    if (b === "ds-new") return 1;
+    if (a === primaryLabel) return -1;
+    if (b === primaryLabel) return 1;
     return 0;
   });
 
@@ -583,7 +592,7 @@ function ComponentMatchSection({ d }) {
           const s = summary[label];
           const ratio = s.matchRatio;
           const pct = (ratio * 100).toFixed(1);
-          const isPrimary = label === "ds-new";
+          const isPrimary = label === primaryLabel;
           const numInk =
             ratio >= 0.7 ? "var(--good-ink)"
             : ratio >= 0.4 ? "var(--warn-ink)"

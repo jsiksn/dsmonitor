@@ -77,14 +77,15 @@ dsmonitor 자료 3가지 측정 영역 진행:
 
 - **처음 사용자 = `audit --baseline` 자료** (모든 측정 통합).
 
-### DS 라벨 규칙 / DS Label Rules
+### DS 라벨 규칙 / DS Label Rules (0.2.0)
 
-- `ds-new` = primary (마이그레이션 목표)
-- `ds-legacy` = 옛 DS
+라벨 자료 = 사용자 자유 결정. `primary: true` 자료 명시 자료 dashboard 자료 자료 자료 사용자 라벨 그대로 표시.
 
-Dashboard 안 "primary 비중 높을수록" = `ds-new` 비중 자료. 자세 안내 = [README](../README.md) 안 "DS File Labels" 영역.
+- DS 1개 = 자동 primary (primary 필드 생략 가능)
+- DS 2개 이상 = 정확히 1개에 `primary: true` 명시 본질
+- primary 0개 또는 2개 이상 = 에러 throw
 
-> **Note**: 0.2.0 자료 = primary 자료 라벨이 아닌 별도 필드 (`primary: true`) 자료 자료 자료 자료 (breaking change).
+자세 안내 = [README](../README.md) 안 "DS File Labels" 영역 + [docs/figma-config-guide.md](./figma-config-guide.md).
 
 ---
 
@@ -165,11 +166,12 @@ Flow:
 
 - **First-time users → use `audit --baseline`** (covers all measurement areas).
 
-### DS Label Rules
+### DS Label Rules (0.2.0)
 
-- `ds-new` = primary (migration target)
-- `ds-legacy` = legacy DS
+Labels are free-form (user-defined). Specify primary via `primary: true`; the dashboard renders user labels verbatim.
 
-In the dashboard, "higher primary ratio is better" refers to `ds-new`. See the "DS File Labels" section in [README](../README.md) for details.
+- 1 DS file = auto-primary (`primary` field can be omitted)
+- 2+ files = exactly one must have `primary: true`
+- 0 or 2+ primaries = throws error
 
-> **Note**: In 0.2.0, `primary` will be specified as a separate field (`primary: true`) instead of the label name (breaking change).
+See the "DS File Labels" section in [README](../README.md) and [docs/figma-config-guide.md](./figma-config-guide.md) for details.

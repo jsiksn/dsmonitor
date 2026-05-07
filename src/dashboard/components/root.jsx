@@ -234,30 +234,39 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
             <div className="stamp">측정 <span className="mono">{d.stamp.figma}</span></div>
           </div>
           <div className="grid">
-            <Card label="ds-new 토큰 매칭률 (Styles)" belowThreshold>
+            <Card label={`${d.figma.primaryLabel ?? "primary"} 토큰 매칭률 (Styles)`} belowThreshold>
               <div className="numwrap">
                 <span className="num warn">{pct(d.figma.dsNewMatched / d.figma.dsNewTotal, 1)}</span>
                 <span className="unit">%</span>
                 <span className="sub-num">· {d.figma.dsNewMatched} / {d.figma.dsNewTotal}</span>
               </div>
               <div className="bar"><div className="bar-fill warn" style={{width: `${(d.figma.dsNewMatched / d.figma.dsNewTotal) * 100}%`}} /></div>
-              <div className="bar-row"><span>새 DS 토큰 (Styles) 가 코드에 반영된 비율</span><span>목표 ↑</span></div>
+              <div className="bar-row"><span>primary DS 토큰 (Styles) 가 코드에 반영된 비율</span><span>목표 ↑</span></div>
               <div className="card-hint"><ArrowUp /><span><strong>상승 필요</strong> — Variables 는 plan 제약으로 미포함.</span></div>
               <TrendReserved note="↑ 상승 필요" />
             </Card>
 
             <Card label="DS 피그마 Instance 비중" belowThreshold>
               {(() => {
-                const inNew = d.figma.instanceSources["ds-new"];
-                const inLegacy = d.figma.instanceSources["ds-legacy"];
-                const totalInst = inNew + inLegacy + d.figma.unmatchedInstances;
-                const ratio = inNew / totalInst;
+                const primaryLabel = d.figma.primaryLabel;
+                const nonPrimaryLabels = d.figma.nonPrimaryLabels ?? [];
+                const inPrimary = primaryLabel ? (d.figma.instanceSources[primaryLabel] ?? 0) : 0;
+                const inNonPrimary = nonPrimaryLabels.reduce((s, l) => s + (d.figma.instanceSources[l] ?? 0), 0);
+                const totalInst = inPrimary + inNonPrimary + d.figma.unmatchedInstances;
+                const ratio = totalInst === 0 ? 0 : inPrimary / totalInst;
                 return (
                   <React.Fragment>
                     <div className="numwrap"><span className="num warn">{(ratio*100).toFixed(1)}</span><span className="unit">%</span></div>
                     <div className="bar"><div className="bar-fill warn" style={{width: `${ratio*100}%`}} /></div>
-                    <div className="bar-row"><span className="mono">Primary (ds-new) {inNew.toLocaleString()} / 전체 {totalInst.toLocaleString()}</span><span>목표 ↑</span></div>
-                    <div className="card-desc">전체 instance 중 primary DS (ds-new) 사용 비율. ds-legacy {((inLegacy/totalInst)*100).toFixed(1)}%, unmatched {((d.figma.unmatchedInstances/totalInst)*100).toFixed(1)}% 는 Figma 탭 통합 카드에서 분포 확인.</div>
+                    <div className="bar-row"><span className="mono">{primaryLabel} {inPrimary.toLocaleString()} / 전체 {totalInst.toLocaleString()}</span><span>목표 ↑</span></div>
+                    <div className="card-desc">
+                      전체 instance 중 primary DS ({primaryLabel}) 사용 비율.
+                      {nonPrimaryLabels.length > 0 && totalInst > 0 && (
+                        <> 참고 자료 합계 {((inNonPrimary/totalInst)*100).toFixed(1)}%,</>
+                      )}
+                      {totalInst > 0 && <> unmatched {((d.figma.unmatchedInstances/totalInst)*100).toFixed(1)}%</>}
+                      {" 는 Figma 탭 통합 카드에서 분포 확인."}
+                    </div>
                   </React.Fragment>
                 );
               })()}
@@ -267,8 +276,12 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
             <Card label="DS 외부 Instance" belowThreshold>
               <div className="numwrap"><span className="num warn">{d.figma.unmatchedInstances}</span><span className="unit">건</span></div>
               <div className="emph-row"><span className="k">전체 instance</span><span className="v">{d.figma.totalInstances.toLocaleString()}</span></div>
-              <div className="emph-row"><span className="k">ds-legacy 사용</span><span className="v">{d.figma.instanceSources["ds-legacy"].toLocaleString()}</span></div>
-              <div className="emph-row"><span className="k">ds-new 사용</span><span className="v">{d.figma.instanceSources["ds-new"].toLocaleString()}</span></div>
+              {(d.figma.nonPrimaryLabels ?? []).map((label) => (
+                <div key={label} className="emph-row"><span className="k mono">{label} 사용</span><span className="v">{(d.figma.instanceSources[label] ?? 0).toLocaleString()}</span></div>
+              ))}
+              {d.figma.primaryLabel && (
+                <div className="emph-row"><span className="k mono">{d.figma.primaryLabel} 사용</span><span className="v">{(d.figma.instanceSources[d.figma.primaryLabel] ?? 0).toLocaleString()}</span></div>
+              )}
               <div className="card-hint"><ArrowDown /><span>어떤 DS 에도 속하지 않은 instance · <strong>감소 필요</strong>.</span></div>
               <TrendReserved note="↓ 감소 필요" />
             </Card>
