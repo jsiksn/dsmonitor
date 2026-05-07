@@ -4,6 +4,49 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] — 2026-05-07
+
+### 정정 / Fixed
+
+- **한 —** Figma API 응답 크기 ~512MB (V8 문자열 한계) 초과 케이스 자동 처리. 페이지 단위 호출 실패 시점에 frame 단위 자동 재귀 분할 호출 흐름 추가. ds-legacy 파일 안 큰 page 호출 정상화 (예: `1963:6686` 케이스 — 옛 흐름은 페이지 통째로 누락, 0.2.2 부터 frame 단위로 분할 호출 후 합산).
+- **한 —** 도메인 측 같은 패턴 정정 — `fetchNodes` 묶음 호출도 응답 크기 한계 초과 시 nodeIds 절반 분할 → 단일 node 도 한계 초과 시 frame 단위 재귀 분할 진입.
+- **한 —** DS 측 분할 helper `fetchByFramesForFile` 메타데이터 호출 endpoint 정정 — 옛 `/v1/files/{key}?ids=X&depth=1` (root 기준 depth, X children 펼침 안 됨) → 새 `/v1/files/{key}/nodes?ids=X&depth=1` (parent 기준 depth, X 직속 children 정상 반환). 옛 endpoint 의 depth 파라미터 의미 오해로 1차 구현에선 children 0개 반환되며 분할 못 함 — 본 정정으로 정상 작동. 자식 fetch 는 옛대로 `/v1/files/{key}?ids=childId` 유지 (DS 응답 형태 보존, 호출 측 mergeInto 흐름 호환).
+- **EN —** Auto-handles Figma API responses that exceed Node's V8 string limit (~512MB). When a page-level request fails, the scanner now recursively splits the call into frame-level requests and merges results. Fixes the previous behavior where a page like `1963:6686` in `ds-legacy` was dropped entirely from the count.
+- **EN —** Domain scan applies the same pattern — bundled `fetchNodes` calls split in half on size overflow, and single-node calls fall back to recursive frame splitting.
+- **EN —** Corrected the metadata-call endpoint inside `fetchByFramesForFile` from `/v1/files/{key}?ids=X&depth=1` (root-relative depth — X children not expanded) to `/v1/files/{key}/nodes?ids=X&depth=1` (X-relative depth — direct children returned). The first split implementation misread the `depth` semantics and returned zero children. Child fetches remain on `/v1/files/{key}?ids=childId` to preserve the DS response shape for the caller's merge flow.
+
+### 추가 / Added
+
+- **한 —** `src/analyzers/figma/responseSplitting.ts` 새 파일 — 분할 호출 helper 두 변종:
+  - `fetchPageWithSplit(fileKey, pageId, token)` — DS 측 (`/v1/files/{key}?ids=...` 응답 형태 합산)
+  - `fetchNodesWithSplit(fileKey, nodeIds, token)` — 도메인 측 (`/v1/files/{key}/nodes?ids=...` 응답 형태 합산)
+- **한 —** `MAX_SPLIT_DEPTH = 4` 재귀 분할 깊이 한계. 도달 시 명시 에러 throw (silent fail 회피). depth=1 메타데이터 호출 자체가 한계 초과인 케이스도 명시 메시지로 wrapping.
+- **한 —** Figma API 호출 횟수 카운터 — `resetFigmaApiCallCount()` / `getFigmaApiCallCount()` (전체 호출 수) + `getSplitFetchCount()` / `getSplitEntryCount()` (분할 호출 수). 측정 끝 시점에 `[figma] API 호출 통계` 출력. `SPLIT_CALL_WARN_THRESHOLD = 100` 초과 시 warning — rate limit + figma 파일 구조 검토 알림.
+- **한 —** `FigmaApiError.code` 필드 (`"RESPONSE_TOO_LARGE" | null`) — 분할 호출 helper 의 분기 검출용. 옛 throw 흐름 호환 (default null).
+- **한 —** `isV8StringLimitError` / `isResponseTooLarge` helper export.
+- **EN —** New `src/analyzers/figma/responseSplitting.ts` with two split helpers (DS variant + domain variant) and `MAX_SPLIT_DEPTH = 4` recursion limit; explicit errors at the limit, including when the depth=1 metadata call itself overflows.
+- **EN —** Figma API call counters — total calls + split-only calls. Threshold-based warning when calls exceed `SPLIT_CALL_WARN_THRESHOLD = 100`.
+- **EN —** `FigmaApiError.code` discriminator (`"RESPONSE_TOO_LARGE" | null`) plus exported `isV8StringLimitError` / `isResponseTooLarge` helpers.
+
+### 변경 / Changed
+
+- **한 —** `src/analyzers/figma/apiClient.ts` — `fetchFileNodes` / `fetchNodes` 안 `opts.depth?: number` 옵션 추가 (분할 helper 가 `?depth=1` 메타데이터 호출에 사용). 옛 호출 호환 — 옵션 미지정 시 옛 동작 그대로.
+- **한 —** `src/analyzers/figma/designSystemScan.ts` — `fetchFileNodes` 직접 호출 → `fetchPageWithSplit` 호출로 교체. 정상 케이스 호출 횟수 변화 0 (회귀 회피).
+- **한 —** `src/analyzers/figma/domainScan.ts` — `fetchNodes` 직접 호출 → `fetchNodesWithSplit` 호출로 교체.
+- **한 —** `src/analyzers/figma.ts` — 측정 시작/끝 시점에 호출 카운터 reset / 출력. 임계 초과 시 warning.
+- **EN —** `apiClient.ts`: optional `opts.depth` added to `fetchFileNodes` / `fetchNodes` (used by split helpers for metadata calls). Existing call sites unchanged.
+- **EN —** `designSystemScan.ts` / `domainScan.ts` switched to the split wrappers. No behavior change in the success path.
+- **EN —** `figma.ts` resets and prints API call counters around the measurement.
+
+### 참고 / Notes
+
+- **한 —** Breaking change 아님 — 옛 정상 호출 흐름 변경 없음. RESPONSE_TOO_LARGE 케이스에만 새 흐름 진입.
+- **한 —** `fetchLocalVariables` 는 frame 분할 의미 없는 endpoint — 옛 403 처리 흐름 그대로 유지.
+- **EN —** No breaking changes. The old success path is preserved; the new flow only activates on RESPONSE_TOO_LARGE.
+- **EN —** `fetchLocalVariables` is left as-is — frame splitting is meaningless for that endpoint.
+
+[0.2.2]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.2.2
+
 ## [0.2.1] — 2026-05-07
 
 ### 정정 / Fixed

@@ -21,13 +21,13 @@
 import type { FigmaDesignSystemCount, FigmaVariableEntry } from "../../types";
 import {
   fetchFileMeta,
-  fetchFileNodes,
   fetchLocalVariables,
   FigmaApiError,
   type FigmaComponentEntry,
   type FigmaComponentSetEntry,
   type FigmaStyleEntry,
 } from "./apiClient";
+import { fetchPageWithSplit } from "./responseSplitting";
 
 export type DesignSystemScanResult = {
   count: FigmaDesignSystemCount;
@@ -101,7 +101,9 @@ export async function scanDesignSystem(
 
   for (const pageId of pageIds) {
     try {
-      const file = await fetchFileNodes(fileKey, [pageId], token);
+      // 0.2.2 — fetchPageWithSplit: 옛 fetchFileNodes 호출 1차 시도 → RESPONSE_TOO_LARGE
+      // 시점에 frame 단위 재귀 분할 (MAX_DEPTH=4). 정상 케이스 호출 횟수 변화 0.
+      const file = await fetchPageWithSplit(fileKey, pageId, token);
 
       // 맵 병합 — 같은 key 가 이미 있으면 첫 등장 유지
       mergeInto(mergedComponents, file.components ?? {});

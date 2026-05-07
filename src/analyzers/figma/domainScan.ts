@@ -23,7 +23,7 @@ import type {
   FigmaNode,
   FigmaNodesResponse,
 } from "./apiClient";
-import { fetchNodes } from "./apiClient";
+import { fetchNodesWithSplit } from "./responseSplitting";
 import { parseFigmaUrl } from "./urlParser";
 import { isNonContainerType } from "./nodeTypeResolver";
 
@@ -122,9 +122,11 @@ export async function scanDomain(
     return result;
   }
 
-  // 단일 /nodes 호출로 모든 target 한 번에 요청
+  // 단일 /nodes 호출로 모든 target 한 번에 요청.
+  // 0.2.2 — fetchNodesWithSplit: 옛 fetchNodes 1차 시도 → RESPONSE_TOO_LARGE 시점에
+  // 묶음 절반 분할 → 단일 node 도 한계 초과 시 frame 단위 재귀 분할 (MAX_DEPTH=4).
   const nodeIds = targets.map((t) => t.nodeId);
-  const resp: FigmaNodesResponse = await fetchNodes(fileKey, nodeIds, token);
+  const resp: FigmaNodesResponse = await fetchNodesWithSplit(fileKey, nodeIds, token);
 
   // 중복 제거 — 혼합 패턴에서 같은 subtree 를 둘 이상 target 이 포함할 때 재측정 차단
   const visited = new Set<string>();
