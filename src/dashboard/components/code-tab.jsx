@@ -726,7 +726,7 @@ function TsByDir({ t }) {
   // baseline 은 jsFiles 내림차순 정렬됨. Top 7 + 펼침으로 17행.
   const all = t.byDir;
   const top = all.slice(0, 7);
-  // 우선 작업 후보: jsFiles ≥ 30 이면서 tsFiles == 0 (중요한 영역인데 TS 0%)
+  // 우선 작업 후보: jsFiles ≥ 30 이면서 tsFiles == 0 (중요한 디렉토리인데 TS 0%)
   const isPriority = (r) => r.jsFiles >= 30 && r.tsFiles === 0;
 
   const Row = ({ r }) => {
@@ -756,7 +756,7 @@ function TsByDir({ t }) {
       <div className="csect-subhead">
         <h4>디렉토리별 분포</h4>
         <span className="csect-field mono">tsMigration.byDir</span>
-        <span className="cross-ref-pill" style={{ marginLeft: "auto" }}>JS 비중 높은 영역 우선</span>
+        <span className="cross-ref-pill" style={{ marginLeft: "auto" }}>JS 비중 높은 디렉토리 우선</span>
       </div>
       <div className="tsdir-legend">
         <span className="tsdir-legend-item"><span className="sw ts" /> TS</span>
@@ -792,7 +792,7 @@ const CODE_CARD_SECTIONS = [
 function CodeTab() {
   const d = window.__CODE_DATA;
   if (!d) return <div className="skeleton-note">데이터 로딩 중…</div>;
-  // v0.15: 측정 시점 인라인 영역 (Figma 패턴 정합). __SUMMARY_DATA.stamp.code 활용.
+  // v0.15: 측정 시점 인라인 (Figma 패턴 일치). __SUMMARY_DATA.stamp.code 활용.
   const stamp = window.__SUMMARY_DATA?.stamp?.code ?? "—";
   return (
     <div className="code-tab">

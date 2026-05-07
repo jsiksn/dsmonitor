@@ -42,7 +42,7 @@ export type DesignSystemScanResult = {
    *
    * Phase 0.7 후속 (2026-04-30): masterName 필드 추가. variant component 인 경우
    * componentSet.name (master), 단독 component 인 경우 null. CSV / instance JSON
-   * 영역 활용 (사용자 발견 — 대시보드 master / CSV variant 어긋남 정정).
+   * 안 활용 (사용자 발견 — 대시보드 master / CSV variant 어긋남 정정).
    */
   componentMapEntries: Array<[
     string,
@@ -271,9 +271,9 @@ function buildEntries(
   // key 는 stable library key (component.key) — 도메인 INSTANCE 매칭을 위한
   // 교집합 namespace. local nodeId 는 여기서 쓰지 않음 (안 맞으므로).
   //
-  // masterName (Phase 0.7 후속, 2026-04-30): variant component 영역의 master
-  // name 영역 보존. componentSetId 영역으로 componentSets 영역 lookup → name 추출.
-  // 단독 component (componentSetId 없음) 영역은 masterName null.
+  // masterName (Phase 0.7 후속, 2026-04-30): variant component 의 master
+  // name 보존. componentSetId 로 componentSets lookup → name 추출.
+  // 단독 component (componentSetId 없음) 의 masterName 은 null.
   const entries: Array<[
     string,
     { label: string; name: string; masterName: string | null }

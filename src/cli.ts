@@ -23,9 +23,9 @@ import type {
 
 async function loadConfig(configPath: string): Promise<UIHealthConfig> {
   const abs = path.resolve(configPath);
-  // v0.1.0: 사용자 측 dsmonitor.config.ts (.ts) 영역 import 영역 = tsx/esm/api 활용.
-  // .js / .mjs 영역은 native dynamic import 영역 활용.
-  // tsx 영역 안 default export 영역 quirk — `{ default: { default: <config> } }` 형식 가능.
+  // v0.1.0: 사용자 측 dsmonitor.config.ts (.ts) import 흐름 = tsx/esm/api 활용.
+  // .js / .mjs 케이스는 native dynamic import 활용.
+  // tsx 안 default export quirk — `{ default: { default: <config> } }` 형식 가능.
   const isTs = abs.endsWith(".ts") || abs.endsWith(".mts") || abs.endsWith(".cts");
   let mod: any;
   if (isTs) {
@@ -34,7 +34,7 @@ async function loadConfig(configPath: string): Promise<UIHealthConfig> {
   } else {
     mod = await import(url.pathToFileURL(abs).href);
   }
-  // default export 영역 unwrap — tsx quirk 정합 (mod.default.default → mod.default → mod)
+  // default export unwrap — tsx quirk 일치 (mod.default.default → mod.default → mod)
   const cfg = (mod?.default?.default ?? mod?.default ?? mod) as UIHealthConfig;
   return cfg;
 }
@@ -45,8 +45,8 @@ async function loadConfig(configPath: string): Promise<UIHealthConfig> {
  * 후보 (각 디렉토리에서 순서대로):
  *   1. <dir>/dsmonitor.config.ts          ← cd dsmonitor 안에서 직접 실행 케이스
  *   2. <dir>/dsmonitor/dsmonitor.config.ts ← 루트에서 호출 시 프로젝트 측 디렉토리 케이스
- *   3. <dir>/vitaui.config.ts             ← legacy (vitaui → dsmonitor rename, 0.2.0 영역 deprecation)
- *   4. <dir>/vitaui/vitaui.config.ts      ← legacy (vitaui → dsmonitor rename, 0.2.0 영역 deprecation)
+ *   3. <dir>/vitaui.config.ts             ← legacy (vitaui → dsmonitor rename, 0.2.0 부터 deprecation)
+ *   4. <dir>/vitaui/vitaui.config.ts      ← legacy (vitaui → dsmonitor rename, 0.2.0 부터 deprecation)
  */
 function findConfigUpward(startDir: string): string | null {
   let dir = path.resolve(startDir);
@@ -54,7 +54,7 @@ function findConfigUpward(startDir: string): string | null {
     const candidates = [
       path.join(dir, "dsmonitor.config.ts"),
       path.join(dir, "dsmonitor", "dsmonitor.config.ts"),
-      // legacy fallback — vitaui → dsmonitor rename (0.1.1 영역) 안 호환성 영역
+      // legacy fallback — vitaui → dsmonitor rename (0.1.1 부터) 호환성 보존
       path.join(dir, "vitaui.config.ts"),
       path.join(dir, "vitaui", "vitaui.config.ts"),
     ];
@@ -117,7 +117,7 @@ async function main() {
   const { cmd, baseline, configPath, only, envPath, inputPath, outputPath } =
     parseArgs(process.argv);
 
-  // v0.1.0: init subcommand — config 영역 빠져도 작동 (사용자 측 dsmonitor/ 부트스트랩).
+  // v0.1.0: init subcommand — config 없어도 작동 (사용자 측 dsmonitor/ 부트스트랩).
   if (cmd === "init") {
     const { runInit } = await import("./cli/init");
     await runInit();
@@ -148,7 +148,7 @@ async function main() {
     process.env.VITAUI_ENV_FILE ??
     path.join(path.dirname(configPath), ".env.local");
   if (existsSync(envCandidate)) {
-    // v0.1.0: ESM 호환 — dynamic import 영역. dotenv 가 dependencies 영역 안 보장됨.
+    // v0.1.0: ESM 호환 — dynamic import 흐름. dotenv 가 dependencies 안 보장됨.
     try {
       const dotenv = await import("dotenv");
       dotenv.config({ path: envCandidate });
@@ -190,9 +190,9 @@ async function main() {
       let instancesFile: FigmaInstancesFile | undefined;
       try {
         // --only figma 는 코드 측정을 다시 하지 않으므로 classIndex 미제공.
-        // 컴포넌트 매칭 (B 그룹 단계 3) 영역 미생성 — 통합 측정 (npx dsmonitor audit) 시점에만 산출.
+        // 컴포넌트 매칭 (B 그룹 단계 3) 미생성 — 통합 측정 (npx dsmonitor audit) 시점에만 산출.
         console.log(
-          `[dsmonitor]   note: --only figma 는 componentMatch 영역 미생성 ` +
+          `[dsmonitor]   note: --only figma 는 componentMatch 미생성 ` +
             `(코드 인덱스 필요). 통합 측정 사용 권장.`
         );
         const result = await analyzeFigma(cfg);
@@ -364,7 +364,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       console.error(
         `[dsmonitor] export-migration: --frame=<frame-comment> 필수.\n` +
           `  사용 예: npx dsmonitor export-migration --frame=Test-Perform [--ds=ds-legacy]\n` +
-          `  --ds 영역 기본값: ds-legacy. 다른 값: ds-new / unmatched / all`
+          `  --ds 기본값: ds-legacy. 다른 값: ds-new / unmatched / all`
       );
       process.exit(2);
     }
@@ -407,7 +407,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
   console.error(
     `[dsmonitor] Unknown command: ${cmd}.\n` +
       `  Supported:\n` +
-      `    audit [--only code|figma] [--baseline]    — 측정 (code + figma 통합 또는 영역별)\n` +
+      `    audit [--only code|figma] [--baseline]    — 측정 (code + figma 통합 또는 부분별)\n` +
       `    baseline-lint                             — ESLint 위반 baseline 생성\n` +
       `    report [--input <path>] [--output <path>]    — 측정 JSON → markdown 변환\n` +
       `    dashboard [--input <path>] [--output <path>] — 측정 JSON → HTML 대시보드\n` +
@@ -416,7 +416,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
   process.exit(2);
 }
 
-/** 명령행 인자 영역 헬퍼 — `--key=value` 또는 `--key value` 둘 다 지원. */
+/** 명령행 인자 헬퍼 — `--key=value` 또는 `--key value` 둘 다 지원. */
 function readArg(argv: string[], key: string): string | undefined {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -427,8 +427,8 @@ function readArg(argv: string[], key: string): string | undefined {
 }
 
 /**
- * dsmonitor/reports/ 영역에서 가장 최근 figma-instances-{date}.json 영역 검색.
- * findLatestReportJson 영역과 같은 본질 — prefix "figma-instances" 만 우선.
+ * dsmonitor/reports/ 안에서 가장 최근 figma-instances-{date}.json 검색.
+ * findLatestReportJson 과 같은 흐름 — prefix "figma-instances" 만 우선.
  */
 function findLatestInstancesJson(reportsDir: string): string | null {
   if (!existsSync(reportsDir)) return null;
@@ -445,7 +445,7 @@ function findLatestInstancesJson(reportsDir: string): string | null {
 
 /**
  * Phase 0.7 별도 파일 출력 — dsmonitor/reports/figma-instances-{date}.json.
- * baseline JSON 영역과 분리, 시계열 보존 본질.
+ * baseline JSON 과 분리, 시계열 보존 필요.
  */
 async function writeInstancesFile(
   instancesFile: FigmaInstancesFile,
@@ -457,7 +457,7 @@ async function writeInstancesFile(
   const outPath = path.join(reportsDir, `figma-instances-${stamp}.json`);
   await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, JSON.stringify(instancesFile, null, 2), "utf8");
-  // 합산 stat 영역 — 사용자 인지.
+  // 합산 stat — 사용자 인지.
   let totalInstances = 0;
   for (const d of instancesFile.domains) {
     for (const p of d.pages) {

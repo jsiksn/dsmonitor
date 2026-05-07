@@ -1,7 +1,7 @@
 /**
  * Figma DS 컴포넌트 ↔ 코드 className 매칭 (B 그룹 단계 3, 2026-04-29).
  *
- * 본질: 사용자 옛 직관 — "Figma 의 btn 컴포넌트가 코드에서 className 으로 쓰이는가" — 측정.
+ * 핵심: 사용자 옛 직관 — "Figma 의 btn 컴포넌트가 코드에서 className 으로 쓰이는가" — 측정.
  * 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case 직접 비교 가능.
  *
  * 분모 (Figma DS 컴포넌트):
@@ -43,8 +43,8 @@ export interface DsComponentInput {
 
 // 옛 isPlausibleComponentClass 간이 필터 (B 그룹 단계 3, 2026-04-29) 제거.
 // 보정 3 (γ, 2026-04-29 후속): codeOnly = globalCss 정의 + jsx 사용 둘 다 + Figma 미매칭.
-// 옛 β 의 "globalCss 정의 만" (dead 가능성) 영역은 별도 트랙 검토 — codeOnly 본질은
-// "DS 외부 영역 (정상 동작 중인 className)" 으로 의미 명확화.
+// 옛 β 의 "globalCss 정의 만" (dead 가능성) 부분은 별도 트랙 검토 — codeOnly 핵심은
+// "DS 외부 (정상 동작 중인 className)" 으로 의미 명확화.
 
 export function analyzeComponentMatch(
   designSystems: DsComponentInput[],
@@ -159,8 +159,8 @@ export function analyzeComponentMatch(
  * codeOnly — 코드에서 정상 사용 중이지만 Figma DS 카탈로그에 없는 className.
  *
  * 보정 3 (γ, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족 + Figma 미매칭.
- * 본질: "DS 외부에서 정상 동작 중인 className" — 사용자 인지 명료. dead 가능성
- * (globalCss 정의 만 + jsx 미사용) 영역은 별도 트랙 검토 (v0.12 이후 dead style 측정).
+ * 핵심: "DS 외부에서 정상 동작 중인 className" — 사용자 인지 명료. dead 가능성
+ * (globalCss 정의 만 + jsx 미사용) 부분은 별도 트랙 검토 (v0.12 이후 dead style 측정).
  *
  * 호환성: globalStyleSources / jsx className 둘 다 정의된 프로젝트만 의미. CSS
  * Modules / styled-components 는 0건. Phase 0.6 호환성 검증 시 별도 mode 검토.

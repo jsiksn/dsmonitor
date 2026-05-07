@@ -201,8 +201,8 @@ function TokenMatrixSection({ d }) {
   const tm = d.tokenMatrix;
   if (!tm) return null;
   const { rows, duplicates, summary } = tm;
-  // 0.2.0: ds-new/ds-legacy hardcoded 자료 → primary + non-primary 자료 자료.
-  // dn = primary 매칭 / dl = non-primary 자료 매칭 합집합 (transformer enrichTokenMatrix 자료 자료).
+  // 0.2.0: ds-new/ds-legacy hardcoded 형태 → primary + non-primary 형태로 변경.
+  // dn = primary 매칭 / dl = non-primary 매칭 합집합 (transformer enrichTokenMatrix 결과 사용).
   const dsLabels = [d.primaryLabel, ...(d.nonPrimaryLabels ?? [])].filter(Boolean);
 
   return (
@@ -425,7 +425,7 @@ function DsInstanceShareSection({ d }) {
       </div>
 
       <FNote>
-        primary 자료 ({primaryLabel}) {primaryPct}% / 참고 자료 합계 {total === 0 ? '0.0' : ((nonPrimaryTotal/total)*100).toFixed(1)}% / unmatched {unmatchedPct}%. 장기적으로 primary 비중 증가 + 참고 자료 감소 기대.
+        primary ({primaryLabel}) {primaryPct}% / 참고 합계 {total === 0 ? '0.0' : ((nonPrimaryTotal/total)*100).toFixed(1)}% / unmatched {unmatchedPct}%. 장기적으로 primary 비중 증가 + 참고 비중 감소 기대.
       </FNote>
     </FSection>
   );
@@ -580,9 +580,9 @@ function ComponentMatchSection({ d }) {
         </div>
       </div>
 
-      {/* per-DS rows — matched 3 영역 stack 막대 (보정 1+4, 2026-04-29 후속):
-          both (녹색) / jsxOnly (주황) / cssOnly (회색). figmaOnly 영역 = 빈 영역 (.bar-track
-          배경 --border-strong 자동 노출 — 보정 6). DsInstanceShareSection 막대 패턴과 본질 동일. */}
+      {/* per-DS rows — matched 3종 stack 막대 (보정 1+4, 2026-04-29 후속):
+          both (녹색) / jsxOnly (주황) / cssOnly (회색). figmaOnly = 빈 부분 (.bar-track
+          배경 --border-strong 자동 노출 — 보정 6). DsInstanceShareSection 막대 패턴과 핵심 동일. */}
       <div className="csect-subhead">
         <h4>DS 별 매칭률</h4>
         <span className="csect-field mono">summary[label]</span>
@@ -626,7 +626,7 @@ function ComponentMatchSection({ d }) {
                   {isPrimary ? "기준" : "참고"}
                 </div>
               </div>
-              {/* matched 3 영역 stack 막대. 빈 영역 = .bar-track 배경 (--border-strong) 자동 노출. */}
+              {/* matched 3종 stack 막대. 빈 부분 = .bar-track 배경 (--border-strong) 자동 노출. */}
               <div className="bar-track" style={{ margin: 0, display: "flex", overflow: "hidden" }}>
                 <div title={`both: ${s.matchedBreakdown.both}`}
                   style={{ width: `${bothW}%`, background: "var(--good)", height: "100%" }} />
@@ -646,7 +646,7 @@ function ComponentMatchSection({ d }) {
         })}
       </div>
 
-      {/* legend — matched 3 영역 (figmaOnly 영역은 빈 막대 자동 시각). */}
+      {/* legend — matched 3종 (figmaOnly 는 빈 막대 자동 시각). */}
       <div className="bar-track-legend" style={{ marginTop: 8 }}>
         <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--good)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />both (정상)</span>
         <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--warn)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />jsx만 (orphan 가능성)</span>
@@ -701,7 +701,7 @@ function ComponentMatchSection({ d }) {
                 <th style={{ textAlign: "left" }}>이름</th>
                 <th style={{ textAlign: "left" }}>출처</th>
                 <th style={{ textAlign: "left" }}>종류</th>
-                <th style={{ textAlign: "left" }}>매칭 영역</th>
+                <th style={{ textAlign: "left" }}>매칭 출처</th>
               </tr>
             </thead>
             <tbody>
@@ -749,7 +749,7 @@ function ComponentMatchSection({ d }) {
 
       {cm.codeOnly.length > 0 && (
         <FDisclosure
-          summary={`코드만 — DS 정의 없음 (${cm.codeOnly.length}개, DS 외부 영역)`}
+          summary={`코드만 — DS 정의 없음 (${cm.codeOnly.length}개, DS 외부)`}
           count={cm.codeOnly.length}
         >
           <FNote>

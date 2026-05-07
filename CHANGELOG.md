@@ -4,6 +4,21 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] — 2026-05-07
+
+### 변경 / Changed
+
+- **한 —** 옛 코드 / docs / CHANGELOG / README / templates / presets/package.json / tsup.config.ts 안 6단어 (525건) 자연 한국어로 정정. 의미별 분기 — 사물 핵심 의미 → 핵심/필요/필수, 부분/위치 의미 → 부분/위치/정보, 누락 의미 → 누락/없음/아님, 발견 의미 → 발견 사항, 일치 의미 → 일치/일관, 정보/사항 의미 → 정보/사항/결과/형태/항목.
+- **한 —** 코드 흐름 변경 0 — 주석 / docstring / md 본문 / log 메시지 / template 텍스트만 정정 (함수명 / 변수명 / import / export 변경 0건).
+- **한 —** 옛 dsmonitor 0.1.5 / 0.2.1 안 한국어 자연화 정정 패턴과 일관.
+- **한 —** false positive 1건 (자연 한국어 동사 안 substring 매칭) 보존 — 자연 한국어 흐름 우선.
+- **EN —** Naturalized Korean phrasing across src / docs / CHANGELOG / README / templates / presets/package.json / tsup.config.ts (525 word edits). Mapped by meaning — keyword nouns → 핵심/필요/필수, region/location nouns → 부분/위치/정보, missing → 누락/없음/아님, finding → 발견 사항, consistency → 일치/일관, data/item → 정보/사항/결과/형태/항목.
+- **EN —** No code-flow change — comments / docstrings / md body / log messages / template text only (no rename of functions / variables / imports / exports).
+- **EN —** Consistent with the prior dsmonitor 0.1.5 / 0.2.1 Korean-naturalization patches.
+- **EN —** One false-positive substring match (within a natural Korean verb form) preserved — natural Korean phrasing prioritized.
+
+[0.2.3]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.2.3
+
 ## [0.2.2] — 2026-05-07
 
 ### 정정 / Fixed
@@ -51,16 +66,16 @@
 
 ### 정정 / Fixed
 
-- **한 —** `resolvePrimaryDsLabel()` 안 에러 메시지 자연 한국어 정정 ("명시 본질" → "명시해야 합니다" / "명시해 주세요"). 코드 흐름 변경 없음, 메시지 텍스트만 정정.
+- **한 —** `resolvePrimaryDsLabel()` 안 에러 메시지 자연 한국어 정정 ("명시 필수" → "명시해야 합니다" / "명시해 주세요"). 코드 흐름 변경 없음, 메시지 텍스트만 정정.
 - **EN —** Polished error messages in `resolvePrimaryDsLabel()` for more natural Korean phrasing. No code-flow change — text only.
 
 [0.2.1]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.2.1
 
 ## [0.2.0] — 2026-05-07
 
-### Breaking change / 자료 변경
+### Breaking change / 흐름 변경
 
-- **한 —** `figmaDesignSystemFiles` 안 primary DS 결정 흐름 변경. 0.1.x 자료 = `ds-new` 라벨 자료 자동 primary 처리. 0.2.0 자료 = `primary: true` 자료 명시 자료. 라벨 자료 = 사용자 자유 결정 가능.
+- **한 —** `figmaDesignSystemFiles` 안 primary DS 결정 흐름 변경. 0.1.x 흐름 = `ds-new` 라벨이 자동 primary 처리. 0.2.0 부터 = `primary: true` 명시 필수. 라벨 형태 = 사용자 자유 결정 가능.
 - **EN —** Changed how primary DS is determined in `figmaDesignSystemFiles`. In 0.1.x, the `ds-new` label was auto-treated as primary. From 0.2.0, primary must be explicitly specified via `primary: true`. Labels are now free-form / user-defined.
 
 ### 추가 / Added
@@ -72,7 +87,7 @@
   - DS 2개 이상 + primary 2개 이상 = 에러 throw
   - DS 2개 이상 + primary 정확히 1개 = 정상
 - **한 —** `FigmaTabData` 안 `primaryLabel: string | null` + `nonPrimaryLabels: string[]` 필드 추가.
-- **한 —** `SummaryTabData.figma` 안 같은 두 필드 추가 (옛 `dsNew*` / `dsLegacy*` 변수 이름은 호환 자료 보존 — primary / 첫 non-primary 자료 자료 자료).
+- **한 —** `SummaryTabData.figma` 안 같은 두 필드 추가 (옛 `dsNew*` / `dsLegacy*` 변수 이름은 호환 위해 보존 — primary / 첫 non-primary 가리킴).
 - **EN —** Added `FigmaDesignSystemFile.primary?: boolean` field (`src/types.ts`).
 - **EN —** Added primary validation in `resolvePrimaryDsLabel`:
   - 1 DS = auto-primary (no validation)
@@ -84,11 +99,11 @@
 
 ### 변경 / Changed
 
-- **한 —** dashboard 안 라벨 hardcoded 자료 (`ds-new` / `ds-legacy`) 자료 자료. 사용자 자료 라벨 자료 자료 자료 표시. `figma-tab.jsx` (TokenMatchSection / TokenMatrixSection / DsInstanceShareSection / MigrationPrioritySection / ComponentMatchSection) + `root.jsx` (Summary 탭 Layer 03) 자료 정정.
-- **한 —** dashboard 안 "Primary" 영어 자료 자료 자료 안 함. 사용자 자료 라벨 + "기준" / "참고" 한글 자료 유지.
-- **한 —** `enrichTokenMatrix(tm, primaryLabel, nonPrimaryLabels)` 자료 변경 — 옛 `inDs["ds-new"]` / `inDs["ds-legacy"]` hardcoded 자료 → primary / non-primary 자료 자료.
-- **한 —** `markdown.ts` 안 DS 별 카드 정렬 = config 순서 자료 (옛 ds-new 우선 hardcoded 정렬 제거).
-- **한 —** `src/cli/init.ts renderFigmaBlock()` 자료 안 라벨 안내 = 옛 `ds-new` / `ds-legacy` 권고 자료 → primary 명시 규칙 자료. 자료 자료 자료 = `"v1"` / `"v2"` 본질.
+- **한 —** dashboard 안 라벨 hardcoded 표기 (`ds-new` / `ds-legacy`) 제거. 사용자 정의 라벨 그대로 표시. `figma-tab.jsx` (TokenMatchSection / TokenMatrixSection / DsInstanceShareSection / MigrationPrioritySection / ComponentMatchSection) + `root.jsx` (Summary 탭 Layer 03) 정정.
+- **한 —** dashboard 안 "Primary" 영어 단어 표기 안 함. 사용자 정의 라벨 + "기준" / "참고" 한글 표기 유지.
+- **한 —** `enrichTokenMatrix(tm, primaryLabel, nonPrimaryLabels)` signature 변경 — 옛 `inDs["ds-new"]` / `inDs["ds-legacy"]` hardcoded 흐름 → primary / non-primary 필드로 변경.
+- **한 —** `markdown.ts` 안 DS 별 카드 정렬 = config 순서 그대로 (옛 ds-new 우선 hardcoded 정렬 제거).
+- **한 —** `src/cli/init.ts renderFigmaBlock()` 안 라벨 안내 = 옛 `ds-new` / `ds-legacy` 권고 → primary 명시 규칙으로 변경. 예시 라벨 = `"v1"` / `"v2"` 형태.
 - **EN —** Removed hardcoded label references (`ds-new` / `ds-legacy`) in dashboard. User-defined labels are now displayed. Affected: `figma-tab.jsx` (TokenMatchSection / TokenMatrixSection / DsInstanceShareSection / MigrationPrioritySection / ComponentMatchSection) + `root.jsx` (Summary tab Layer 03).
 - **EN —** The English word "Primary" is no longer displayed in the dashboard. User labels + "기준" / "참고" Korean labels retained.
 - **EN —** `enrichTokenMatrix(tm, primaryLabel, nonPrimaryLabels)` signature change — old hardcoded `inDs["ds-new"]` / `inDs["ds-legacy"]` → primary / non-primary fields.
@@ -103,7 +118,7 @@
   - { url: "...", label: "ds-new" },
   + { url: "...", label: "ds-new", primary: true },
   ```
-  라벨 자료 = `ds-new` / `ds-legacy` 그대로 유지 가능 (자료 자료 자료 사용자 자료 결정). 정정 자료 자료 자료 자료 = `npm install --save-dev dsmonitor@0.2.0` 자료 자료 자료 자료. README 안 "Migration from 0.1.x" 영역 자료.
+  라벨 형태 = `ds-new` / `ds-legacy` 그대로 유지 가능 (이름 변경은 사용자 자유 결정). 정정 끝난 후 = `npm install --save-dev dsmonitor@0.2.0` 진행. README 안 "Migration from 0.1.x" 부분 참고.
 - **EN —** 0.1.x users — required edit:
   ```diff
   // dsmonitor.config.local.ts
@@ -112,10 +127,10 @@
   ```
   Labels can stay (`ds-new` / `ds-legacy`) or be freely renamed. After updating the config, run `npm install --save-dev dsmonitor@0.2.0`. See "Migration from 0.1.x" in README for details.
 
-### 자료 자료 / Notes
+### 안내 / Notes
 
-- **한 —** 옛 `ds-new` 자동 호환 자료 자료 = 빠짐. 명시 자료 자료 자료 자료 자료 자료 자료 빠짐 자료 = 에러 throw 본질.
-- **한 —** 본 0.2.0 = 의도 자료 breaking change (옛 사용자 = 본 시점 사용자 자료 1명 — 본 의뢰 자료 자료 자료).
+- **한 —** 옛 `ds-new` 자동 호환 흐름 = 제거. 명시 필요 (DS 2개 이상 시점) — primary 누락 시 = 에러 throw 핵심.
+- **한 —** 본 0.2.0 = 의도된 breaking change (옛 사용자 = 본 시점 사용자 1명 — 본 의뢰 안 확인).
 - **EN —** Auto-fallback to `ds-new` label has been removed. Missing primary specification (with 2+ DS files) will throw an error.
 - **EN —** This 0.2.0 is an intentional breaking change (current user count = 1 — confirmed via this issue thread).
 
@@ -125,21 +140,21 @@
 
 ### 추가 / Added
 
-- **한 —** 새 `docs/measurement-flow.md` 자료. 측정 명령별 차이 + 자료 흐름 + 권고 사용 흐름 자세 안내. 한/영 병기. `audit --only figma` 단독 자료 dashboard 반영 빠짐 본질, `audit --baseline` 자료 자료 자료 자료 명시.
+- **한 —** 새 `docs/measurement-flow.md` 추가. 측정 명령별 차이 + 정보 흐름 + 권고 사용 흐름 자세 안내. 한/영 병기. `audit --only figma` 단독 시점에 dashboard 반영 누락 핵심, `audit --baseline` 권고 명시.
 - **EN —** Added new `docs/measurement-flow.md` describing measurement command differences, data flow, and recommended usage. Bilingual (Korean / English). Documents that `audit --only figma` standalone does not reach the dashboard, and recommends `audit --baseline` for integrated runs.
 
 ### 갱신 / Updated
 
-- **한 —** README 안 측정 명령 차이표 + DS 파일 라벨 안내 (`ds-new` = primary, `ds-legacy` = 옛 DS) 추가. `dsmonitor:figma` 단독 시점에 dashboard 반영 안 되는 자료 명시.
-- **한 —** `docs/figma-config-guide.md` 안 "`ds-new` = primary 라벨" 영역 자료 추가. `resolvePrimaryDsLabel` 흐름 + 라벨 1개 시점 등록 권고 명시.
-- **한 —** `src/cli/init.ts` 안 `renderFigmaBlock()` 자료 자료 안 ds-new / ds-legacy 라벨 안내 주석 추가 (`dsmonitor init` 자료 자료 사용자 자료 안 자동 자료 자료 자료).
+- **한 —** README 안 측정 명령 차이표 + DS 파일 라벨 안내 (`ds-new` = primary, `ds-legacy` = 옛 DS) 추가. `dsmonitor:figma` 단독 시점에 dashboard 반영 안 되는 점 명시.
+- **한 —** `docs/figma-config-guide.md` 안 "`ds-new` = primary 라벨" 부분 추가. `resolvePrimaryDsLabel` 흐름 + 라벨 1개 시점 등록 권고 명시.
+- **한 —** `src/cli/init.ts` 안 `renderFigmaBlock()` 안 ds-new / ds-legacy 라벨 안내 주석 추가 (`dsmonitor init` 자동 생성 사용자 config 안 안내 포함).
 - **EN —** Updated README with measurement command comparison table and DS file label guide (`ds-new` = primary, `ds-legacy` = legacy). Documented that standalone `dsmonitor:figma` does not update the dashboard.
 - **EN —** Added a "`ds-new` is the primary label" section to `docs/figma-config-guide.md`, explaining the `resolvePrimaryDsLabel` flow and the recommendation to use `ds-new` when registering a single DS file.
 - **EN —** Added inline label guidance comments to `renderFigmaBlock()` in `src/cli/init.ts`, so user `dsmonitor.config.ts` files generated by `dsmonitor init` carry the convention.
 
 ### 안내 / Notes
 
-- **한 —** 0.2.0 자료 = primary 자료 라벨이 아닌 별도 필드 (예: `primary: true`) 자료 자료 자료 자료. Breaking change 안내 자료 별도 자료. 본 0.1.9 자료 = 라벨 기반 흐름 그대로 유지 + 안내 강화 자료.
+- **한 —** 0.2.0 부터 = primary 가 라벨이 아닌 별도 필드 (예: `primary: true`) 로 명시 변경. Breaking change 안내는 별도. 본 0.1.9 = 라벨 기반 흐름 그대로 유지 + 안내 강화.
 - **EN —** In 0.2.0, `primary` will be specified as a separate field (e.g. `primary: true`) instead of relying on the label name. Breaking change to be announced separately. This 0.1.9 release keeps the label-based flow but strengthens the documentation.
 
 [0.1.9]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.9
@@ -148,8 +163,8 @@
 
 ### 정정 / Fixed
 
-- **한 —** `lighthouse/run.js` 가 root `"type": "module"` 자료 자료 ES module 자료 자료 → `require()` 호출 시 throw 짚힘 정정. `lighthouse/package.json` 안 `{"type": "commonjs"}` override 추가. 0.1.6 시점에 `bin/` 자료 자료 자료 자료, `lighthouse/` 자료 자료 자료 자료라 같은 짚힘 재발.
-- **한 — 전수 검증**: `require()` 사용하는 모든 `.js` 파일 (6건) 자료 폴더별 `package.json` `"type": "commonjs"` override 자료 자료. 본 시점 정합: `bin/`, `bin/lib/`, `eslint/`, `lighthouse/`, `presets/` 모두 commonjs override 자료. 추후 새 폴더 추가 시점에 같은 자료 본질.
+- **한 —** `lighthouse/run.js` 가 root `"type": "module"` 으로 ES module 처리 → `require()` 호출 시 throw 발견 정정. `lighthouse/package.json` 안 `{"type": "commonjs"}` override 추가. 0.1.6 시점에 `bin/` 만 정정, `lighthouse/` 누락이라 같은 결함 재발.
+- **한 — 전수 검증**: `require()` 사용하는 모든 `.js` 파일 (6건) 의 폴더별 `package.json` `"type": "commonjs"` override 확인. 본 시점 일치: `bin/`, `bin/lib/`, `eslint/`, `lighthouse/`, `presets/` 모두 commonjs override 적용. 추후 새 폴더 추가 시점에 같은 흐름 필수.
 - **EN —** Fixed `lighthouse/run.js` being treated as ES module due to root `"type": "module"`, causing `require()` to throw. Added `{"type": "commonjs"}` override in `lighthouse/package.json`. The 0.1.6 fix only covered `bin/` and `bin/lib/`, leaving `lighthouse/` for the same regression.
 - **EN — Audit**: Verified all `.js` files using `require()` (6 total) have a sibling `package.json` `"type": "commonjs"` override. Currently aligned: `bin/`, `bin/lib/`, `eslint/`, `lighthouse/`, `presets/`. Same convention applies to any future folders.
 
@@ -162,7 +177,7 @@
 - **한 —** ESLint plugin 이름 변경: `ui-health` → `dsmonitor`. 기존 이름은 npm 패키지명(`dsmonitor`)과 달라 ESLint legacy config(`.eslintrc.js`)의 자동 plugin 검색 흐름과 호환 안 됨. plugin 이름을 패키지명과 통일.
 - **한 —** 새 wrapper 패키지 `eslint-plugin-dsmonitor` 0.1.0 publish. ESLint legacy config 가 plugin 을 자동 검색할 수 있도록 다리 역할 (1줄짜리 re-export, `module.exports = require("dsmonitor/eslint")`).
 - **한 —** `bin/lib/lint-shared.js`, `bin/lint-summary.js`, `eslint/index.js`, `src/cli.ts`, `src/types.ts`, `src/dashboard/components/root.jsx`, `src/reporters/migrationCsv.ts`, `src/reporters/markdown.ts` 안 `ui-health` 표기 → `dsmonitor` 일괄 정정.
-- **한 —** `README.md` + `docs/eslint-rules.md` + `docs/eslint-ci-integration.md` + `docs/figma-config-guide.md` 안 옛 `npm run ui-health:*` 스크립트 자료 → 새 `npx dsmonitor *` 자료 일괄 정정. `eslint-plugin-ui-health` → `eslint-plugin-dsmonitor`.
+- **한 —** `README.md` + `docs/eslint-rules.md` + `docs/eslint-ci-integration.md` + `docs/figma-config-guide.md` 안 옛 `npm run ui-health:*` 스크립트 표기 → 새 `npx dsmonitor *` 표기로 일괄 정정. `eslint-plugin-ui-health` → `eslint-plugin-dsmonitor`.
 - **한 — Breaking change**: 0.1.7 사용자는 (1) `eslint-plugin-dsmonitor` 도 추가 install + (2) `.eslintrc.js` + soft baseline JSON 안 `ui-health/...` → `dsmonitor/...` 정정 필요.
 
 ### EN — Changed
@@ -179,8 +194,8 @@
 
 ### 정정 / Fixed
 
-- **한 —** `bin/` 폴더 안 자료(`lint-summary.js`, `lint-update-baseline.js`, `report.js`, `lib/lint-shared.js`)가 패키지 root의 `"type": "module"` 자료로 인해 ES module로 처리되어 `require()` 호출 시 throw하는 결함 정정. `bin/package.json` + `bin/lib/package.json` 안 `{"type": "commonjs"}` override 추가하여 해당 폴더 안 자료를 CJS로 처리.
-- **한 —** `bin/report.js` 안 `tsx src/cli.ts` 호출 자료 정정. npm publish 자료 안 `src/` 폴더 미포함 자료라 `ERR_MODULE_NOT_FOUND` 발생. `dist/cli.js` 자료 자료 자료 변경 (`process.execPath` 안 직접 spawn).
+- **한 —** `bin/` 폴더 안 파일(`lint-summary.js`, `lint-update-baseline.js`, `report.js`, `lib/lint-shared.js`)가 패키지 root의 `"type": "module"` 설정으로 ES module로 처리되어 `require()` 호출 시 throw하는 결함 정정. `bin/package.json` + `bin/lib/package.json` 안 `{"type": "commonjs"}` override 추가하여 해당 폴더 안 파일을 CJS로 처리.
+- **한 —** `bin/report.js` 안 `tsx src/cli.ts` 호출 정정. npm publish 안 `src/` 폴더 미포함이라 `ERR_MODULE_NOT_FOUND` 발생. `dist/cli.js` 직접 호출로 변경 (`process.execPath` 안 직접 spawn).
 - **EN —** Fixed CJS bin scripts (`lint-summary.js`, `lint-update-baseline.js`, `report.js`, `lib/lint-shared.js`) being treated as ES modules due to package root's `"type": "module"` setting, causing `require()` calls to throw. Added `{"type": "commonjs"}` override in `bin/package.json` and `bin/lib/package.json` to ensure scripts in those directories are processed as CommonJS.
 - **EN —** Fixed `bin/report.js` invoking `tsx src/cli.ts` which fails on the published package because the `src/` directory is excluded from publish. Now spawns `dist/cli.js` directly via `process.execPath`.
 
@@ -190,9 +205,9 @@
 
 ### Changed
 
-- **Dashboard UI 안 프로젝트명 자동 read** — `dsmonitor.config.ts` 안 `projectName` field 추가 또는 `package.json` 안 `name` 자료 자동 read. 본 시점까지 hardcoded 자료 (`monorepo`) 정정.
-- **코드 주석 안 generic 자료 정정** — `lighthouse/run.js` / `presets/configs/next-pages-scss.ts` / `presets/scss-project.js` / `src/types.ts` 안 hardcoded `monorepo` → generic 자료.
-- **README + CHANGELOG 한국어 표현 자연화 (추가)** — 직전 0.1.3 publish 자료 외 발견 자료 정정 ("rename 끝" → "rename 완료", "throw 영역 영역" → "throw 발생", "표시 빠짐" → "표시 안 됨", "발행 빠짐" → "발행 없음" 등) + README markdown 표 padding 자연화.
+- **Dashboard UI 안 프로젝트명 자동 read** — `dsmonitor.config.ts` 안 `projectName` field 추가 또는 `package.json` 안 `name` 값 자동 read. 본 시점까지 hardcoded 였던 (`monorepo`) 정정.
+- **코드 주석 안 generic 표기 정정** — `lighthouse/run.js` / `presets/configs/next-pages-scss.ts` / `presets/scss-project.js` / `src/types.ts` 안 hardcoded `monorepo` → generic 표기.
+- **README + CHANGELOG 한국어 표현 자연화 (추가)** — 직전 0.1.3 publish 후 발견 사항 정정 ("rename 끝" → "rename 완료", "throw 부분 부분" → "throw 발생", "표시 누락" → "표시 안 됨", "발행 누락" → "발행 없음" 등) + README markdown 표 padding 자연화.
 
 ### Fixed
 
@@ -204,7 +219,7 @@
 
 - **Dashboard UI now reads project name automatically** — added `projectName` field to `dsmonitor.config.ts` or auto-reads from `package.json` `name` field. Replaces previously hardcoded `monorepo` value.
 - **Generic comments in code** — replaced hardcoded `monorepo` with generic placeholder in `lighthouse/run.js`, `presets/configs/next-pages-scss.ts`, `presets/scss-project.js`, and `src/types.ts`.
-- **Additional naturalization of Korean expressions in README and CHANGELOG** — follow-up to 0.1.3 ("rename 끝" → "rename 완료", "throw 영역 영역" → "throw 발생", "표시 빠짐" → "표시 안 됨", "발행 빠짐" → "발행 없음") + README markdown table padding cleanup.
+- **Additional naturalization of Korean expressions in README and CHANGELOG** — follow-up to 0.1.3 ("rename 끝" → "rename 완료", "throw 부분 부분" → "throw 발생", "표시 누락" → "표시 안 됨", "발행 누락" → "발행 없음") + README markdown table padding cleanup.
 
 ### Fixed
 
@@ -228,11 +243,11 @@
 
 ### Changed
 
-- **README + CHANGELOG 한국어 표현 자연화** — 91건 단어 정리 ("영역" 76 / "본질" 6 / "정합" 9) + 추가 2건 (이중 반복 1 / 중복 단어 1).
+- **README + CHANGELOG 한국어 표현 자연화** — 91건 단어 정리 ("부분" 76 / "핵심" 6 / "일치" 9) + 추가 2건 (이중 반복 1 / 중복 단어 1).
 
 **EN —**
 
-- **Naturalized Korean expressions in README and CHANGELOG** — 91 word edits (영역 76 / 본질 6 / 정합 9) plus 2 additional cleanups (double-word repetition / duplicate phrase).
+- **Naturalized Korean expressions in README and CHANGELOG** — 91 word edits (부분 76 / 핵심 6 / 일치 9) plus 2 additional cleanups (double-word repetition / duplicate phrase).
 
 ### Added
 
@@ -269,7 +284,7 @@
 
 ### Changed (rename)
 
-- **패키지 이름 = vitaui → dsmonitor** — npm 안 vitaui / vita-ui 유사 이름 + dsmon / bson / json 유사 이름 충돌 회피 목적. 0.1.0 = `dsmonitor@0.1.0`로 발행 (package.json name만 변경), 0.1.1 = 모든 자료 안 vitaui 단어 → dsmonitor로 통일.
+- **패키지 이름 = vitaui → dsmonitor** — npm 안 vitaui / vita-ui 유사 이름 + dsmon / bson / json 유사 이름 충돌 회피 목적. 0.1.0 = `dsmonitor@0.1.0`로 발행 (package.json name만 변경), 0.1.1 = 모든 파일 안 vitaui 단어 → dsmonitor로 통일.
 - **bin 명령어** = `vitaui` → `dsmonitor` (`npx dsmonitor audit / init / dashboard / ...`)
 - **사용자 측 폴더** = `vitaui/` → `dsmonitor/` (init이 자동 생성)
 - **templates** = `vitaui.config.ts.tpl` → `dsmonitor.config.ts.tpl`
@@ -329,12 +344,12 @@
 
 - **`vitaui` 단일 bin** subcommand (audit / report / dashboard / export-migration / baseline-lint / init)
 - **`vitaui init`** subcommand — 사용자 측 vitaui/ 폴더 인터랙티브 부트스트랩 (Lighthouse / Figma 옵션 prompt + @lhci/cli 자동 install + templates 토큰 치환)
-- **사이드카 plugin 시스템** (v0.15) — 외부 측정 자료가 dashboard에 자동 표시
+- **사이드카 plugin 시스템** (v0.15) — 외부 측정 결과가 dashboard에 자동 표시
   - `vitaui/reports/plugins/{id}/{date}.json` 자동 검색 (id 알파벳 순)
-  - 자료 형식 약속 (id / label / measuredAt / summary / details / meta)
+  - 정보 형식 약속 (id / label / measuredAt / summary / details / meta)
   - plugin 1개당 Summary Layer 04+ 자동 추가 + plugin 탭 동적 생성
   - schema 검증 (필수 필드 / id 불일치 / JSON 형식 오류) 빨간 알림 + stale (7일+) 회색 배지
-  - `meta` 필드 — 자료 형식 약속만 유지, 0.1.0 안 dashboard 표시 안 됨 (0.2.0 안 추가 검토)
+  - `meta` 필드 — 정보 형식 약속만 유지, 0.1.0 안 dashboard 표시 안 됨 (0.2.0 안 추가 검토)
 - **외부 plugin 개발자 참고 문서** (`docs/plugin-development.md`) — npm 사용자 / 추후 다른 plugin 개발자용
 - **ESLint plugin 통합** — `vitaui/eslint` subpath (별도 패키지 발행 없음). `eslint-plugin-ui-health` 흡수.
 
@@ -380,11 +395,11 @@
 
 - `vitaui init` 안 npm only (yarn / pnpm 감지 없음) — 0.2.0에서 추가 검토 / `vitaui init` is npm-only (no yarn / pnpm detection) — to be revisited in 0.2.0
 - plugin meta가 dashboard에 표시 안 됨 — 0.2.0에서 추가 검토 / Plugin `meta` not displayed in dashboard — to be revisited in 0.2.0
-- 시계열 (과거 plugin 자료 누적 차트) 미지원 — 0.2.0에서 추가 검토 / Time-series (cumulative past plugin data charts) not yet — to be revisited in 0.2.0
+- 시계열 (과거 plugin 정보 누적 차트) 미지원 — 0.2.0에서 추가 검토 / Time-series (cumulative past plugin data charts) not yet — to be revisited in 0.2.0
 
 ### measurementHistory
 
-- `measurementHistory` v0.1 ~ v0.15 — 측정 도구 자체 변경 이력 보존 (`vitaui/vitaui.config.ts` 안 `measurementHistory` 필드, 사용자 측 자체 측정 이력)
+- `measurementHistory` v0.1 ~ v0.15 — 측정 도구 자체 변경 이력 보존 (`vitaui/vitaui.config.ts` 안 `measurementHistory` 필드, 사용자 측 측정 이력)
 - **EN —** `measurementHistory` v0.1 ~ v0.15 — internal change history of the measurement tool itself (preserved in the `measurementHistory` field of `vitaui/vitaui.config.ts`).
 
 [0.1.0]: https://github.com/jsiksn/vitaui/releases/tag/v0.1.0

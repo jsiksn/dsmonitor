@@ -22,11 +22,11 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import type { DashboardData } from "../transformers/types";
 
-// v0.1.0: ESM 호환 — __dirname 영역 빠짐. fileURLToPath(import.meta.url) 영역 활용.
+// v0.1.0: ESM 호환 — __dirname 누락. fileURLToPath(import.meta.url) 활용.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// 두 영역 호환 path —
-//  - dev (tsx + src 영역): __dirname = src/dashboard/builder/ → ../components
+// 두 케이스 호환 path —
+//  - dev (tsx + src): __dirname = src/dashboard/builder/ → ../components
 //  - bundled (dist/cli.js): __dirname = dist/ → dashboard/components
 const TRY_COMPONENTS_DIRS = [
   path.resolve(__dirname, "..", "components"),

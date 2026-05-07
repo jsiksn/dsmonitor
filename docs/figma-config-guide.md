@@ -72,13 +72,13 @@ export const figmaDesignSystemFiles: FigmaDesignSystemFile[] = [
 
 ### Primary 명시 / Primary specification (0.2.0)
 
-`primary: true` 자료 명시 본질. dashboard 자료 자료 자료 `primaryLabel` 자료 자료:
+`primary: true` 명시 필수. dashboard 안 transformer 의 `primaryLabel` read:
 
 - DS 1개 = 자동 primary (primary 필드 생략 가능)
-- DS 2개 이상 = 정확히 1개에 `primary: true` 명시 본질
+- DS 2개 이상 = 정확히 1개에 `primary: true` 명시 필수
 - primary 0개 또는 2개 이상 = 에러 throw
 
-Dashboard 자료 자료 자료 사용자 라벨 그대로 표시. 라벨 자료 = 자유 결정 (예: `"v1"`, `"v2"`, `"legacy"`, `"main"` 등).
+Dashboard 안 사용자 라벨 그대로 표시. 라벨 형태 = 자유 결정 (예: `"v1"`, `"v2"`, `"legacy"`, `"main"` 등).
 
 **EN —** Specify primary explicitly with `primary: true`. The dashboard reads `primaryLabel` from the transformer:
 
@@ -88,7 +88,7 @@ Dashboard 자료 자료 자료 사용자 라벨 그대로 표시. 라벨 자료 
 
 The dashboard displays user-defined labels verbatim. Labels are free-form (e.g. `"v1"`, `"v2"`, `"legacy"`, `"main"`).
 
-#### 자료 / Example
+#### 예시 / Example
 
 ```typescript
 export const figmaDesignSystemFiles = [
@@ -97,7 +97,7 @@ export const figmaDesignSystemFiles = [
 ];
 ```
 
-> **Migration from 0.1.x**: 0.1.x 자료 자료 = `ds-new` 라벨 자동 primary 자료. 0.2.0 자료 자료 = 명시 자료 자료. 옛 자료에 `primary: true` 1줄 추가 자료. Labels themselves (`ds-new` / `ds-legacy`) can stay or be freely renamed.
+> **Migration from 0.1.x**: 0.1.x 흐름 = `ds-new` 라벨 자동 primary 처리. 0.2.0 부터 = 명시 필수. 옛 항목에 `primary: true` 1줄 추가 필요. Labels themselves (`ds-new` / `ds-legacy`) can stay or be freely renamed.
 
 ## 도메인 파일 등록 — 3가지 패턴
 
@@ -178,10 +178,10 @@ Copy link 방법: Figma 캔버스에서 **프레임을 선택한 뒤 우클릭**
 ## 측정 실행
 
 ```bash
-# 프로젝트 루트에서 실행 (영역 통합 cycle):
+# 프로젝트 루트에서 실행 (통합 측정 cycle):
 npx dsmonitor audit --baseline     # codebase + Figma 측정 + markdown + dashboard 자동 chain
 
-# 또는 영역별:
+# 또는 측정 부분별:
 npx dsmonitor audit --only figma        # figma 만 (base JSON 필요,`dsmonitor:figma` 단독 측정 시 제약 — 아래 주의 참조)
 npx dsmonitor report       # markdown 만 재생성
 npx dsmonitor dashboard    # dashboard html 만 재빌드
@@ -189,11 +189,11 @@ npx dsmonitor dashboard    # dashboard html 만 재빌드
 
 ### `dsmonitor:figma` 단독 측정의 제약
 
-`--only figma` 흐름은 코드 인덱스 (`classIndex`) 가 없어 **componentMatch 영역 미생성** 합니다 (B 그룹 단계 3, v0.11 시점부터). componentMatch = Figma DS 컴포넌트 ↔ 코드 className 매칭. 해당 측정값이 필요하면 통합 측정 (`dsmonitor:baseline`) 사용 권장.
+`--only figma` 흐름은 코드 인덱스 (`classIndex`) 가 없어 **componentMatch 미생성** 합니다 (B 그룹 단계 3, v0.11 시점부터). componentMatch = Figma DS 컴포넌트 ↔ 코드 className 매칭. 해당 측정값이 필요하면 통합 측정 (`dsmonitor:baseline`) 사용 권장.
 
-### 마이그레이션 자료 추출 (v0.14, Phase 0.7 단계 1+6)
+### 마이그레이션 정보 추출 (v0.14, Phase 0.7 단계 1+6)
 
-frame 단위 instance 목록을 CSV 로 추출 — 마이그레이션 작업 진입 사전 자료.
+frame 단위 instance 목록을 CSV 로 추출 — 마이그레이션 작업 진입 사전 정보.
 
 ```bash
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
@@ -250,8 +250,8 @@ A. 외주 옛 DS 에서 온 instance 가 여기로 분류됩니다. planning.md 
 **Q. Figma 의 Copy link 결과에 `&t=...` 트래킹 파라미터가 붙어있는데 그대로 넣어도 되나요?**
 A. 네. urlParser 가 `parsed.searchParams.get("node-id")` 로 node-id 만 추출 — 다른 query param (`&t=Yqb0SCoDaqckT0kw-4` 같은 share session token) 은 자연 무시됩니다. URL 에서 직접 제거할 필요 없음.
 
-**Q. ds-legacy / ds-new 양쪽 라이브러리 영역에 같은 컴포넌트가 published 됐을 때 어떻게 분류되나요?**
-A. componentMap 빌드 시 **first-come-first-serve** — config 의 `designSystemFiles` 순서가 우선. ds-legacy 가 1st 로 등록돼 있으면 같은 stable library key 영역 ds-new 측 항목은 무시 (warnings 영역에 conflict 기록). 본 프로젝트의 v0.14 측정에서 114 conflict 발견 — 모두 ds-legacy 우선. 이는 dsmonitor 의 issue 가 아니라 Figma 작업 영역 본질 (ds-legacy 컴포넌트 영역을 ds-new 파일에 복사 / import 시 같은 stable key 유지). 자세한 검증은 measurementHistory v0.14 entry 참조.
+**Q. ds-legacy / ds-new 양쪽 라이브러리에 같은 컴포넌트가 published 됐을 때 어떻게 분류되나요?**
+A. componentMap 빌드 시 **first-come-first-serve** — config 의 `designSystemFiles` 순서가 우선. ds-legacy 가 1st 로 등록돼 있으면 같은 stable library key 안 ds-new 측 항목은 무시 (warnings 안에 conflict 기록). 본 프로젝트의 v0.14 측정에서 114 conflict 발견 — 모두 ds-legacy 우선. 이는 dsmonitor 의 issue 가 아니라 Figma 작업 흐름 핵심 (ds-legacy 컴포넌트를 ds-new 파일에 복사 / import 시 같은 stable key 유지). 자세한 검증은 measurementHistory v0.14 entry 참조.
 
 ## 부록: Figma REST API 응답 구조 메모 (사전 조사 결과)
 

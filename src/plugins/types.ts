@@ -1,7 +1,7 @@
 /**
- * dsmonitor plugin 시스템 타입 영역.
+ * dsmonitor plugin 시스템 타입 정의.
  *
- * 자료 형식 약속 — packages/dsmonitor/docs/plugin-development.md 영역과 정합.
+ * 정보 형식 약속 — packages/dsmonitor/docs/plugin-development.md 안내와 일치.
  * 외부 plugin 개발자 측 가이드와 인터페이스 동일.
  */
 
@@ -13,16 +13,16 @@ export interface DSMonitorPluginOutput {
   /** 측정 시점 (ISO 8601 형식) */
   measuredAt: string;
   summary: {
-    /** 가장 큰 영역 카드 (1개 필수) */
+    /** 가장 큰 카드 (1개 필수) */
     primary: SummaryCard;
     /** 보조 카드 (배열 순서) */
     secondary?: SummaryCard[];
   };
-  /** Plugin 탭의 표 영역 자료 (선택) */
+  /** Plugin 탭의 표 정보 (선택) */
   details?: DetailRow[];
   /**
-   * 추가 자료 영역 (선택).
-   * 0.1.0 영역에서 dashboard 표시 빠짐 — 자료 형식 보존만 (추후 0.2.0 영역에서 추가).
+   * 추가 정보 (선택).
+   * 0.1.0 시점에서 dashboard 표시 누락 — 정보 형식 보존만 (추후 0.2.0 시점에서 추가).
    */
   meta?: Record<string, string | number | boolean>;
 }
@@ -43,13 +43,13 @@ export interface DetailRow {
 
 /**
  * dashboard 안 plugin entry — 검증 통과 / 실패 분기.
- * 검증 실패 영역도 탭 표시 — 빨간 알림 + 오류 메시지 (사용자 디버깅 영역).
+ * 검증 실패 케이스도 탭 표시 — 빨간 알림 + 오류 메시지 (사용자 디버깅 도움).
  */
 export type DashboardPluginEntry =
   | {
       ok: true;
       output: DSMonitorPluginOutput;
-      /** measuredAt 가 7일 이상 지난 시점 영역 */
+      /** measuredAt 가 7일 이상 지난 시점 */
       stale: boolean;
     }
   | {

@@ -72,7 +72,7 @@ type Cfg = UIHealthConfig & { __absRoot: string };
  * 이 함수는 `true` 전제로 동작. 검증 실패 시 명확한 에러 throw.
  *
  * @param classIndex (B 그룹 단계 3, 2026-04-29) 코드 className 인덱스. analyzeCodebase
- *   결과에서 전달. 미제공 시 컴포넌트 매칭 (componentMatch) 영역 미생성.
+ *   결과에서 전달. 미제공 시 컴포넌트 매칭 (componentMatch) 미생성.
  */
 export async function analyzeFigma(
   cfg: Cfg,
@@ -123,7 +123,7 @@ export async function analyzeFigma(
   console.log(`[figma] DS 파일 ${fc.designSystemFiles.length}개 스캔 시작`);
   const designSystemCounts: FigmaDesignSystemCount[] = [];
   // Phase 0.7 후속 (2026-04-30): componentMap entry 에 masterName 추가.
-  // variant component 의 componentSet.name 영역 보존 — CSV / instance JSON 활용.
+  // variant component 의 componentSet.name 보존 — CSV / instance JSON 활용.
   const componentMap = new Map<
     string,
     { label: string; name: string; masterName: string | null }
@@ -234,13 +234,13 @@ export async function analyzeFigma(
     registeredLabels
   );
 
-  // Phase 0.7 (2026-04-29): instance level raw 영역 별도 파일용 트리 빌드.
-  // baseline JSON 영역 회귀 회피 — instances[] 는 별도 파일 (figma-instances-{date}.json) 으로 출력.
+  // Phase 0.7 (2026-04-29): instance level raw 부분 별도 파일용 트리 빌드.
+  // baseline JSON 회귀 회피 — instances[] 는 별도 파일 (figma-instances-{date}.json) 으로 출력.
   const instancesFile = buildInstancesFile(fc.domainFiles, domainResults);
 
   // ───── 6. 컴포넌트 매칭 (B 그룹 단계 3, 2026-04-29) ─────
-  // classIndex 미제공 시 (figma 단독 호출 등) 영역 자체 생략.
-  // 본질: Figma DS 컴포넌트 (variantGroup + standalone) 이름 ↔ 코드 className 매칭.
+  // classIndex 미제공 시 (figma 단독 호출 등) 부분 자체 생략.
+  // 핵심: Figma DS 컴포넌트 (variantGroup + standalone) 이름 ↔ 코드 className 매칭.
   let componentMatch: FigmaReport["componentMatch"];
   if (classIndex) {
     const dsInputs = dsInputsFromCounts(designSystemCounts);
@@ -262,7 +262,7 @@ export async function analyzeFigma(
     }
   } else {
     console.log(
-      `[figma] componentMatch: classIndex 미제공 (figma 단독 호출 등) — 영역 생략`
+      `[figma] componentMatch: classIndex 미제공 (figma 단독 호출 등) — 생략`
     );
   }
 
@@ -580,11 +580,11 @@ function lookupTarget(
 /**
  * config 트리 + scan results.targets → FigmaInstancesFile (별도 파일용 트리).
  *
- * 본질: domainResults 트리 영역과 같은 구조 + 각 leaf (frame 또는 page) 에 instances[]
- * 배열 추가. fileKey + fileName 영역 도메인 단위 보존 — figmaUrl 자동 조립 본질.
+ * 핵심: domainResults 트리와 같은 구조 + 각 leaf (frame 또는 page) 에 instances[]
+ * 배열 추가. fileKey + fileName 도메인 단위 보존 — figmaUrl 자동 조립 핵심.
  *
- * scan 실패한 도메인 (validateSameFile 실패 / API 에러) 은 fileKey 영역 추출 실패 가능 —
- * 빈 영역 유지 (instances 0).
+ * scan 실패한 도메인 (validateSameFile 실패 / API 에러) 은 fileKey 추출 실패 가능 —
+ * 빈 부분 유지 (instances 0).
  */
 function buildInstancesFile(
   domainCfgs: FigmaDomainFile[],
@@ -594,7 +594,7 @@ function buildInstancesFile(
   for (const sr of scanResults) scanByLabel.set(sr.label, sr);
 
   const domains: FigmaInstancesDomain[] = domainCfgs.map((cfg) => {
-    // fileKey + fileName — 도메인 영역 첫 URL (frame 또는 page) 에서 추출.
+    // fileKey + fileName — 도메인 안 첫 URL (frame 또는 page) 에서 추출.
     // 같은 도메인 안 모든 URL 은 같은 fileKey (validateSameFile 보장).
     const firstUrl = findFirstUrl(cfg);
     const { fileKey, fileName } = extractFileMeta(firstUrl);
@@ -654,7 +654,7 @@ function findFirstUrl(cfg: FigmaDomainFile): string {
   return "";
 }
 
-/** URL pathname 의 [design, fileKey, fileName] 영역에서 fileKey + fileName 추출. */
+/** URL pathname 의 [design, fileKey, fileName] 부분에서 fileKey + fileName 추출. */
 function extractFileMeta(url: string): { fileKey: string; fileName: string } {
   if (!url) return { fileKey: "", fileName: "" };
   try {
@@ -670,7 +670,7 @@ function extractFileMeta(url: string): { fileKey: string; fileName: string } {
   }
 }
 
-/** URL 의 node-id 영역 추출 — 콜론 표기로 정규화. parseFigmaUrl 영역 reuse. */
+/** URL 의 node-id 추출 — 콜론 표기로 정규화. parseFigmaUrl 흐름 reuse. */
 function parseNodeIdFromUrl(url: string): string | null {
   try {
     return parseFigmaUrl(url).nodeId ?? null;

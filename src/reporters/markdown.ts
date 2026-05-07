@@ -671,7 +671,7 @@ function formatDsLabel(
  * Figma DS 컴포넌트 ↔ 코드 className 매칭 섹션.
  *
  * 구성: 요약 → DS 별 카드 (matchedBreakdown) → matched/figmaOnly/codeOnly 리스트 (각각 details).
- * 본질: 사용자 옛 직관 ("Figma 의 btn 컴포넌트가 코드 className 으로 쓰이나") 직접 측정.
+ * 핵심: 사용자 옛 직관 ("Figma 의 btn 컴포넌트가 코드 className 으로 쓰이나") 직접 측정.
  */
 function appendComponentMatchSection(
   lines: string[],
@@ -701,12 +701,12 @@ function appendComponentMatchSection(
       `(${(cm.totals.matchRatio * 100).toFixed(1)}%)`
   );
   lines.push(`- Figma만 (코드 미사용): **${cm.totals.figmaOnly}**개 — 작업 우선순위`);
-  lines.push(`- 코드만 (DS 정의 없음): **${cm.totals.codeOnly}**개 — DS 외부 영역`);
+  lines.push(`- 코드만 (DS 정의 없음): **${cm.totals.codeOnly}**개 — DS 외부`);
   lines.push("");
 
   // ─── DS 별 카드 — config 순서 그대로 (0.2.0) ───
-  // 0.1.x 자료 자료 = ds-new 우선 hardcoded 정렬 자료. 0.2.0 자료 = 사용자 자료 라벨 자료라
-  // markdown 자료 안 정렬 자료 자료 (config 순서 자료). dashboard 자료 자료 transformer 안 primary 우선 정렬 자료.
+  // 0.1.x 흐름 = ds-new 우선 hardcoded 정렬. 0.2.0 부터 = 사용자 정의 라벨 자유라
+  // markdown 안 정렬 제거 (config 순서 그대로). dashboard 측은 transformer 안 primary 우선 정렬 적용.
   const sortedSummaryEntries = Object.entries(cm.summary);
   lines.push(`#### DS 별 매칭률`);
   lines.push("");
@@ -746,7 +746,7 @@ function appendComponentMatchSection(
       `<summary>매칭된 컴포넌트 ${cm.matched.length}개 보기</summary>`
     );
     lines.push("");
-    lines.push(`| 이름 | 출처 | 종류 | 매칭 영역 |`);
+    lines.push(`| 이름 | 출처 | 종류 | 매칭 출처 |`);
     lines.push(`|---|---|---|---|`);
     for (const e of cm.matched) {
       const matchedIn = e.matchedIn.join(" + ");
@@ -786,7 +786,7 @@ function appendComponentMatchSection(
   if (cm.codeOnly.length > 0) {
     lines.push(`<details>`);
     lines.push(
-      `<summary>코드만 — DS 정의 없음 ${cm.codeOnly.length}개 (DS 외부 영역)</summary>`
+      `<summary>코드만 — DS 정의 없음 ${cm.codeOnly.length}개 (DS 외부)</summary>`
     );
     lines.push("");
     lines.push(

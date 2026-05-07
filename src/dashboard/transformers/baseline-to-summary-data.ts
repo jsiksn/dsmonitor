@@ -13,7 +13,7 @@ export function buildSummaryData(args: {
   lighthouse: LighthouseTabData | null;
   /** baseline.figma.warnings.length (시안의 figma.warningsCount). */
   figmaWarningsCount: number;
-  /** figma transformer 결과 — primary / non-primary 라벨 자료 자료. null = figma 빠짐. */
+  /** figma transformer 결과 — primary / non-primary 라벨 정보. null = figma 누락. */
   figmaTabData?: FigmaTabData | null;
 }): SummaryTabData {
   const { report, lighthouse, figmaWarningsCount, figmaTabData } = args;
@@ -92,10 +92,10 @@ export function buildSummaryData(args: {
   }
 
   // ─── figma 압축 (v0.12, Phase 0.6) — figmaReport 없으면 null 출력 ───
-  // 다른 프로젝트 호환 본질: figmaAnalysis=false 인 프로젝트는 figma 영역 자체 null →
+  // 다른 프로젝트 호환 핵심: figmaAnalysis=false 인 프로젝트는 figma 자체 null →
   // root.jsx 가 Summary Layer 03 + Figma 탭 hide.
-  // 0.2.0: ds-new/ds-legacy hardcoded 자료 → primaryLabel + nonPrimaryLabels 자료 자료.
-  // dsNew/dsLegacy 변수 이름 = 옛 dashboard component 호환 자료 (primary / 첫 non-primary 자료).
+  // 0.2.0: ds-new/ds-legacy hardcoded 형태 → primaryLabel + nonPrimaryLabels 필드로 변경.
+  // dsNew/dsLegacy 변수 이름 = 옛 dashboard component 호환 위해 보존 (primary / 첫 non-primary 가리킴).
   let figma: SummaryTabData["figma"] = null;
   if (figmaReport) {
     const dsStats = figmaReport.tokenMatrix?.summary?.dsStats ?? {};

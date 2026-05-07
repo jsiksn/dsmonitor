@@ -11,7 +11,7 @@
     --ink-4: #a8a69a;
 
     /* v0.9 note 17: --good / --bad 명도 + 채도 보정. 명도 차이 60↔58 → 66↔52 (14)
-       로 색맹/색약 사용자도 즉시 구분. -bg / -ink 는 그대로 (별도 영역 영향 작음). */
+       로 색맹/색약 사용자도 즉시 구분. -bg / -ink 는 그대로 (별도 토큰 영향 작음). */
     --good: oklch(0.66 0.16 150);
     --good-bg: oklch(0.96 0.03 150);
     --good-ink: oklch(0.38 0.10 150);
@@ -83,7 +83,7 @@
   .tag.met .tdot { background: var(--good); }
   .tag.note { background: var(--bg-sunken); color: var(--ink-2); border: 1px solid var(--border); }
   .tag.note .tdot { background: var(--ink-4); }
-  /* v0.15: stale 영역 (사이드카 plugin 자료 7일+ 오래됨) — 회색 영역 */
+  /* v0.15: stale 표시 (사이드카 plugin 정보 7일+ 오래됨) — 회색 토큰 */
   .tag.stale { background: var(--bg-sunken); color: var(--ink-3); border: 1px solid var(--border); }
   .tag.stale .tdot { background: var(--ink-4); }
 
@@ -280,8 +280,8 @@
 
   /* track bar (for SCSS, DS, TS) */
   /* B-3 보정 6 (2026-04-29): 배경 --bg-sunken (#f4f3ef) → --border-strong (#d5d3ca).
-     ds-token-row 배경이 같은 --bg-sunken 이라 Figma 탭 막대 영역 시각 비대칭 발생.
-     인접 영역 색상 차이 본질 — 단순 정의 여부 아닌 시각 노출이 본질. 모든 탭 영향. */
+     ds-token-row 배경이 같은 --bg-sunken 이라 Figma 탭 막대 시각 비대칭 발생.
+     인접 부분 색상 차이 핵심 — 단순 정의 여부 아닌 시각 노출이 핵심. 모든 탭 영향. */
   .bar-track { height: 8px; background: var(--border-strong); border-radius: 4px; position: relative; margin-top: 12px; overflow: hidden; }
   .bar-track-fill { height: 100%; border-radius: 4px; }
   .bar-track-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink-2); border-radius: 1px; }
@@ -528,13 +528,13 @@
     .lh-cat-row { grid-template-columns: 140px 1fr 36px; }
   }
 
-  /* ─── v0.15: 사이드카 plugin 영역 ─── */
-  /* 각 탭 측정 시점 인라인 영역 (Figma 패턴 정합). */
+  /* ─── v0.15: 사이드카 plugin 부분 ─── */
+  /* 각 탭 측정 시점 인라인 (Figma 패턴 일치). */
   .tab-stamp { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); margin-bottom: 16px; }
   .tab-stamp .dim { color: var(--ink-4); }
   .tab-stamp .sep { margin: 0 2px; color: var(--ink-4); }
 
-  /* plugin 탭 표 영역 (details 자동 표시) — Lighthouse 표 영역 패턴 활용. */
+  /* plugin 탭 표 (details 자동 표시) — Lighthouse 표 패턴 활용. */
   .plugin-details { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 4px; }
   .plugin-details thead th { text-align: left; padding: 9px 10px; font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--bg-sunken); }
   .plugin-details tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border-soft, var(--border)); color: var(--ink-2); vertical-align: top; }
