@@ -24,13 +24,48 @@ const PRIMARY_RATIO_MET_THRESHOLD = 0.95;
 const PRIMARY_RATIO_STRONG_BELOW_THRESHOLD = 0.1;
 
 /**
- * primary DS label 결정 — config.designSystemFiles 중 "ds-new" 우선, 없으면 첫 DS.
- * 본 프로젝트의 의도: ds-new 가 primary (현재 권장 DS).
+ * primary DS label 결정 (0.2.0).
+ *
+ * 규칙:
+ *   - DS 1개 = 자동 primary (primary 필드 검증 안 함)
+ *   - DS 2개 이상 = 정확히 1개에 `primary: true` 명시 본질
+ *     - primary 0개 → throw
+ *     - primary 2개 이상 → throw
+ *   - DS 0개 = null
+ *
+ * 0.1.x 자료 자료 (`ds-new` 라벨 자동 primary) = 0.2.0 자료 자료.
+ * 사용자 자료 정정 = `dsmonitor.config.local.ts` 안 ds-new 자료에 `primary: true` 1줄 추가.
  */
 function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
-  const labels = cfg.designSystemFiles.map((d) => d.label);
-  if (labels.includes("ds-new")) return "ds-new";
-  return labels[0] ?? null;
+  const files = cfg.designSystemFiles;
+
+  if (files.length === 0) return null;
+
+  // DS 1개 = 자동 primary
+  if (files.length === 1) {
+    return files[0].label;
+  }
+
+  // DS 2개 이상 = primary 정확히 1개 본질
+  const primaries = files.filter((f) => f.primary === true);
+
+  if (primaries.length === 0) {
+    throw new Error(
+      "[dsmonitor] DS 파일 2개 이상 시점에 figmaDesignSystemFiles 안 정확히 1개에 `primary: true` 명시 본질. " +
+      `등록된 DS 라벨: ${files.map((f) => f.label).join(", ")}. ` +
+      "자세 안내: https://github.com/jsiksn/dsmonitor#ds-file-labels"
+    );
+  }
+
+  if (primaries.length > 1) {
+    throw new Error(
+      `[dsmonitor] figmaDesignSystemFiles 안 \`primary: true\` 자료 ${primaries.length}건 발견. ` +
+      "정확히 1개만 명시 본질. " +
+      `현재 primary 라벨: ${primaries.map((p) => p.label).join(", ")}`
+    );
+  }
+
+  return primaries[0].label;
 }
 
 export function baselineToFigmaData(
@@ -58,17 +93,26 @@ export function baselineToFigmaData(
   }
 
   const primaryLabel = resolvePrimaryDsLabel(cfg);
+  const allLabels = cfg.designSystemFiles.map((d) => d.label);
+  const nonPrimaryLabels = allLabels.filter((l) => l !== primaryLabel);
   const frameRanking = buildFrameRanking(figma.domainResults, primaryLabel);
   const domainSummary = buildDomainSummary(figma.domainResults, primaryLabel);
 
   // tokenMatrix 영역 derive (3차 시각 검증 후 보정 2, 2026-04-29 후속).
   // v0.9 note 12 의 transformer flat 화 패턴 누락 보완 — 시안 figma-tab.jsx
   // TokenMatrixSection 이 기대하는 형식 (rows c/dn/dl + summary both/codeOnly/dsOnly).
+  // 0.2.0 자료 = primary / non-primary 자료 자료 자료 (옛 ds-new/ds-legacy hardcoded 자료).
   // baseline JSON 영역은 안 건드림 (시계열 보존). 다른 프로젝트 호환성 별도 트랙.
-  const tokenMatrixForUi = enrichTokenMatrix(figma.tokenMatrix);
+  const tokenMatrixForUi = enrichTokenMatrix(
+    figma.tokenMatrix,
+    primaryLabel,
+    nonPrimaryLabels
+  );
 
   return {
     stamp,
+    primaryLabel,
+    nonPrimaryLabels,
     measurementScope: {
       domainFiles: cfg.domainFiles.length,
       domainNames,
@@ -103,7 +147,11 @@ export function baselineToFigmaData(
  *   - dsOnly   = code 미매칭 + 어떤 DS 에라도 매칭
  *   - (code 미매칭 + 모든 DS 미매칭 케이스는 row 자체 등장 안 함 — 분류 외)
  */
-function enrichTokenMatrix(tm: TokenMatrix): TokenMatrix & {
+function enrichTokenMatrix(
+  tm: TokenMatrix,
+  primaryLabel: string | null,
+  nonPrimaryLabels: string[]
+): TokenMatrix & {
   rows: Array<TokenMatrix["rows"][number] & {
     n: string;
     c: 0 | 1;
@@ -120,11 +168,15 @@ function enrichTokenMatrix(tm: TokenMatrix): TokenMatrix & {
   let codeOnly = 0;
   let dsOnly = 0;
 
+  // 0.2.0: ds-new/ds-legacy hardcoded 자료 → primary / non-primary 자료 자료.
+  // dn = primary 매칭 / dl = non-primary 자료 매칭 합집합.
   const enrichedRows = tm.rows.map((r) => {
     const inCode = r.inCode.exists;
-    const inNew = r.inDs["ds-new"]?.exists ?? false;
-    const inLegacy = r.inDs["ds-legacy"]?.exists ?? false;
-    const inAnyDs = inNew || inLegacy;
+    const inPrimary = primaryLabel ? r.inDs[primaryLabel]?.exists ?? false : false;
+    const inNonPrimary = nonPrimaryLabels.some(
+      (l) => r.inDs[l]?.exists ?? false
+    );
+    const inAnyDs = inPrimary || inNonPrimary;
 
     if (inCode && inAnyDs) both += 1;
     else if (inCode && !inAnyDs) codeOnly += 1;
@@ -134,8 +186,8 @@ function enrichTokenMatrix(tm: TokenMatrix): TokenMatrix & {
       ...r,
       n: r.name,
       c: (inCode ? 1 : 0) as 0 | 1,
-      dn: (inNew ? 1 : 0) as 0 | 1,
-      dl: (inLegacy ? 1 : 0) as 0 | 1,
+      dn: (inPrimary ? 1 : 0) as 0 | 1,
+      dl: (inNonPrimary ? 1 : 0) as 0 | 1,
     };
   });
 

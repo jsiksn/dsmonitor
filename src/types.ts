@@ -403,8 +403,17 @@ export type FigmaPageSelection =
 export type FigmaDesignSystemFile = {
   /** Figma "Copy link" (파일 루트). */
   url: string;
-  /** 리포트/매칭용 고유 라벨 (예: "ds-new", "ds-legacy"). */
+  /** 리포트/매칭용 고유 라벨 (사용자 자유 결정 — 예: "ds-new", "v1", "legacy"). */
   label: string;
+  /**
+   * primary DS 명시 (0.2.0).
+   *
+   * - DS 1개뿐이면 자동 primary (생략 가능).
+   * - DS 2개 이상이면 정확히 1개에 `primary: true` 명시 본질. 아니면 throw.
+   *
+   * 0.1.x 자료 자료 = `"ds-new"` 라벨 자동 primary 처리 (자료 자료 = 0.2.0 자료 자료).
+   */
+  primary?: boolean;
   /**
    * 가독성용 메모 (예: "새 DS", "옛 수작업 DS"). 리포트 헤더/컬럼 병기에 사용.
    * 도메인 파일의 comment 와 대칭. 없으면 리포트에서 괄호 부분 생략.

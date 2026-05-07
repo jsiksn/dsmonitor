@@ -4,6 +4,71 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-05-07
+
+### Breaking change / 자료 변경
+
+- **한 —** `figmaDesignSystemFiles` 안 primary DS 결정 흐름 변경. 0.1.x 자료 = `ds-new` 라벨 자료 자동 primary 처리. 0.2.0 자료 = `primary: true` 자료 명시 자료. 라벨 자료 = 사용자 자유 결정 가능.
+- **EN —** Changed how primary DS is determined in `figmaDesignSystemFiles`. In 0.1.x, the `ds-new` label was auto-treated as primary. From 0.2.0, primary must be explicitly specified via `primary: true`. Labels are now free-form / user-defined.
+
+### 추가 / Added
+
+- **한 —** `FigmaDesignSystemFile.primary?: boolean` 필드 추가 (`src/types.ts`).
+- **한 —** primary 검증 흐름 추가 (`src/dashboard/transformers/baseline-to-figma-data.ts` `resolvePrimaryDsLabel`):
+  - DS 1개 = 자동 primary (검증 안 함)
+  - DS 2개 이상 + primary 0개 = 에러 throw
+  - DS 2개 이상 + primary 2개 이상 = 에러 throw
+  - DS 2개 이상 + primary 정확히 1개 = 정상
+- **한 —** `FigmaTabData` 안 `primaryLabel: string | null` + `nonPrimaryLabels: string[]` 필드 추가.
+- **한 —** `SummaryTabData.figma` 안 같은 두 필드 추가 (옛 `dsNew*` / `dsLegacy*` 변수 이름은 호환 자료 보존 — primary / 첫 non-primary 자료 자료 자료).
+- **EN —** Added `FigmaDesignSystemFile.primary?: boolean` field (`src/types.ts`).
+- **EN —** Added primary validation in `resolvePrimaryDsLabel`:
+  - 1 DS = auto-primary (no validation)
+  - 2+ DS + 0 primaries = throws error
+  - 2+ DS + 2+ primaries = throws error
+  - 2+ DS + exactly 1 primary = OK
+- **EN —** Added `primaryLabel: string | null` + `nonPrimaryLabels: string[]` to `FigmaTabData`.
+- **EN —** Added the same two fields to `SummaryTabData.figma` (legacy `dsNew*` / `dsLegacy*` variable names retained for component compatibility — they now point to primary / first non-primary).
+
+### 변경 / Changed
+
+- **한 —** dashboard 안 라벨 hardcoded 자료 (`ds-new` / `ds-legacy`) 자료 자료. 사용자 자료 라벨 자료 자료 자료 표시. `figma-tab.jsx` (TokenMatchSection / TokenMatrixSection / DsInstanceShareSection / MigrationPrioritySection / ComponentMatchSection) + `root.jsx` (Summary 탭 Layer 03) 자료 정정.
+- **한 —** dashboard 안 "Primary" 영어 자료 자료 자료 안 함. 사용자 자료 라벨 + "기준" / "참고" 한글 자료 유지.
+- **한 —** `enrichTokenMatrix(tm, primaryLabel, nonPrimaryLabels)` 자료 변경 — 옛 `inDs["ds-new"]` / `inDs["ds-legacy"]` hardcoded 자료 → primary / non-primary 자료 자료.
+- **한 —** `markdown.ts` 안 DS 별 카드 정렬 = config 순서 자료 (옛 ds-new 우선 hardcoded 정렬 제거).
+- **한 —** `src/cli/init.ts renderFigmaBlock()` 자료 안 라벨 안내 = 옛 `ds-new` / `ds-legacy` 권고 자료 → primary 명시 규칙 자료. 자료 자료 자료 = `"v1"` / `"v2"` 본질.
+- **EN —** Removed hardcoded label references (`ds-new` / `ds-legacy`) in dashboard. User-defined labels are now displayed. Affected: `figma-tab.jsx` (TokenMatchSection / TokenMatrixSection / DsInstanceShareSection / MigrationPrioritySection / ComponentMatchSection) + `root.jsx` (Summary tab Layer 03).
+- **EN —** The English word "Primary" is no longer displayed in the dashboard. User labels + "기준" / "참고" Korean labels retained.
+- **EN —** `enrichTokenMatrix(tm, primaryLabel, nonPrimaryLabels)` signature change — old hardcoded `inDs["ds-new"]` / `inDs["ds-legacy"]` → primary / non-primary fields.
+- **EN —** DS card ordering in `markdown.ts` now follows config order (removed legacy `ds-new` first hardcoded sort).
+- **EN —** `src/cli/init.ts renderFigmaBlock()` label guidance switched from old `ds-new` / `ds-legacy` recommendation to a primary specification rule. Sample labels are now `"v1"` / `"v2"`.
+
+### 마이그레이션 가이드 / Migration
+
+- **한 —** 0.1.x 사용자 측 정정:
+  ```diff
+  // dsmonitor.config.local.ts
+  - { url: "...", label: "ds-new" },
+  + { url: "...", label: "ds-new", primary: true },
+  ```
+  라벨 자료 = `ds-new` / `ds-legacy` 그대로 유지 가능 (자료 자료 자료 사용자 자료 결정). 정정 자료 자료 자료 자료 = `npm install --save-dev dsmonitor@0.2.0` 자료 자료 자료 자료. README 안 "Migration from 0.1.x" 영역 자료.
+- **EN —** 0.1.x users — required edit:
+  ```diff
+  // dsmonitor.config.local.ts
+  - { url: "...", label: "ds-new" },
+  + { url: "...", label: "ds-new", primary: true },
+  ```
+  Labels can stay (`ds-new` / `ds-legacy`) or be freely renamed. After updating the config, run `npm install --save-dev dsmonitor@0.2.0`. See "Migration from 0.1.x" in README for details.
+
+### 자료 자료 / Notes
+
+- **한 —** 옛 `ds-new` 자동 호환 자료 자료 = 빠짐. 명시 자료 자료 자료 자료 자료 자료 자료 빠짐 자료 = 에러 throw 본질.
+- **한 —** 본 0.2.0 = 의도 자료 breaking change (옛 사용자 = 본 시점 사용자 자료 1명 — 본 의뢰 자료 자료 자료).
+- **EN —** Auto-fallback to `ds-new` label has been removed. Missing primary specification (with 2+ DS files) will throw an error.
+- **EN —** This 0.2.0 is an intentional breaking change (current user count = 1 — confirmed via this issue thread).
+
+[0.2.0]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.2.0
+
 ## [0.1.9] — 2026-05-07
 
 ### 추가 / Added

@@ -6,15 +6,17 @@
  */
 
 import type { CodebaseReport } from "../../types";
-import type { LighthouseTabData, SummaryTabData } from "./types";
+import type { FigmaTabData, LighthouseTabData, SummaryTabData } from "./types";
 
 export function buildSummaryData(args: {
   report: CodebaseReport;
   lighthouse: LighthouseTabData | null;
   /** baseline.figma.warnings.length (시안의 figma.warningsCount). */
   figmaWarningsCount: number;
+  /** figma transformer 결과 — primary / non-primary 라벨 자료 자료. null = figma 빠짐. */
+  figmaTabData?: FigmaTabData | null;
 }): SummaryTabData {
-  const { report, lighthouse, figmaWarningsCount } = args;
+  const { report, lighthouse, figmaWarningsCount, figmaTabData } = args;
   const figmaReport = report.figma;
 
   const codeStamp = (report.generatedAt || "").slice(0, 10);
@@ -91,17 +93,25 @@ export function buildSummaryData(args: {
 
   // ─── figma 압축 (v0.12, Phase 0.6) — figmaReport 없으면 null 출력 ───
   // 다른 프로젝트 호환 본질: figmaAnalysis=false 인 프로젝트는 figma 영역 자체 null →
-  // root.jsx 가 Summary Layer 03 + Figma 탭 hide. dsNew/dsLegacy 는 본 프로젝트 label.
+  // root.jsx 가 Summary Layer 03 + Figma 탭 hide.
+  // 0.2.0: ds-new/ds-legacy hardcoded 자료 → primaryLabel + nonPrimaryLabels 자료 자료.
+  // dsNew/dsLegacy 변수 이름 = 옛 dashboard component 호환 자료 (primary / 첫 non-primary 자료).
   let figma: SummaryTabData["figma"] = null;
   if (figmaReport) {
     const dsStats = figmaReport.tokenMatrix?.summary?.dsStats ?? {};
-    const dsNew = dsStats["ds-new"];
-    const dsLegacy = dsStats["ds-legacy"];
+    const primaryLabel = figmaTabData?.primaryLabel ?? null;
+    const nonPrimaryLabels = figmaTabData?.nonPrimaryLabels ?? [];
+    const primary = primaryLabel ? dsStats[primaryLabel] : undefined;
+    const firstNonPrimary = nonPrimaryLabels[0]
+      ? dsStats[nonPrimaryLabels[0]]
+      : undefined;
     figma = {
-      dsNewTotal: dsNew?.total ?? 0,
-      dsNewMatched: dsNew?.matchedWithCode ?? 0,
-      dsLegacyTotal: dsLegacy?.total ?? 0,
-      dsLegacyMatched: dsLegacy?.matchedWithCode ?? 0,
+      primaryLabel,
+      nonPrimaryLabels,
+      dsNewTotal: primary?.total ?? 0,
+      dsNewMatched: primary?.matchedWithCode ?? 0,
+      dsLegacyTotal: firstNonPrimary?.total ?? 0,
+      dsLegacyMatched: firstNonPrimary?.matchedWithCode ?? 0,
       tokenRowsTotal: figmaReport.tokenMatrix?.summary?.totalUniqueTokens ?? 0,
       unmatchedInstances: figmaReport.instanceAnalysis?.unmatchedInstances ?? 0,
       totalInstances: figmaReport.instanceAnalysis?.totalInstances ?? 0,

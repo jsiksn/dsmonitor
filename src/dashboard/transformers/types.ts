@@ -51,6 +51,17 @@ export interface CodeTabData {
 
 export interface FigmaTabData {
   stamp: string;
+  /**
+   * primary DS 라벨 (사용자 측 `figmaDesignSystemFiles[].primary === true` 자료).
+   * DS 1개뿐이면 자동 첫 라벨. DS 0개 = null.
+   * 0.2.0 자료 자료 — 옛 0.1.x `ds-new` hardcoded 자료.
+   */
+  primaryLabel: string | null;
+  /**
+   * primary 외 모든 DS 라벨 (config.designSystemFiles 순서 보존).
+   * dashboard 자료 "참고" / "non-primary" 자료 자료 자료.
+   */
+  nonPrimaryLabels: string[];
   measurementScope: {
     domainFiles: number;
     domainNames: string[];
@@ -210,8 +221,14 @@ export interface SummaryTabData {
    * baseline.figma 미존재 시 transformer 가 null 출력. root.jsx 가 가드로 Layer 03 hide.
    */
   figma: {
+    /** primary DS 라벨 (0.2.0). DS 1개 = 자동 첫 라벨. DS 0개 = null. */
+    primaryLabel: string | null;
+    /** primary 외 DS 라벨 (config 순서 보존). dashboard 자료 "참고" 자료 자료 자료. */
+    nonPrimaryLabels: string[];
+    /** primary DS 토큰 수 (Styles 자료). 옛 dsNew 변수 이름 호환. */
     dsNewTotal: number;
     dsNewMatched: number;
+    /** 첫 non-primary DS 토큰 수 (Styles 자료). 옛 dsLegacy 변수 이름 호환. */
     dsLegacyTotal: number;
     dsLegacyMatched: number;
     tokenRowsTotal: number;

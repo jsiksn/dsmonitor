@@ -704,13 +704,10 @@ function appendComponentMatchSection(
   lines.push(`- 코드만 (DS 정의 없음): **${cm.totals.codeOnly}**개 — DS 외부 영역`);
   lines.push("");
 
-  // ─── DS 별 카드 — ds-new 우선 정렬 (보정 1, 2026-04-29) ───
-  // analyzer 는 config 순서 보존 (Phase 0.6 호환). 표시 단에서 일관 정렬.
-  const sortedSummaryEntries = Object.entries(cm.summary).sort((a, b) => {
-    if (a[0] === "ds-new") return -1;
-    if (b[0] === "ds-new") return 1;
-    return 0;
-  });
+  // ─── DS 별 카드 — config 순서 그대로 (0.2.0) ───
+  // 0.1.x 자료 자료 = ds-new 우선 hardcoded 정렬 자료. 0.2.0 자료 = 사용자 자료 라벨 자료라
+  // markdown 자료 안 정렬 자료 자료 (config 순서 자료). dashboard 자료 자료 transformer 안 primary 우선 정렬 자료.
+  const sortedSummaryEntries = Object.entries(cm.summary);
   lines.push(`#### DS 별 매칭률`);
   lines.push("");
   // 보정 2 (2026-04-29 후속): figmaOnly + 합계 컬럼 추가 + 명칭 통일 (css 만).

@@ -144,14 +144,44 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 
 ### DS 파일 라벨 / DS File Labels
 
-`figmaDesignSystemFiles` 안 라벨 규칙 / Label rules for `figmaDesignSystemFiles`:
+`figmaDesignSystemFiles` 라벨 자료 = 사용자 자유 결정 (예: `"v1"`, `"v2"`, `"main"`, `"legacy"`). dashboard 자료 자료 자료 사용자 라벨 그대로 표시.
 
-- **`ds-new`** = primary (마이그레이션 목표, 자라야 하는 DS / migration target, the DS that should grow)
-- **`ds-legacy`** = 옛 DS (없어져야 하는 DS / legacy DS that should shrink)
+**EN —** `figmaDesignSystemFiles` labels are free-form (e.g. `"v1"`, `"v2"`, `"main"`, `"legacy"`). The dashboard displays user-defined labels verbatim.
 
-Dashboard 안 "primary 비중 높을수록" = `ds-new` 비중 자료. DS 파일이 1개뿐이면 `ds-new` 라벨로 등록 권고 / In the dashboard, "higher primary ratio is better" refers to `ds-new`. If only one DS file exists, label it `ds-new`.
+#### Primary 명시 / Primary specification (0.2.0)
 
-> **Note**: 0.2.0 자료 = primary 자료 라벨이 아닌 별도 필드(예: `primary: true`)로 받을 자료 (breaking change). 자세 안내 = [CHANGELOG](./CHANGELOG.md) 자료 자료 / In 0.2.0, `primary` will be specified as a separate field (e.g. `primary: true`) instead of the label name (breaking change). See [CHANGELOG](./CHANGELOG.md) for details.
+DS 2개 이상 자료 정확히 1개에 `primary: true` 명시 본질 / When you have 2 or more DS files, exactly one must have `primary: true`:
+
+```typescript
+export const figmaDesignSystemFiles = [
+  { url: "...", label: "v1" },
+  { url: "...", label: "v2", primary: true },   // ← primary 명시
+];
+```
+
+DS 1개뿐 = 자동 primary (`primary` 필드 생략 가능) / Single DS = auto-primary (omit `primary` field).
+
+#### 검증 규칙 / Validation rules
+
+| 상태 / State | 처리 / Handling |
+|---|---|
+| DS 1개 (primary 생략) / 1 DS, no primary | 자동 primary / auto-primary |
+| DS 2개 이상 + primary 0개 / 2+ DS, 0 primaries | 에러 throw / throws error |
+| DS 2개 이상 + primary 1개 / 2+ DS, 1 primary | 정상 / OK |
+| DS 2개 이상 + primary 2개 이상 / 2+ DS, 2+ primaries | 에러 throw / throws error |
+
+### Migration from 0.1.x
+
+0.1.x 자료 자료 = `ds-new` 라벨 자료 자동 primary 처리. 0.2.0 자료 = 명시 자료 자료. 옛 사용자 측 `dsmonitor.config.local.ts` 안 `ds-new` 자료에 `primary: true` 1줄 추가:
+
+```diff
+- { url: "...", label: "ds-new" },
++ { url: "...", label: "ds-new", primary: true },
+```
+
+라벨 자료 = 그대로 유지 가능 (`ds-new` / `ds-legacy`). 새 라벨 자료 자유 변경.
+
+**EN —** 0.1.x auto-treated `ds-new` label as primary. 0.2.0 requires explicit specification. Existing users: add `primary: true` 1 line to the `ds-new` entry in `dsmonitor.config.local.ts`. Labels themselves can stay (`ds-new` / `ds-legacy`) or be freely renamed.
 
 ### Phase 0.6 호환성 / Compatibility (B 가설 / B hypothesis)
 
