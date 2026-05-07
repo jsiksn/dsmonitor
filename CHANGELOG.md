@@ -4,6 +4,15 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-05-07
+
+### 정정 / Fixed
+
+- **한 —** `resolvePrimaryDsLabel()` 안 에러 메시지 자연 한국어 정정 ("명시 본질" → "명시해야 합니다" / "명시해 주세요"). 코드 흐름 변경 없음, 메시지 텍스트만 정정.
+- **EN —** Polished error messages in `resolvePrimaryDsLabel()` for more natural Korean phrasing. No code-flow change — text only.
+
+[0.2.1]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.2.1
+
 ## [0.2.0] — 2026-05-07
 
 ### Breaking change / 자료 변경

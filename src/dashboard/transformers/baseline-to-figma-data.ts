@@ -51,16 +51,16 @@ function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
 
   if (primaries.length === 0) {
     throw new Error(
-      "[dsmonitor] DS 파일 2개 이상 시점에 figmaDesignSystemFiles 안 정확히 1개에 `primary: true` 명시 본질. " +
+      "[dsmonitor] DS 파일이 2개 이상이면 figmaDesignSystemFiles 안 정확히 1개에 `primary: true`를 명시해야 합니다. " +
       `등록된 DS 라벨: ${files.map((f) => f.label).join(", ")}. ` +
-      "자세 안내: https://github.com/jsiksn/dsmonitor#ds-file-labels"
+      "자세한 안내: https://github.com/jsiksn/dsmonitor#ds-file-labels"
     );
   }
 
   if (primaries.length > 1) {
     throw new Error(
-      `[dsmonitor] figmaDesignSystemFiles 안 \`primary: true\` 자료 ${primaries.length}건 발견. ` +
-      "정확히 1개만 명시 본질. " +
+      `[dsmonitor] figmaDesignSystemFiles 안 \`primary: true\` 자료가 ${primaries.length}건 발견되었습니다. ` +
+      "정확히 1개만 명시해 주세요. " +
       `현재 primary 라벨: ${primaries.map((p) => p.label).join(", ")}`
     );
   }
