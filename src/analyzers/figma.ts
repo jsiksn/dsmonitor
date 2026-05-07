@@ -33,13 +33,24 @@ import type {
   FigmaVariableEntry,
 } from "../types";
 import { parseFigmaUrl, FigmaUrlParseError } from "./figma/urlParser";
-import { FigmaApiError, type FigmaStyleEntry } from "./figma/apiClient";
+import {
+  FigmaApiError,
+  resetFigmaApiCallCount,
+  getFigmaApiCallCount,
+  type FigmaStyleEntry,
+} from "./figma/apiClient";
 import { scanDesignSystem } from "./figma/designSystemScan";
 import {
   scanDomain,
   type DomainScanResult,
   type TargetMeasurement,
 } from "./figma/domainScan";
+import {
+  resetSplitCounters,
+  getSplitFetchCount,
+  getSplitEntryCount,
+  SPLIT_CALL_WARN_THRESHOLD,
+} from "./figma/responseSplitting";
 import { validateSameFile } from "./figma/fileKeyValidator";
 import { loadCodeTokens } from "./codeTokens";
 import { buildTokenMatrix, type TokenMatrixDsInput } from "./tokenMatrix";
@@ -98,6 +109,10 @@ export async function analyzeFigma(
   // URL 사전 파싱 검증 — analyzer 시작 전 구조적 오류 먼저 차단.
   preflightUrls(fc.designSystemFiles, "designSystemFiles");
   preflightDomainUrls(fc.domainFiles);
+
+  // 0.2.2 — 호출 횟수 카운터 / 분할 카운터 초기화. 측정 끝 시점에 출력 + warning.
+  resetFigmaApiCallCount();
+  resetSplitCounters();
 
   const errors: string[] = [];
   // DS 스캔에서 개별 페이지 실패 등 비치명적 경고. FigmaReport.warnings 로 bubble up.
@@ -282,6 +297,22 @@ export async function analyzeFigma(
   if (errors.length > 0) {
     console.warn(`[figma] 경고/에러 ${errors.length}건 수집됨 — 리포트 errors 섹션 참고`);
   }
+
+  // 0.2.2 — Figma API 호출 통계 출력. 분할 진입 + 임계 호출 횟수 초과 시 warning.
+  const totalCalls = getFigmaApiCallCount();
+  const splitEntries = getSplitEntryCount();
+  const splitFetches = getSplitFetchCount();
+  console.log(
+    `[figma] API 호출 통계: total=${totalCalls}, split-entries=${splitEntries}, split-fetches=${splitFetches}`
+  );
+  if (totalCalls > SPLIT_CALL_WARN_THRESHOLD) {
+    console.warn(
+      `[figma] ⚠ API 호출 횟수 ${totalCalls} > 임계 ${SPLIT_CALL_WARN_THRESHOLD} — ` +
+        `frame 분할 호출 폭증 케이스. rate limit 위험 가능. ` +
+        `figma 파일 구조 검토 (큰 page → 작은 frame 분할) 권고.`
+    );
+  }
+
   return { report, instancesFile };
 }
 

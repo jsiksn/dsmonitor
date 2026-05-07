@@ -18,11 +18,21 @@ const FIGMA_API_BASE = "https://api.figma.com";
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_RETRIES = 3;
 
+/**
+ * FigmaApiError code 분류:
+ *   - "RESPONSE_TOO_LARGE": V8 문자열 한계 초과. frame 분할 호출로 회복 시도 가능.
+ *   - null: 그 외 모든 에러 (네트워크 / 인증 / 권한 / 5xx / rate limit / 타임아웃 / 응답 크기 외).
+ *
+ * 0.2.2 추가 — 분할 호출 흐름이 케이스를 식별할 때 사용.
+ */
+export type FigmaApiErrorCode = "RESPONSE_TOO_LARGE" | null;
+
 export class FigmaApiError extends Error {
   constructor(
     message: string,
     public readonly status: number | null,
-    public readonly endpoint: string
+    public readonly endpoint: string,
+    public readonly code: FigmaApiErrorCode = null
   ) {
     super(message);
     this.name = "FigmaApiError";
@@ -33,10 +43,37 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** V8 엔진의 문자열 최대 길이 초과 에러 감지. 재시도 무의미. */
-function isV8StringLimitError(e: unknown): boolean {
+/**
+ * V8 엔진의 문자열 최대 길이 초과 에러 감지. 재시도 무의미.
+ * 0.2.2 — export 로 변경. 분할 호출 helper 가 분기 검출에 사용.
+ */
+export function isV8StringLimitError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return /Cannot create a string longer than/i.test(msg);
+}
+
+/**
+ * FigmaApiError 가 응답 크기 초과 케이스인지 판정. 분할 호출 helper 가 사용.
+ * 0.2.2 추가.
+ */
+export function isResponseTooLarge(e: unknown): boolean {
+  return e instanceof FigmaApiError && e.code === "RESPONSE_TOO_LARGE";
+}
+
+// ─── 호출 횟수 카운터 (0.2.2 추가) ─────────────────────────────────
+//
+// figmaFetch 진입 시점마다 증가. rate limit 모니터링 + 분할 호출 발생 시
+// 호출 폭증 추적용. 측정 시작 시점에 resetFigmaApiCallCount() 호출, 끝에
+// getFigmaApiCallCount() 출력 권고.
+
+let figmaApiCallCount = 0;
+
+export function resetFigmaApiCallCount(): void {
+  figmaApiCallCount = 0;
+}
+
+export function getFigmaApiCallCount(): number {
+  return figmaApiCallCount;
 }
 
 /**
@@ -51,6 +88,8 @@ async function figmaFetch(
   const url = endpoint.startsWith("http")
     ? endpoint
     : `${FIGMA_API_BASE}${endpoint}`;
+
+  figmaApiCallCount++;
 
   let attempt = 0;
   let lastError: unknown = null;
@@ -144,6 +183,7 @@ async function figmaFetch(
       if (e instanceof FigmaApiError) throw e;
 
       // V8 문자열 한계 — 재시도해도 같은 응답이면 같은 결과. 즉시 실패.
+      // 0.2.2 — code: "RESPONSE_TOO_LARGE" 부여. 호출 측 분할 흐름이 검출.
       if (isV8StringLimitError(e)) {
         const msg = e instanceof Error ? e.message : String(e);
         throw new FigmaApiError(
@@ -151,7 +191,8 @@ async function figmaFetch(
             `엔드포인트: ${endpoint}. 재시도해도 같은 결과 — 파일을 페이지/프레임 ` +
             `단위로 분할 호출하세요. 원인: ${msg}`,
           null,
-          endpoint
+          endpoint,
+          "RESPONSE_TOO_LARGE"
         );
       }
 
@@ -341,11 +382,18 @@ export async function fetchFileMeta(
  *
  * 모든 페이지 id 를 넘기면 full 호출과 동일한 카운트를 얻되, full 호출에서
  * 실패하던 대형 파일도 성공 가능 (사전 조사 e2: ds-legacy 73MB 로 성공).
+ *
+ * 0.2.2 추가:
+ *   - opts.depth — `?depth=N` 파라미터. 분할 helper 가 메타데이터 (1단계 children)
+ *     수집할 때 사용. 미지정 시 endpoint 의 기본 동작 (depth 무제한).
+ *   - ids 파라미터는 페이지뿐 아니라 임의 nodeId (frame 등) 도 받음. 이름은 옛
+ *     "pageIds" 그대로 두되, 실제 의미는 "subtree 루트 nodeIds".
  */
 export async function fetchFileNodes(
   fileKey: string,
   pageIds: string[],
-  token: string
+  token: string,
+  opts: { depth?: number } = {}
 ): Promise<FigmaFileResponse> {
   if (pageIds.length === 0) {
     throw new FigmaApiError(
@@ -356,7 +404,9 @@ export async function fetchFileNodes(
     );
   }
   const ids = pageIds.join(",");
-  const endpoint = `/v1/files/${fileKey}?ids=${encodeURIComponent(ids)}`;
+  const depthQuery =
+    opts.depth !== undefined ? `&depth=${encodeURIComponent(String(opts.depth))}` : "";
+  const endpoint = `/v1/files/${fileKey}?ids=${encodeURIComponent(ids)}${depthQuery}`;
   console.log(`[figma] GET ${endpoint.slice(0, 100)}${endpoint.length > 100 ? "..." : ""}`);
   const t0 = Date.now();
   const res = (await figmaFetch(endpoint, token)) as FigmaFileResponse;
@@ -427,7 +477,8 @@ export async function fetchLocalVariables(
 export async function fetchNodes(
   fileKey: string,
   nodeIds: string[],
-  token: string
+  token: string,
+  opts: { depth?: number } = {}
 ): Promise<FigmaNodesResponse> {
   if (nodeIds.length === 0) {
     throw new FigmaApiError(
@@ -437,7 +488,9 @@ export async function fetchNodes(
     );
   }
   const ids = nodeIds.join(",");
-  const endpoint = `/v1/files/${fileKey}/nodes?ids=${encodeURIComponent(ids)}`;
+  const depthQuery =
+    opts.depth !== undefined ? `&depth=${encodeURIComponent(String(opts.depth))}` : "";
+  const endpoint = `/v1/files/${fileKey}/nodes?ids=${encodeURIComponent(ids)}${depthQuery}`;
   console.log(`[figma] GET ${endpoint.slice(0, 100)}${endpoint.length > 100 ? "..." : ""}`);
   const t0 = Date.now();
   const res = (await figmaFetch(endpoint, token)) as FigmaNodesResponse;
