@@ -130,6 +130,15 @@ const config: UIHealthConfig = {
   //
   //   measurementHistory: [
   //     {
+  //       version: "v0.3.2",
+  //       date: "2026-05-11",
+  //       summary: "README export-migration sub-section 신규 추가 (docs only patch).",
+  //       notes: [
+  //         "동작 / --frame / --ds flag 사양 / 사전 준비 / 출력 CSV 자세 / figmaUrl 자동 조립 / 활용 시점 안내.",
+  //         "코드 변경 0건 (cli.ts / analyzers / reporters / templates 모두 옛 동작 일관 유지).",
+  //       ],
+  //     },
+  //     {
   //       version: "v0.3.1",
   //       date: "2026-05-11",
   //       summary: "--only lighthouse flag 추가 (옛 --only code / --only figma 일관 확장).",
