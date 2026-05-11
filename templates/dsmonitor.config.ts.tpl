@@ -126,6 +126,19 @@ const config: UIHealthConfig = {
 
   // ────── 측정 도구 자체 변경 이력 ──────
   // 본 필드는 `dsmonitor init` 안 빈 배열로 시작. 측정 정의 변경 시점에 추가 entry.
+  // 사용 예시 (역순 정렬 — 최신 entry 가 첫 row):
+  //
+  //   measurementHistory: [
+  //     {
+  //       version: "v0.3.0",
+  //       date: "2026-05-11",
+  //       summary: "통합 측정 chain (audit --all) 도입.",
+  //       notes: [
+  //         "code + figma + Lighthouse + report + dashboard 자동 chain.",
+  //         "--skip-lighthouse flag 활용 시 빠른 측정 (~1-2분).",
+  //       ],
+  //     },
+  //   ],
   measurementHistory: [],
 };
 

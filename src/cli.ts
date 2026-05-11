@@ -74,6 +74,8 @@ function parseArgs(argv: string[]): {
   baseline: boolean;
   configPath: string | null;
   only: AuditOnly;
+  all: boolean;
+  skipLighthouse: boolean;
   envPath?: string;
   inputPath?: string;
   outputPath?: string;
@@ -81,6 +83,8 @@ function parseArgs(argv: string[]): {
   const args = argv.slice(2);
   const cmd = args[0] || "audit";
   const baseline = args.includes("--baseline");
+  const all = args.includes("--all");
+  const skipLighthouse = args.includes("--skip-lighthouse");
   const readOpt = (flag: string): string | undefined => {
     const i = args.indexOf(flag);
     return i >= 0 && args[i + 1] ? args[i + 1] : undefined;
@@ -102,11 +106,22 @@ function parseArgs(argv: string[]): {
     process.exit(1);
   }
 
+  // --only 와 --all 동시 사용 X — 의미 충돌 (only=부분 측정, all=통합 측정).
+  if (only !== undefined && all) {
+    console.error(
+      `[dsmonitor] --only 와 --all 은 동시 사용 불가. ` +
+        `--all 은 모든 측정 (code + figma + Lighthouse) + report + dashboard 통합 chain 흐름.`
+    );
+    process.exit(1);
+  }
+
   return {
     cmd,
     baseline,
     configPath,
     only,
+    all,
+    skipLighthouse,
     envPath: readOpt("--env"),
     inputPath: readOpt("--input"),
     outputPath: readOpt("--output"),
@@ -114,7 +129,7 @@ function parseArgs(argv: string[]): {
 }
 
 async function main() {
-  const { cmd, baseline, configPath, only, envPath, inputPath, outputPath } =
+  const { cmd, baseline, configPath, only, all, skipLighthouse, envPath, inputPath, outputPath } =
     parseArgs(process.argv);
 
   // v0.1.0: init subcommand — config 없어도 작동 (사용자 측 dsmonitor/ 부트스트랩).
@@ -255,6 +270,32 @@ async function main() {
       await writeInstancesFile(instancesFile, cfg, configDir);
     }
     printSummary(report);
+
+    // v0.3.0 (2026-05-11): --all flag — 통합 측정 chain.
+    // audit (code + figma) 완료 후 Lighthouse 호출 + report (markdown) + dashboard 자동 chain.
+    // 사용자 측 한 번 명령 호출로 모든 측정 + 출력 자동 흐름 진입.
+    if (all) {
+      console.log(``);
+      console.log(`[dsmonitor] --all chain — Lighthouse + report + dashboard 진입`);
+
+      // 1. Lighthouse 호출 (--skip-lighthouse X 시)
+      if (!skipLighthouse) {
+        await runLighthouse(configDir);
+      } else {
+        console.log(`[dsmonitor]   skip-lighthouse — Lighthouse 측정 건너뜀`);
+      }
+
+      // 2. markdown report 생성 (옛 report 명령 흐름 일관)
+      console.log(`[dsmonitor] --all chain — markdown report 생성`);
+      await runReportChain(cfg, configPath, target);
+
+      // 3. dashboard 생성 (옛 dashboard 명령 흐름 일관)
+      console.log(`[dsmonitor] --all chain — dashboard 빌드`);
+      await runDashboardChain(cfg, configPath, target);
+
+      console.log(``);
+      console.log(`[dsmonitor] --all chain 완료.`);
+    }
     return;
   }
 
@@ -407,11 +448,12 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
   console.error(
     `[dsmonitor] Unknown command: ${cmd}.\n` +
       `  Supported:\n` +
-      `    audit [--only code|figma] [--baseline]    — 측정 (code + figma 통합 또는 부분별)\n` +
-      `    baseline-lint                             — ESLint 위반 baseline 생성\n` +
-      `    report [--input <path>] [--output <path>]    — 측정 JSON → markdown 변환\n` +
-      `    dashboard [--input <path>] [--output <path>] — 측정 JSON → HTML 대시보드\n` +
-      `    export-migration --frame=<comment> [--ds=<label>]  — frame 별 instance CSV (Phase 0.7)`
+      `    audit [--only code|figma] [--baseline]                  — 측정 (code + figma 통합 또는 부분별)\n` +
+      `    audit --all [--baseline] [--skip-lighthouse]            — 통합 측정 chain (code + figma + Lighthouse + report + dashboard, v0.3.0)\n` +
+      `    baseline-lint                                           — ESLint 위반 baseline 생성\n` +
+      `    report [--input <path>] [--output <path>]               — 측정 JSON → markdown 변환\n` +
+      `    dashboard [--input <path>] [--output <path>]            — 측정 JSON → HTML 대시보드\n` +
+      `    export-migration --frame=<comment> [--ds=<label>]       — frame 별 instance CSV (Phase 0.7)`
   );
   process.exit(2);
 }
@@ -441,6 +483,134 @@ function findLatestInstancesJson(reportsDir: string): string | null {
   if (all.length === 0) return null;
   all.sort((a, b) => (a < b ? 1 : -1));
   return all[0];
+}
+
+/**
+ * v0.3.0 (2026-05-11) — --all chain 측 Lighthouse 호출.
+ *
+ * lighthouse/run.js 측 spawnSync 호출. 사용자 측 사전 준비 필수:
+ *   - dsmonitor/lighthouse/config.js (LHCI config)
+ *   - dsmonitor/lighthouse/auth/<project>.js (Puppeteer 자동 로그인 어댑터)
+ *   - dsmonitor/.env.local (LIGHTHOUSE_BASE_URL / LIGHTHOUSE_TEST_ID 등)
+ *
+ * 사전 준비 X 측 친절 에러 안내 + chain 계속 진행 (report + dashboard 측 호출).
+ */
+async function runLighthouse(configDir: string): Promise<void> {
+  const { spawnSync } = await import("node:child_process");
+  // packages/dsmonitor/dist/cli.js 측 build 후 위치 기준 — lighthouse/run.js = ../lighthouse/run.js
+  const here = path.dirname(url.fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(here, "../lighthouse/run.js"),
+    path.resolve(here, "../../lighthouse/run.js"),
+  ];
+  let lighthouseScript: string | null = null;
+  for (const c of candidates) {
+    if (existsSync(c)) {
+      lighthouseScript = c;
+      break;
+    }
+  }
+  if (!lighthouseScript) {
+    console.error(
+      `[dsmonitor]   lighthouse/run.js 위치 자동 검색 실패. 건너뜀.\n` +
+        `  검색 위치:\n` +
+        candidates.map((c) => `    - ${c}`).join("\n")
+    );
+    return;
+  }
+
+  // 사용자 측 dsmonitor/lighthouse/config.js 사전 준비 확인
+  const userLighthouseConfig = path.resolve(configDir, "lighthouse/config.js");
+  if (!existsSync(userLighthouseConfig)) {
+    console.error(
+      `[dsmonitor]   Lighthouse 사전 준비 누락 — 건너뜀.\n` +
+        `  필요: ${userLighthouseConfig}\n` +
+        `  자세: node_modules/dsmonitor/docs/lighthouse-ci-integration.md 안내 일관.`
+    );
+    return;
+  }
+
+  console.log(
+    `[dsmonitor]   running Lighthouse (~25분 예상) — script: ${lighthouseScript}`
+  );
+  const res = spawnSync(process.execPath, [lighthouseScript], {
+    cwd: process.cwd(),
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (res.status !== 0) {
+    console.error(
+      `[dsmonitor]   Lighthouse 측정 실패 (status ${res.status}). chain 계속 진행 (report + dashboard).`
+    );
+  } else {
+    console.log(`[dsmonitor]   Lighthouse 측정 완료.`);
+  }
+}
+
+/**
+ * v0.3.0 (2026-05-11) — --all chain 측 markdown report 생성.
+ *
+ * 옛 report 명령 흐름 일관 — generateMarkdown + generateOverview chain.
+ * baseline JSON path = audit 측 방금 작성한 target (writeReport 결과).
+ */
+async function runReportChain(
+  cfg: UIHealthConfig & { __absRoot: string },
+  configPath: string,
+  baselineJsonPath: string
+): Promise<void> {
+  const configDir = path.dirname(configPath);
+  const outputPath = path.resolve(configDir, "docs/baseline.md");
+  console.log(`[dsmonitor]   input:  ${baselineJsonPath}`);
+  console.log(`[dsmonitor]   output: ${outputPath}`);
+  const raw = await fs.readFile(baselineJsonPath, "utf8");
+  const report = JSON.parse(raw) as CodebaseReport;
+  await generateMarkdown(report, cfg, {
+    inputPath: baselineJsonPath,
+    outputPath,
+  });
+  console.log(`[dsmonitor]   markdown report written.`);
+
+  // overview-for-stakeholders 측 템플릿 존재 시 함께 생성
+  const templatePath = path.resolve(
+    configDir,
+    "docs/overview-for-stakeholders.template.md"
+  );
+  const overviewOutPath = path.resolve(
+    configDir,
+    "docs/overview-for-stakeholders.md"
+  );
+  const wroteOverview = await generateOverview(report, cfg, {
+    templatePath,
+    outputPath: overviewOutPath,
+  });
+  if (wroteOverview) {
+    console.log(`[dsmonitor]   overview written: ${overviewOutPath}`);
+  }
+}
+
+/**
+ * v0.3.0 (2026-05-11) — --all chain 측 dashboard 빌드.
+ *
+ * 옛 dashboard 명령 흐름 일관 — renderDashboard 호출.
+ */
+async function runDashboardChain(
+  cfg: UIHealthConfig & { __absRoot: string },
+  configPath: string,
+  baselineJsonPath: string
+): Promise<void> {
+  const configDir = path.dirname(configPath);
+  const reportsDir = path.resolve(configDir, cfg.report.outputDir);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const outputPath = path.resolve(reportsDir, `dashboard-${stamp}.html`);
+  console.log(`[dsmonitor]   input:  ${baselineJsonPath}`);
+  console.log(`[dsmonitor]   output: ${outputPath}`);
+  await renderDashboard({
+    inputPath: baselineJsonPath,
+    outputPath,
+    cfg,
+    configDir,
+  });
+  console.log(`[dsmonitor]   dashboard written.`);
 }
 
 /**

@@ -115,6 +115,8 @@ my-project/
 ### 3. CLI 명령어 / CLI Commands
 
 ```bash
+npx dsmonitor audit --all         # 통합 측정 chain (code + figma + Lighthouse + report + dashboard) / integrated chain (v0.3.0)
+npx dsmonitor audit --all --skip-lighthouse  # 빠른 통합 측정 (Lighthouse 건너뜀) / fast integrated chain (skip Lighthouse)
 npx dsmonitor audit               # code + figma 측정 (전체 cycle) / full cycle
 npx dsmonitor audit --only code   # code만 / code only
 npx dsmonitor audit --only figma  # figma만 (base JSON 필요) / figma only (requires base JSON)
@@ -131,16 +133,36 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 
 | 명령 / Command | baseline-{date}.json 생성 / Creates baseline JSON | dashboard 반영 / Reflected in dashboard | 사용 시점 / When to use |
 |---|---|---|---|
-| `npx dsmonitor audit && report && dashboard` | ✗ | ✓ | 빠른 측정 + dashboard 재생성 / Quick measure + rebuild |
-| `npx dsmonitor audit --baseline && report && dashboard` | ✓ | ✓ | **권고 / Recommended** — baseline 갱신 + dashboard / Update baseline + dashboard |
+| `npx dsmonitor audit --all --baseline` | ✓ | ✓ | **권고 (v0.3.0) / Recommended** — 통합 측정 chain (code + figma + Lighthouse + report + dashboard 자동 chain) / Integrated measurement chain |
+| `npx dsmonitor audit --all --baseline --skip-lighthouse` | ✓ | ✓ | 빠른 통합 측정 (Lighthouse 건너뜀, ~1-2분) / Fast integrated chain (skip Lighthouse) |
+| `npx dsmonitor audit && report && dashboard` | ✗ | ✓ | 빠른 측정 + dashboard 재생성 (옛 방식) / Quick measure + rebuild (legacy) |
+| `npx dsmonitor audit --baseline && report && dashboard` | ✓ | ✓ | baseline 갱신 + dashboard (옛 방식) / Update baseline + dashboard (legacy) |
 | `npx dsmonitor audit --only code` | ✗ | ✗ | code만 빠르게 / code only |
 | `npx dsmonitor audit --only figma` | ✗ | ✗ | figma raw (`figma-instances-{date}.json`) / figma raw only |
-| `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 (~25분 / ~25 min) |
+| `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 단독 (~25분 / ~25 min) |
 
 **짚어드릴 점 / Notes**:
+- `audit --all` 권고 (v0.3.0) / `audit --all` is recommended (v0.3.0) — 한 번 명령으로 code + figma + Lighthouse + report + dashboard 자동 chain. 사전 준비 = `dsmonitor/lighthouse/config.js` + auth 어댑터 + `.env.local` 안 `LIGHTHOUSE_*` 환경변수 (Lighthouse 사용 시점만 필수). / Single command runs the full chain. Lighthouse setup required only when using it.
 - `--only figma` 단독 = `figma-instances-{date}.json` (raw) 만 생성. dashboard input 누락 / standalone `--only figma` only writes `figma-instances-{date}.json` (raw); not picked up by dashboard.
 - dashboard 흐름 = 가장 최근 `baseline-*.json` (prefix 매칭) read / dashboard reads the latest `baseline-*.json` (prefixed file).
 - 자세한 안내 / Details: [docs/measurement-flow.md](./docs/measurement-flow.md).
+
+#### Lighthouse 단독 실행 / Lighthouse Direct Invocation
+
+`audit --all` 안 Lighthouse 자동 호출 외에도 단독 호출 가능 — 옛 방식 (v0.3.0 이전) 호환 + 디버그 / 재측정 시점 활용.
+
+**EN —** Beyond Lighthouse being chained via `audit --all`, the script can also be invoked directly — for legacy compatibility (pre-v0.3.0) and debug / re-measurement scenarios.
+
+```bash
+node node_modules/dsmonitor/lighthouse/run.js
+```
+
+| 항목 / Item | 자세 / Detail |
+|---|---|
+| 시간 소요 / Duration | ~25분 (10 URL × 3 run = 30 LHR) / ~25 minutes (10 URLs × 3 runs = 30 LHRs) |
+| 사전 준비 / Prerequisites | `dsmonitor/lighthouse/config.js` (LHCI config) + `dsmonitor/lighthouse/auth/<project>.js` (Puppeteer 자동 로그인 어댑터) + `dsmonitor/.env.local` 안 `LIGHTHOUSE_BASE_URL` / `LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_TEST_PW` / `LIGHTHOUSE_ZONE_ACCOUNT_UUID` / `LIGHTHOUSE_ZONE_ACCOUNT_LABEL` 환경변수 |
+| 출력 / Output | `dsmonitor/lighthouse/reports/{date}/` (LHR raw + `summary.json` + `manifest.json`) |
+| 자세 안내 / Details | [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) |
 
 ### DS 파일 라벨 / DS File Labels
 

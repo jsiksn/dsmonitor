@@ -4,6 +4,31 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-05-11
+
+### 추가 / Added
+
+- **한 —** `npx dsmonitor audit --all` 통합 측정 chain 명령 추가 — code analyzer + figma analyzer + Lighthouse 측정 + markdown report 생성 + dashboard 빌드 한 번 호출 chain 진입. 사용자 측 한 명령으로 전체 측정 + 출력 자동 생성 흐름.
+- **한 —** `--skip-lighthouse` flag 추가 — Lighthouse 측정 (~25분) 건너뜀. 빠른 측정 (code + figma + report + dashboard, ~1-2분) 권고 시점 활용.
+- **EN —** Added `npx dsmonitor audit --all` — single-call chain running code analyzer + figma analyzer + Lighthouse measurement + markdown report generation + dashboard build. Users can run all measurements + outputs with one command.
+- **EN —** Added `--skip-lighthouse` flag — skips Lighthouse measurement (~25 min). Useful for fast measurement cycles (code + figma + report + dashboard, ~1-2 min).
+
+### 변경 / Changed
+
+- **한 —** README CLI 명령어 §3 정정 — 통합 측정 명령 차이 표 안 `npx dsmonitor audit --all` row 추가 (권고 명령 안내). Lighthouse 실행 명령 sub-section 자세 안내 추가 (`node node_modules/dsmonitor/lighthouse/run.js` 측 사전 준비 사항 안내 일관).
+- **EN —** Updated README CLI Commands §3 — added `npx dsmonitor audit --all` row to the command differences table (recommended). Added detailed sub-section for Lighthouse direct invocation (`node node_modules/dsmonitor/lighthouse/run.js`) with prerequisite setup notes.
+
+### 참고 / Notes
+
+- **한 —** `audit --all` + `audit --only` 동시 사용 X — 의미 충돌 (only=부분 측정, all=통합 측정). 사용자 측 실수 시 친절 에러 안내 + exit 1.
+- **한 —** Lighthouse 사전 준비 자세 — `dsmonitor/lighthouse/config.js` + `dsmonitor/lighthouse/auth/<project>.js` (Puppeteer 어댑터) + `dsmonitor/.env.local` 안 `LIGHTHOUSE_*` 환경변수. 사전 준비 누락 시 친절 안내 + chain 계속 진행 (report + dashboard 측 진입).
+- **한 —** Lighthouse 측정 실패 시 chain 계속 진행 — code + figma 측정값 기반 report + dashboard 빌드 자연 진입.
+- **EN —** `audit --all` and `audit --only` cannot be combined — semantic conflict (only=partial, all=integrated). Friendly error + exit 1 on misuse.
+- **EN —** Lighthouse prerequisites — `dsmonitor/lighthouse/config.js`, `dsmonitor/lighthouse/auth/<project>.js` (Puppeteer adapter), `dsmonitor/.env.local` with `LIGHTHOUSE_*` env vars. Missing setup → friendly notice + chain continues (report + dashboard still run).
+- **EN —** On Lighthouse failure, chain continues — markdown report + dashboard still generated from code + figma measurements.
+
+[0.3.0]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.3.0
+
 ## [0.2.3] — 2026-05-07
 
 ### 변경 / Changed
