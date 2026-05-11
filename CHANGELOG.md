@@ -4,6 +4,22 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-05-11
+
+### 변경 / Changed
+
+- **한 —** README `export-migration` 명령 측 sub-section 신규 추가 — 동작 / `--frame` / `--ds` flag 사양 / 사전 준비 / 출력 CSV 위치 + 컬럼 자세 / figmaUrl 자동 조립 / 활용 시점 / frame name 측 가져오기 흐름 자세 안내. 옛 placeholder만 안내 (`<comment>` / `<label>`) → 자세 sub-section 정정.
+- **EN —** Added a detailed `export-migration` sub-section to README — behavior, `--frame` / `--ds` flag specs, prerequisites, output CSV location + columns, figmaUrl auto-assembly, usage scenarios, frame name discovery. Replaces the prior placeholder-only mention (`<comment>` / `<label>`) with a complete reference.
+
+### 참고 / Notes
+
+- **한 —** docs only patch — 코드 변경 0건 (cli.ts / analyzers / reporters / templates 측 모두 옛 동작 일관 유지).
+- **한 —** 외부 사용자 측 직관 강화 — `export-migration` 명령 측 실제 동작 + 활용 시점 자세 안내 진입.
+- **EN —** Docs-only patch — no code changes (cli.ts / analyzers / reporters / templates all behave as before).
+- **EN —** Improves external user discoverability — `export-migration` is now documented with concrete behavior and usage examples.
+
+[0.3.2]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.3.2
+
 ## [0.3.1] — 2026-05-11
 
 ### 추가 / Added

@@ -166,6 +166,28 @@ node node_modules/dsmonitor/lighthouse/run.js
 | 출력 / Output | `dsmonitor/lighthouse/reports/{date}/` (LHR raw + `summary.json` + `manifest.json`) |
 | 자세 안내 / Details | [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) |
 
+#### export-migration 자세 / export-migration Details (v0.3.2 추가)
+
+Figma 안 특정 frame 측 instance 측 마이그레이션 CSV 출력 — 새 DS / 옛 DS 마이그레이션 작업 진입 시점 source 정보. 디자이너 / 퍼블리셔 측 활용 흐름.
+
+**EN —** Exports a CSV of instances inside a specific Figma frame — useful as source data for new-DS / legacy-DS migration work. Used by designers / publishers.
+
+```bash
+npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
+```
+
+| 항목 / Item | 자세 / Detail |
+|---|---|
+| **동작 / Behavior** | `figma-instances-{date}.json` (v0.14 출력) 측 read + frame 필터링 + ds 필터링 + figmaUrl 자동 조립 → CSV 출력 |
+| **`--frame=<comment>`** | Figma 안 frame 측 comment 또는 name 측 필터링 (예: `--frame=Test-Perform`). 정확 일치 — 부분 일치 X |
+| **`--ds=<label>` (옵션)** | DS label 측 필터링. 기본값 = `ds-legacy`. 다른 값 = `ds-new` / `unmatched` / `all` |
+| **사전 준비 / Prerequisites** | `npx dsmonitor audit --baseline` 측 figma 측정 끝 → `dsmonitor/reports/figma-instances-{date}.json` 자동 생성 끝난 상태 |
+| **출력 / Output** | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` (frame name + ds label 측 안전 처리 — 영문/숫자/하이픈/언더스코어 외 문자 = 언더스코어 정정) |
+| **CSV 컬럼 / CSV Columns** | `nodeId` / `componentName` / `instanceName` / `dsLabel` / `contextPath` / `figmaUrl` (자동 조립 — 직접 클릭 진입 가능) |
+| **figmaUrl 자동 조립** | `https://www.figma.com/design/{fileKey}/{fileName}?node-id={nodeId 콜론 → 하이픈}` 형태 |
+| **활용 시점 / When to use** | 새 DS / 옛 DS 마이그레이션 작업 진입 시점 — frame 측 자세 instance 목록 + Figma 직접 진입 link 측 작업 정보 |
+| **frame name 측 가져오기 / Frame discovery** | Figma 측 frame 직접 확인 또는 `dsmonitor/reports/figma-instances-{date}.json` 측 자세 검토 |
+
 ### DS 파일 라벨 / DS File Labels
 
 `figmaDesignSystemFiles` 라벨 형태 = 사용자 자유 결정 (예: `"v1"`, `"v2"`, `"main"`, `"legacy"`). dashboard 안 사용자 라벨 그대로 표시.
