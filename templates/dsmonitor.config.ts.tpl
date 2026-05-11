@@ -130,6 +130,15 @@ const config: UIHealthConfig = {
   //
   //   measurementHistory: [
   //     {
+  //       version: "v0.3.1",
+  //       date: "2026-05-11",
+  //       summary: "--only lighthouse flag 추가 (옛 --only code / --only figma 일관 확장).",
+  //       notes: [
+  //         "Lighthouse 측정 단독 호출 — npx dsmonitor audit --only lighthouse.",
+  //         "옛 node node_modules/dsmonitor/lighthouse/run.js 단독 호출 흐름 일관 (사용자 측 직관 강화).",
+  //       ],
+  //     },
+  //     {
   //       version: "v0.3.0",
   //       date: "2026-05-11",
   //       summary: "통합 측정 chain (audit --all) 도입.",

@@ -118,8 +118,9 @@ my-project/
 npx dsmonitor audit --all         # 통합 측정 chain (code + figma + Lighthouse + report + dashboard) / integrated chain (v0.3.0)
 npx dsmonitor audit --all --skip-lighthouse  # 빠른 통합 측정 (Lighthouse 건너뜀) / fast integrated chain (skip Lighthouse)
 npx dsmonitor audit               # code + figma 측정 (전체 cycle) / full cycle
-npx dsmonitor audit --only code   # code만 / code only
-npx dsmonitor audit --only figma  # figma만 (base JSON 필요) / figma only (requires base JSON)
+npx dsmonitor audit --only code        # code만 / code only
+npx dsmonitor audit --only figma       # figma만 (base JSON 필요) / figma only (requires base JSON)
+npx dsmonitor audit --only lighthouse  # Lighthouse만 (v0.3.1) / Lighthouse only (v0.3.1)
 npx dsmonitor audit --baseline    # 정식 baseline 모드 / official baseline mode (baseline-YYYY-MM-DD.json)
 npx dsmonitor report              # markdown 재생성 / regenerate markdown
 npx dsmonitor dashboard           # dashboard html 재빌드 (사이드카 plugin 자동 검색) / rebuild dashboard html (auto-discovers sidecar plugins)
@@ -139,7 +140,8 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 | `npx dsmonitor audit --baseline && report && dashboard` | ✓ | ✓ | baseline 갱신 + dashboard (옛 방식) / Update baseline + dashboard (legacy) |
 | `npx dsmonitor audit --only code` | ✗ | ✗ | code만 빠르게 / code only |
 | `npx dsmonitor audit --only figma` | ✗ | ✗ | figma raw (`figma-instances-{date}.json`) / figma raw only |
-| `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 단독 (~25분 / ~25 min) |
+| `npx dsmonitor audit --only lighthouse` | ✗ | ✓ | Lighthouse만 측정 (~25분 소요, dashboard 측 lighthouse 부분 갱신, v0.3.1) / Lighthouse only (~25 min, refreshes lighthouse section in dashboard, v0.3.1) |
+| `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 단독 — 옛 호출 방식 (~25분 / ~25 min, legacy invocation) |
 
 **짚어드릴 점 / Notes**:
 - `audit --all` 권고 (v0.3.0) / `audit --all` is recommended (v0.3.0) — 한 번 명령으로 code + figma + Lighthouse + report + dashboard 자동 chain. 사전 준비 = `dsmonitor/lighthouse/config.js` + auth 어댑터 + `.env.local` 안 `LIGHTHOUSE_*` 환경변수 (Lighthouse 사용 시점만 필수). / Single command runs the full chain. Lighthouse setup required only when using it.
