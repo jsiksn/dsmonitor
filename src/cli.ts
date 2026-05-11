@@ -67,7 +67,7 @@ function findConfigUpward(startDir: string): string | null {
   }
 }
 
-type AuditOnly = "code" | "figma" | undefined;
+type AuditOnly = "code" | "figma" | "lighthouse" | undefined;
 
 function parseArgs(argv: string[]): {
   cmd: string;
@@ -94,14 +94,14 @@ function parseArgs(argv: string[]): {
     ? path.resolve(explicitConfig)
     : findConfigUpward(process.cwd());
 
-  // --only <code|figma> 인자 검증
+  // --only <code|figma|lighthouse> 인자 검증
   const onlyRaw = readOpt("--only");
   let only: AuditOnly;
-  if (onlyRaw === "code" || onlyRaw === "figma") {
+  if (onlyRaw === "code" || onlyRaw === "figma" || onlyRaw === "lighthouse") {
     only = onlyRaw;
   } else if (onlyRaw !== undefined) {
     console.error(
-      `[dsmonitor] --only 인자는 "code" 또는 "figma" 만 허용. 받은 값: "${onlyRaw}"`
+      `[dsmonitor] --only 인자는 "code" / "figma" / "lighthouse" 만 허용. 받은 값: "${onlyRaw}"`
     );
     process.exit(1);
   }
@@ -178,6 +178,15 @@ async function main() {
   console.log(`[dsmonitor] projectRoot: ${cfg.__absRoot}`);
 
   if (cmd === "audit") {
+    // v0.3.1 (2026-05-11): --only lighthouse — Lighthouse 단독 측정.
+    // code analyzer + figma analyzer 호출 X. 옛 `node node_modules/dsmonitor/lighthouse/run.js` 단독 호출 흐름 일관 + 사용자 측 직관 강화.
+    if (only === "lighthouse") {
+      const configDir = path.dirname(configPath);
+      console.log(`[dsmonitor] --only lighthouse — Lighthouse 단독 측정`);
+      await runLighthouse(configDir);
+      return;
+    }
+
     // --only figma: 기존 reports/ 의 최신 JSON 을 base 로 읽어 figma 섹션만 갱신.
     // 사용 시나리오 — code 측정 결과는 그대로 유지하고 figma 만 빠르게 재측정.
     if (only === "figma") {
@@ -448,7 +457,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
   console.error(
     `[dsmonitor] Unknown command: ${cmd}.\n` +
       `  Supported:\n` +
-      `    audit [--only code|figma] [--baseline]                  — 측정 (code + figma 통합 또는 부분별)\n` +
+      `    audit [--only code|figma|lighthouse] [--baseline]       — 측정 (code + figma 통합 또는 부분별, v0.3.1: lighthouse 추가)\n` +
       `    audit --all [--baseline] [--skip-lighthouse]            — 통합 측정 chain (code + figma + Lighthouse + report + dashboard, v0.3.0)\n` +
       `    baseline-lint                                           — ESLint 위반 baseline 생성\n` +
       `    report [--input <path>] [--output <path>]               — 측정 JSON → markdown 변환\n` +

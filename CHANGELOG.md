@@ -4,6 +4,29 @@
 
 **EN —** Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-05-11
+
+### 추가 / Added
+
+- **한 —** `npx dsmonitor audit --only lighthouse` flag 추가 — Lighthouse 측정만 단독 호출. 옛 `--only code` / `--only figma` 일관 확장 측면 — 사용자 측 `--only` flag 안 3 측정 (code / figma / lighthouse) 모두 단독 호출 가능 흐름.
+- **EN —** Added `npx dsmonitor audit --only lighthouse` — runs Lighthouse measurement only. Consistent extension of the existing `--only code` / `--only figma` flags — users can now invoke any of the 3 measurements (code / figma / lighthouse) individually via `--only`.
+
+### 변경 / Changed
+
+- **한 —** README CLI 명령어 §3 정정 — `--only lighthouse` row 추가 (측정 명령 차이 표 + 빠른 시작 코드 블록).
+- **EN —** Updated README CLI Commands §3 — added `--only lighthouse` row to the command differences table and quick-start code block.
+
+### 참고 / Notes
+
+- **한 —** 옛 `node node_modules/dsmonitor/lighthouse/run.js` 단독 호출 흐름 일관 (사용자 측 직관 강화) — 옛 호출 방식 보존 + 새 `--only lighthouse` flag 형태 호환.
+- **한 —** Lighthouse 사전 준비 누락 시 친절 안내 + 종료 (옛 `runLighthouse` 측 흐름 일관).
+- **한 —** `--only lighthouse` 와 `--all` 동시 사용 X 검증 (옛 v0.3.0 진입 흐름 일관 — only / all 의미 충돌 친절 안내).
+- **EN —** Behaves identically to direct invocation via `node node_modules/dsmonitor/lighthouse/run.js` — legacy invocation preserved alongside the new `--only lighthouse` flag.
+- **EN —** Missing Lighthouse prerequisites → friendly notice + exit (consistent with `runLighthouse` flow).
+- **EN —** `--only lighthouse` and `--all` cannot be combined (consistent with v0.3.0 validation — only / all semantic conflict).
+
+[0.3.1]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.3.1
+
 ## [0.3.0] — 2026-05-11
 
 ### 추가 / Added
