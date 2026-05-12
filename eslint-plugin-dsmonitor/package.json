@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-dsmonitor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "ESLint plugin wrapper for dsmonitor. Re-exports dsmonitor/eslint to satisfy ESLint legacy config's automatic plugin resolution.",
   "main": "index.js",
   "license": "MIT",
@@ -14,7 +14,7 @@
     "ui-health"
   ],
   "peerDependencies": {
-    "dsmonitor": "^0.1.7",
+    "dsmonitor": ">=0.1.7",
     "eslint": ">=8"
   },
   "repository": {
@@ -29,6 +29,7 @@
   "files": [
     "index.js",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ]
 }
