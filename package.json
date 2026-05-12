@@ -1,6 +1,6 @@
 {
   "name": "dsmonitor",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "UI Health Monitoring Framework — 코드베이스 / 스타일 / 디자인 일관성을 정량 측정하는 도구. UI Health Monitoring Framework — quantifies codebase / style / design consistency.",
   "type": "module",
   "main": "./dist/index.js",
@@ -76,9 +76,7 @@
     "prepublishOnly": "npm run typecheck && npm run build"
   },
   "dependencies": {
-    "@typescript-eslint/parser": "^7.18.0",
-    "@typescript-eslint/types": "^7.18.0",
-    "@typescript-eslint/visitor-keys": "^7.18.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "fast-glob": "^3.3.2",
     "postcss": "^8.4.47",
     "postcss-scss": "^4.0.9",
