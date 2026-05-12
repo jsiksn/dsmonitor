@@ -8,6 +8,37 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.3.3] — 2026-05-12
+
+### 정정 / Fixed
+
+- **한 —** `dependencies.@typescript-eslint/parser` 의 `^7.18.0` → `^8.0.0` 으로 bump. 옛 7.x parser 의 peer eslint `^8.56.0` 제약 때문에 eslint 9 사용자 환경에서 `npm install dsmonitor` 시점에 WARN ERESOLVE (parser peer 충돌) 발생하던 케이스 회복. 8.x parser 의 peer 는 `eslint: ^8.57.0 || ^9.0.0 || ^10.0.0` 으로 eslint 9 / 10 까지 자연 호환.
+- **EN —** Bumped `dependencies.@typescript-eslint/parser` from `^7.18.0` to `^8.0.0`. The 7.x parser carried `eslint ^8.56.0` as its peer, which produced an `npm install` ERESOLVE warning for users on eslint 9. The 8.x parser declares `eslint: ^8.57.0 || ^9.0.0 || ^10.0.0` and is compatible with eslint 9 / 10 out of the box.
+
+### 변경 / Changed
+
+- **한 —** `dependencies.@typescript-eslint/types` + `@typescript-eslint/visitor-keys` 두 항목 제거. dsmonitor 소스 코드 내 직접 import 가 없고, `@typescript-eslint/parser` 의 transitive 로 자연 만족되는 redundant 한 항목이었음. install 크기 감소 + dep tree 단순화.
+- **한 —** `tsup.config.ts` 의 `external` 배열은 두 이름 그대로 유지 — 향후 parser 의 transitive 구조가 변경되어도 번들 회피 안전 망 보존.
+- **EN —** Removed `@typescript-eslint/types` and `@typescript-eslint/visitor-keys` from `dependencies`. Neither is imported directly by dsmonitor's source — both are pulled in transitively by `@typescript-eslint/parser`. This trims the dep list and shrinks the install footprint.
+- **EN —** The `external` array in `tsup.config.ts` still lists both names so that future changes in the parser's transitive structure cannot accidentally bundle them.
+
+### 참고 / Notes
+
+- **한 —** parser 7.x → 8.x 는 major bump 이지만 dsmonitor 가 호출하는 부분 (`parse()` 함수 1곳, `src/frameworks/react.ts`) 의 시그니처 + 옵션 (`jsx`, `loc`, `range`, `tokens`, `comment`, `errorOnUnknownASTType`, `ecmaFeatures`, `ecmaVersion`, `sourceType`, `filePath`) 모두 8.x 에서도 동일하게 유효. AST 노드 형태 (ESTree + JSX 확장) 도 동일.
+- **한 —** dsmonitor 소스 코드 변경 0건. `npm run typecheck` + `npm run build` 통과, parser 8.59.3 직접 smoke test (`parse()` 호출 후 `Program` AST 정상 반환) 통과, `node dist/cli.js --help` CLI bootstrap 통과.
+- **한 —** 사용자 환경 영향 — eslint 9 + 10 사용자: WARN ERESOLVE 해소, install 자연 통과. eslint 8.57+ 사용자: 변화 없음 (옛 동작 그대로). eslint 8.56 이하 사용자: 본 release 부터 install 시점에 parser 8.x peer 와 충돌 가능 (2026-05 시점에 8.56 이하 환경은 매우 드묾).
+- **한 —** TypeScript 호환 범위 — parser 8.x 의 peer `typescript: >=4.8.4 <6.1.0`. 현재 dsmonitor 의 devDep `typescript ^5.5.4` 와 자연 호환. 사용자 TypeScript 6.0+ 사용 시점 = peer optional 이라 install 차단 X (WARN 만).
+- **한 —** `eslint-visitor-keys@5.0.1` 의 `engines.node` (`^20.19.0 || ^22.13.0 || >=24`) 가 dsmonitor 본체의 `engines.node` (`>=18.0.0`) 보다 엄격 — Node 18 / 20.0~20.18 사용자 install 시점에 `EBADENGINE` WARN 가능. 단 transitive WARN 이라 install 차단 X.
+- **한 —** flat config 어댑터 추가 (`fromPolicyFlat()`) 는 본 release 범위 외 — 별도 0.4.0 minor release 흐름 계획.
+- **EN —** parser 7.x → 8.x is a major bump, but dsmonitor's only call site (`parse()` in `src/frameworks/react.ts`) keeps the same signature and options across 7.x and 8.x. AST node shape (ESTree + JSX) is unchanged.
+- **EN —** Zero source changes in dsmonitor. `npm run typecheck` and `npm run build` succeed, a direct `parse()` smoke test against parser 8.59.3 returns a valid `Program` AST, and `node dist/cli.js --help` bootstraps cleanly.
+- **EN —** User-side impact — eslint 9 + 10 users: ERESOLVE warning gone, install resolves cleanly. eslint 8.57+ users: no behavioral change. eslint 8.56 and below: parser 8.x peer will conflict from this release onward, but environments below 8.56 in mid-2026 are rare.
+- **EN —** TypeScript compatibility — parser 8.x declares `typescript: >=4.8.4 <6.1.0`. The dsmonitor devDep (`typescript ^5.5.4`) sits comfortably inside that range. Users on TypeScript 6.0+ see a peer warning, not an install block, because the peer is optional.
+- **EN —** Note on Node engines — `eslint-visitor-keys@5.0.1` (a transitive of parser 8.x) declares `engines.node` of `^20.19.0 || ^22.13.0 || >=24`, which is stricter than dsmonitor's own `>=18.0.0`. Users on Node 18 / 20.0~20.18 will see an `EBADENGINE` warning at install. The warning does not block install.
+- **EN —** The flat config adapter (`fromPolicyFlat()`) is intentionally out of scope here — planned for a separate 0.4.0 minor.
+
+[0.3.3]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.3.3
+
 ## [0.3.2] — 2026-05-11
 
 ### 변경 / Changed
