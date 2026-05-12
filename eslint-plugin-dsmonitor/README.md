@@ -14,6 +14,10 @@ ESLint legacy config(`.eslintrc.js`)는 plugin을 `eslint-plugin-{name}` 형식�
 npm install --save-dev dsmonitor eslint-plugin-dsmonitor
 ```
 
+### 호환
+
+이 wrapper 측 `dsmonitor >=0.1.7` 측 호환합니다 (0.2.x / 0.3.x 포함).
+
 ### 사용법
 
 `.eslintrc.js`:
@@ -51,6 +55,10 @@ This wrapper re-exports `dsmonitor/eslint` under the expected name (a 1-line re-
 ```bash
 npm install --save-dev dsmonitor eslint-plugin-dsmonitor
 ```
+
+### Compatibility
+
+This wrapper is compatible with `dsmonitor >=0.1.7` (including 0.2.x / 0.3.x).
 
 ### Usage
 
