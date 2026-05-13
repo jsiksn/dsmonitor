@@ -455,18 +455,48 @@ export type FigmaDomainFile =
 /**
  * Lighthouse 측정 설정 — `UIHealthConfig.lighthouse`.
  *
- * Phase 0.5 (2026-04-27 분리 4단계) — type 만 신설. 실제 활용은 Phase B 에서
- * AuthAdapter 인터페이스로 정식화 예정.
+ * 0.4.0 (2026-05-12) — 인증 흐름 재설계. 옛 `authAdapter?: string` 제거,
+ * 새 `auth?: LighthouseAuthConfig` 도입 (3종 discriminated union).
  */
 export type LighthouseConfig = {
   /**
-   * Puppeteer 인증 어댑터 파일 경로 (config 디렉토리 기준 상대경로 또는 절대경로).
+   * 인증 방식 — 3종 중 선택. 미지정 시 = `{ type: 'none' }` 자연 처리.
    *
-   * 미지정 시 lighthouse/config.js 의 형제 auth/<프로젝트명>.js 자동 발견
-   * (현 default 동작 유지). 정식 시그니처는 Phase B 에서 AuthAdapter 인터페이스로 정의.
+   * - `none`   = 인증 없는 공개 사이트. `lighthouse/config.js` 안
+   *              `puppeteerScript` 옵션 미사용.
+   * - `basic`  = ID/PW form login. dsmonitor 패키지 내장 어댑터
+   *              (`lighthouse/auth/basic-form-login.js`) 활용.
+   *              `LIGHTHOUSE_LOGIN_URL` / `LIGHTHOUSE_TEST_ID` /
+   *              `LIGHTHOUSE_TEST_PW` 환경변수 read.
+   * - `custom` = 외부 사용자 어댑터. `adapter` 필드에 경로 명시
+   *              (config 디렉토리 기준 상대경로 또는 절대경로).
+   *              어댑터 = LHCI `puppeteerScript` 호환 (단일 default
+   *              export `async (browser, context) => void`).
+   *              어댑터 안 `getMetadata()` 함수 export 시 → `summary.json`
+   *              안 메타데이터 등록.
    */
-  authAdapter?: string;
+  auth?: LighthouseAuthConfig;
 };
+
+/** Lighthouse 인증 방식 — 3종 discriminated union. */
+export type LighthouseAuthConfig =
+  | { type: "none" }
+  | {
+      type: "basic";
+      /** 로그인 페이지 URL — baseUrl 기준 path 또는 절대 URL. */
+      loginUrl: string;
+      /** selector 명시 시 우선 적용. 미지정 항목 = 기본 추론 (`input[type="email"]` 등). */
+      selectors?: {
+        idInput?: string;
+        pwInput?: string;
+        submit?: string;
+      };
+    }
+  | {
+      type: "custom";
+      /** 어댑터 파일 경로 — config 디렉토리 기준 상대경로 또는 절대경로. */
+      adapter: string;
+    };
 
 /**
  * Figma 측정 설정 — `UIHealthConfig.figma`.

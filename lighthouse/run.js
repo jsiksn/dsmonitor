@@ -123,11 +123,28 @@ try {
     };
   }
 
+  // 0.4.0 — 어댑터 자체가 `getMetadata()` export → summary 안 누적.
+  // 옛 LIGHTHOUSE_TEST_ID / LIGHTHOUSE_ZONE_ACCOUNT_LABEL 직접 read 제거.
+  let adapterMeta = {};
+  const adapterPath = process.env.DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER;
+  if (adapterPath) {
+    try {
+      const adapter = require(adapterPath);
+      if (typeof adapter.getMetadata === "function") {
+        adapterMeta = adapter.getMetadata() || {};
+      }
+    } catch (err) {
+      console.warn(
+        `[lighthouse] 어댑터 메타데이터 read 실패 (${adapterPath}): ${err.message}`
+      );
+    }
+  }
+
   const summary = {
     runAt: new Date().toISOString(),
     baseUrl: process.env.LIGHTHOUSE_BASE_URL,
-    testAccount: process.env.LIGHTHOUSE_TEST_ID || null,
-    zoneAccountLabel: process.env.LIGHTHOUSE_ZONE_ACCOUNT_LABEL || null,
+    authType: process.env.DSMONITOR_LIGHTHOUSE_AUTH_TYPE || "none",
+    ...adapterMeta,
     numberOfRuns: 3,
     totalUrls: Object.keys(scoresByUrl).length,
     scoresByUrl,

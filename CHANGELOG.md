@@ -8,6 +8,60 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.4.0] — 2026-05-12
+
+### 추가 / Added
+
+- **한 —** Lighthouse 인증 흐름 재설계 — `lighthouse.auth` 필드 도입 (3종 discriminated union: `{ type: "none" }` / `{ type: "basic", loginUrl: string, selectors?: ... }` / `{ type: "custom", adapter: string }`). 옛 `LighthouseConfig.authAdapter?: string` 단일 필드 자리 = `lighthouse.auth` 안 자세 정정 (breaking — 아래 ### 변경 sub-section 참조).
+- **한 —** dsmonitor 패키지 내장 인증 어댑터 `lighthouse/auth/basic-form-login.js` 신규 — 표준 form login (이메일/ID/사용자명 + 비밀번호 + submit). 환경변수: `LIGHTHOUSE_BASE_URL` / `LIGHTHOUSE_LOGIN_URL` / `LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_TEST_PW`. selector 자동 추론 (`input[type="email"]` / `input[type="password"]` / `button[type="submit"]`) + `LIGHTHOUSE_BASIC_SELECTOR_*` 환경변수 override 지원. baseUrl 진입 후 loginUrl path 안 머무름 여부로 `isAuthed` 사전 판별 → 매 측정 URL 풀 로그인 회피.
+- **한 —** `dsmonitor init` 안 Lighthouse 인증 방식 select prompt 신규 — Lighthouse=Y 케이스에 (1. 인증 없음 / 2. ID/PW 기본 / 3. 커스텀 어댑터) 3종 안내. 선택에 따라 `dsmonitor.config.ts` 안 `auth` 블록 + `.env.local.example` 환경변수 + `dsmonitor/lighthouse/config.js` (LHCI config) 동적 생성. 커스텀 케이스 = `dsmonitor/lighthouse/auth/custom.js` 스켈레톤 자동 생성 (어댑터 인터페이스 + 환경변수 read 예시 + 다단계 인증 안내 주석 포함).
+- **한 —** 어댑터 인터페이스 확장 — `module.exports.getMetadata = () => Record<string, any>` 함수 export 시 `lighthouse/run.js` 가 require 후 호출 → `summary.json` 안 누적. 옛 흐름 = `process.env.LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_ZONE_ACCOUNT_LABEL` 두 변수 hard-code read → 새 흐름 = 어댑터 자체가 메타데이터 결정. basic 어댑터 = `{ authType, testAccount, loginUrl }`. 커스텀 어댑터 = 자유 정의.
+- **한 —** `dsmonitor.config.ts` 자동 생성본 안 인증 방식 3종 명확 주석 — `auth: { ... }` 옆 한 줄 주석 (`// 1. 인증 없음 / 2. ID/PW 기본 / 3. 커스텀 어댑터`) + 자세 안내 link.
+- **EN —** Redesigned the Lighthouse auth flow — introduces `lighthouse.auth` as a 3-way discriminated union: `{ type: "none" }` / `{ type: "basic", loginUrl, selectors? }` / `{ type: "custom", adapter }`. Replaces the prior `LighthouseConfig.authAdapter?: string` field (breaking — see "Changed" below).
+- **EN —** Added a package-internal auth adapter `lighthouse/auth/basic-form-login.js` — standard form login (email/ID/username + password + submit). Env vars: `LIGHTHOUSE_BASE_URL` / `LIGHTHOUSE_LOGIN_URL` / `LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_TEST_PW`. Auto-infers selectors (`input[type="email"]` / `input[type="password"]` / `button[type="submit"]`); override via `LIGHTHOUSE_BASIC_SELECTOR_*` env vars. Pre-checks `isAuthed` (does the baseUrl land on the login path?) to skip the full login on subsequent invocations.
+- **EN —** `dsmonitor init` now prompts for an auth strategy on the Lighthouse=Y path (1. none / 2. basic ID-PW / 3. custom adapter). The choice drives generation of the `auth` block in `dsmonitor.config.ts`, the environment-variable block in `.env.local.example`, and the LHCI config at `dsmonitor/lighthouse/config.js`. The custom branch additionally scaffolds `dsmonitor/lighthouse/auth/custom.js` with the adapter contract, env-var examples, and notes on multi-step flows.
+- **EN —** Extended the adapter contract — exporting `module.exports.getMetadata = () => Record<string, any>` lets `lighthouse/run.js` pick up metadata at summary time. Replaces the old hard-coded reads of `LIGHTHOUSE_TEST_ID` and `LIGHTHOUSE_ZONE_ACCOUNT_LABEL`. The built-in basic adapter returns `{ authType, testAccount, loginUrl }`; custom adapters define their own shape.
+- **EN —** The generated `dsmonitor.config.ts` carries explicit comments next to `auth: { ... }` describing all three strategies and pointing at the README sub-section.
+
+### 변경 / Changed
+
+- **한 —** **BREAKING** — `LighthouseConfig.authAdapter?: string` 옛 필드 자리 제거. 새 `LighthouseConfig.auth?: LighthouseAuthConfig` 필드로 자세 정정. 옛 필드 = 실제 활용 사용처 0건 (Phase B 예약 자리만) — 외부 사용자 환경 영향 0건 예상. 옛 portal-gateway 어댑터 = `lighthouse/config.js` 안 `puppeteerScript` 직접 명시 흐름 그대로 작동 (config.ts 안 `auth` 필드 = 새 어댑터 메타데이터 inject 안 read 됨, 옛 어댑터는 `getMetadata()` 미export 안 자연 무시).
+- **한 —** **BREAKING** — `lighthouse/run.js` 안 `summary.json` 생성 흐름 자세 정정. 옛 = `testAccount: process.env.LIGHTHOUSE_TEST_ID || null` + `zoneAccountLabel: process.env.LIGHTHOUSE_ZONE_ACCOUNT_LABEL || null` 두 필드 hard-code → 새 = `authType` + 어댑터 `getMetadata()` 반환값 spread. 옛 portal-gateway 어댑터 사용자 = `summary.json` 안 `testAccount` / `zoneAccountLabel` 필드 자동 누적 안 됨 → 어댑터 자체에 `getMetadata()` 추가 권고 (외부 사용자 환경 migration 안내 — 아래 ### 참고 sub-section).
+- **한 —** `src/cli.ts` 안 `runLighthouse(configDir)` → `runLighthouse(configDir, lighthouseConfig?)` 시그니처 확장. `cfg.lighthouse.auth` read → 어댑터 path 결정 (basic = 패키지 내장 절대 path / custom = `configDir` 기준 상대 path) → `DSMONITOR_LIGHTHOUSE_AUTH_TYPE` + `DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER` 환경변수 inject 후 `run.js` spawn.
+- **한 —** `.env.local.example.tpl` 정정 — 옛 hard-code 본문 (BASE_URL + TEST_ID + ZONE_ACCOUNT_LABEL 3 줄) → 새 `{{FIGMA_ENV_BLOCK}}` + `{{LIGHTHOUSE_ENV_BLOCK}}` 두 토큰 자리. `init` 안 인증 방식에 따라 동적 본문 inject (none = BASE_URL 만 / basic = BASE_URL + LOGIN_URL + TEST_ID + TEST_PW + selector override 안내 / custom = BASE_URL + 자유 변수 안내 주석).
+- **한 —** `src/cli/init.ts` 안 끝 안내 본문 자세 정정 — 신규 단계 `1.5. dsmonitor/dsmonitor.config.ts 검토 + Figma file ID / Lighthouse URL 입력` + (custom 케이스) `1.6. dsmonitor/lighthouse/auth/custom.js 어댑터 본문 작성` 진입. 신규 sub-section `CLI 옵션 안내` (`audit --all` / `--baseline` / `--only lighthouse` / `--skip-lighthouse` / `--help`) 누적.
+- **한 —** `src/cli/init.ts` 안 "사용자 측" 표현 4곳 정정 — file header docstring (L2) / init banner output (L46) / 1단계 precheck 주석 / `@lhci/cli` 실패 warn 본문 → "외부 사용자" / 자연 호명.
+- **한 —** `README.md` 안 sub-section 3종 신규 — (a) "init 이후 `.env.local` 작성 / Filling `.env.local` After Init" — auth 방식별 변수 표, (b) "init 이후 `dsmonitor.config.ts` 작성 / Filling `dsmonitor.config.ts` After Init" — config 입력 항목, (c) "Lighthouse 인증 흐름 / Lighthouse Auth Flow (0.4.0)" — 3 케이스 자세 + 어댑터 인터페이스 코드 블록. 한 / EN mirror 일관.
+- **EN —** **BREAKING** — Removed `LighthouseConfig.authAdapter?: string`. Replaced with `LighthouseConfig.auth?: LighthouseAuthConfig`. The old field had zero consumers (it was a Phase B placeholder), so external users should not be affected. Existing portal-gateway-style adapters that wire `puppeteerScript` directly inside `lighthouse/config.js` keep working — the new `auth` field is only consulted when injecting adapter metadata, and adapters that don't export `getMetadata()` are silently ignored.
+- **EN —** **BREAKING** — `lighthouse/run.js` no longer hard-codes `testAccount` / `zoneAccountLabel`. Instead it emits `authType` and spreads `adapter.getMetadata()`. Users on the legacy portal-gateway adapter will see those two fields disappear from `summary.json` until they add `getMetadata()` to their adapter (see migration notes below).
+- **EN —** `runLighthouse(configDir)` in `src/cli.ts` now accepts an optional `lighthouseConfig`. It resolves the adapter path (built-in for `basic`, `configDir`-relative for `custom`) and injects `DSMONITOR_LIGHTHOUSE_AUTH_TYPE` / `DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER` before spawning `run.js`.
+- **EN —** `.env.local.example.tpl` switched from a hard-coded body to two token holes (`{{FIGMA_ENV_BLOCK}}` / `{{LIGHTHOUSE_ENV_BLOCK}}`). `init` substitutes a body that matches the chosen auth strategy.
+- **EN —** Extended the closing guidance printed by `src/cli/init.ts` — adds a `1.5` step (review `dsmonitor.config.ts`, fill Figma file ID / Lighthouse URL), a `1.6` step for the custom branch (fill in the adapter), and a "CLI 옵션 안내" block enumerating `audit --all` / `--baseline` / `--only lighthouse` / `--skip-lighthouse` / `--help`.
+- **EN —** Renamed four "사용자 측" phrasings in `src/cli/init.ts` to "외부 사용자" or natural alternatives.
+- **EN —** Added three new sub-sections to `README.md` — (a) "Filling `.env.local` After Init" with an auth-type-aware variable table, (b) "Filling `dsmonitor.config.ts` After Init" with the config fields, (c) "Lighthouse Auth Flow (0.4.0)" walking through all three strategies and the adapter interface. KO / EN mirrored.
+
+### 정정 / Fixed
+
+- **한 —** 옛 `.env.local.example.tpl` 안 `LIGHTHOUSE_TEST_PW` 안내 부재 정정. 옛 = `LIGHTHOUSE_TEST_ID` + `LIGHTHOUSE_ZONE_ACCOUNT_LABEL` 두 줄만 안내 → 외부 사용자 환경 안 인증 어댑터 작성 시점에 PW 환경변수 자체 미확인 가능. 새 흐름 = 인증 방식별 동적 생성 안 PW 한 줄 자연 누적 (basic 케이스).
+- **한 —** 옛 init 출력 안 "다음 단계" 본문 부재 정정 — `.env.local` 작성 후 `dsmonitor.config.ts` 안 어떤 항목 입력해야 하는지 안내 없음. 새 흐름 = 1.5 단계 신규 진입 + CLI 옵션 안내 sub-section 누적.
+- **한 —** 옛 init 본문 안 "사용자 측" 자제어 표현 정정 (4곳 → "외부 사용자" / 자연 호명).
+- **EN —** Restored the missing `LIGHTHOUSE_TEST_PW` guidance from `.env.local.example.tpl`. With the new auth-type-aware generation, `basic` always emits the password line.
+- **EN —** Filled the gap in init's "next steps" output — the previous version stopped at `.env.local`, leaving users without guidance for the `dsmonitor.config.ts` review or the available CLI flags. The new step 1.5 and the CLI options sub-section cover both.
+- **EN —** Replaced four occurrences of "사용자 측" inside init output and comments with "외부 사용자" / natural alternatives.
+
+### 참고 / Notes
+
+- **한 —** 외부 사용자 환경 migration 안내 — 옛 `LighthouseConfig.authAdapter` 필드 사용자 = 0건 예상 (Phase B 예약 자리). 옛 portal-gateway 어댑터 사용자 = 두 가지 흐름 선택 가능: (1) `lighthouse/config.js` 안 `puppeteerScript` 직접 명시 흐름 그대로 유지 (옛 본문 변경 0건, summary.json 안 옛 testAccount / zoneAccountLabel 필드 자동 누적 안 됨), (2) 어댑터 안 `module.exports.getMetadata = () => ({ testAccount, zoneAccountLabel })` 한 함수 추가 + `dsmonitor.config.ts` 안 `lighthouse.auth = { type: "custom", adapter: "./lighthouse/auth/portal-gateway.js" }` 한 줄 추가 → summary.json 안 메타데이터 자연 누적 회복.
+- **한 —** docs / template / init 출력 + lighthouse/auth/ 신규 + run.js / cli.ts 정정. dsmonitor 분석 동작 (`code` / `figma` analyzer + `report` + `dashboard`) 변경 0건. `npm run typecheck` + `npm run build` 통과 확인.
+- **한 —** release 절차 안내 누적 — GitHub Releases API 안 `target_commitish` 필드 = short SHA 미허용 (full 40자 SHA 사용 권고). `gh release create` 호출 cwd = repo 루트 진입 후 명시 (다른 cwd 안 호출 시 `not a git repository` 또는 `current directory does not match repo` 에러 가능). 본 안내 = 옛 0.3.3 publish 흐름 안 직접 만난 케이스 누적.
+- **한 —** 후속 (Phase C 검토 중) — 인증 어댑터 패키지 분리 (`@dsmonitor/lighthouse-auth-*` scope) + selector 자동 추론 강화 (헤더 menu / cookie banner 등 페이지 안 noise 자연 회피) + 어댑터 인터페이스 정식화 (`AuthAdapter` interface — Phase B 옛 계획 자리 회복). 본 release 범위 외, 0.5.0+ major 분리 진입 예정.
+- **EN —** Migration notes — the prior `LighthouseConfig.authAdapter` field had zero known consumers (a Phase B placeholder). Users running the legacy portal-gateway adapter have two paths: (1) keep wiring `puppeteerScript` directly in `lighthouse/config.js` and accept that `testAccount` / `zoneAccountLabel` no longer appear in `summary.json`, or (2) add a single `module.exports.getMetadata = () => ({ testAccount, zoneAccountLabel })` export to the adapter and set `lighthouse.auth = { type: "custom", adapter: "./lighthouse/auth/portal-gateway.js" }` in the config — metadata flows back into `summary.json` automatically.
+- **EN —** Docs / template / init output + new `lighthouse/auth/` + `run.js` / `cli.ts` changes. Zero changes to dsmonitor's analyzers (`code` / `figma`), `report`, or `dashboard`. `npm run typecheck` + `npm run build` pass.
+- **EN —** Release-procedure notes — GitHub Releases API's `target_commitish` field rejects short SHAs (use a full 40-character SHA). Always run `gh release create` from the repo root (other cwds raise `not a git repository` or a mismatching-repo error). Captured from the 0.3.3 publish flow.
+- **EN —** Out of scope, deferred to 0.5.0+ — splitting the auth adapters into their own scoped packages (`@dsmonitor/lighthouse-auth-*`), stronger selector inference (handling header menus, cookie banners, and similar page noise automatically), and formalizing the `AuthAdapter` interface that was originally planned for Phase B.
+
+[0.4.0]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.4.0
+
 ## [0.3.3] — 2026-05-12
 
 ### 정정 / Fixed

@@ -109,7 +109,128 @@ my-project/
     ├── dsmonitor.config.ts        ← presets / config 사용자 작성 / user-authored
     ├── .env.local                 ← gitignored. LIGHTHOUSE_* / FIGMA_API_TOKEN
     ├── .env.local.example
-    └── reports/                   ← 측정 결과 JSON 자동 출력 / measurement JSON output
+    ├── reports/                   ← 측정 결과 JSON 자동 출력 / measurement JSON output
+    └── lighthouse/                ← Lighthouse=Y 케이스만
+        ├── config.js              ← LHCI config (init 안 자동 생성)
+        └── auth/custom.js         ← (커스텀 어댑터 케이스만)
+```
+
+#### init 이후 `.env.local` 작성 / Filling `.env.local` After Init
+
+`.env.local.example` 안 안내 키를 실제 값으로 채워 `dsmonitor/.env.local` 로 cp:
+
+```bash
+cp dsmonitor/.env.local.example dsmonitor/.env.local
+# 편집기로 열어 실제 값 입력
+```
+
+| 변수 / Variable | 인증 방식 / Auth Type | 용도 / Purpose |
+|---|---|---|
+| `FIGMA_API_TOKEN` | — | Figma 측정 활용 시 (`figmaAnalysis = true`). Figma → Settings → Personal access tokens 발급 |
+| `LIGHTHOUSE_BASE_URL` | none / basic / custom | Lighthouse 측정 대상 base URL. 환경 전환 시 본 값만 정정 |
+| `LIGHTHOUSE_LOGIN_URL` | basic | 로그인 페이지 path (예: `/login`) 또는 절대 URL |
+| `LIGHTHOUSE_TEST_ID` | basic | 테스트 계정 ID (basic 어댑터 read) |
+| `LIGHTHOUSE_TEST_PW` | basic | 테스트 계정 PW (basic 어댑터 read) |
+| `LIGHTHOUSE_BASIC_SELECTOR_*` | basic (선택) | basic 어댑터 selector override — `ID_INPUT` / `PW_INPUT` / `SUBMIT` 3종 |
+
+- `.env.local` 자체 = `.gitignore` 권고 (민감 정보).
+- 커스텀 어댑터 케이스 = 자유 변수 정의. 어댑터 본문 안 read 흐름과 `.env.local.example` 안 안내 한 줄 일관 유지.
+
+**EN —** Fill `.env.local.example` with real values, then `cp` to `dsmonitor/.env.local`:
+
+| Variable | Auth Type | Purpose |
+|---|---|---|
+| `FIGMA_API_TOKEN` | — | Required when `figmaAnalysis = true`. Generate at Figma → Settings → Personal access tokens. |
+| `LIGHTHOUSE_BASE_URL` | none / basic / custom | Lighthouse target base URL. Change this single value when switching dev/it/prod. |
+| `LIGHTHOUSE_LOGIN_URL` | basic | Login page path (e.g. `/login`) or absolute URL. |
+| `LIGHTHOUSE_TEST_ID` | basic | Test account ID (read by the basic adapter). |
+| `LIGHTHOUSE_TEST_PW` | basic | Test account password (read by the basic adapter). |
+| `LIGHTHOUSE_BASIC_SELECTOR_*` | basic (optional) | Override default selectors — `ID_INPUT` / `PW_INPUT` / `SUBMIT`. |
+
+- Keep `.env.local` in `.gitignore` (sensitive material).
+- For custom adapters, define your own variables. Keep the body of the adapter and the comment line in `.env.local.example` in sync.
+
+#### init 이후 `dsmonitor.config.ts` 작성 / Filling `dsmonitor.config.ts` After Init
+
+`dsmonitor init` 안 생성된 `dsmonitor/dsmonitor.config.ts` 안 다음 항목 외부 사용자 환경에 맞게 입력:
+
+- **`projectRoot`** — 보통 `..` 그대로 (`dsmonitor/` 폴더 한 단계 위).
+- **`scan.include` / `scan.exclude`** — 분석 대상 / 제외 경로 (외부 사용자 환경 폴더 구조에 맞게 정정).
+- **`figma.designSystemFiles` + `figma.domainFiles`** — Figma file key 입력 (Figma 측정 활용 시). Figma URL 안 `https://www.figma.com/design/<fileKey>/...` 자세 추출.
+- **`lighthouse.baseUrl`** — Lighthouse 측정 대상 URL. init 안 기본 작성 = `.env.local` 안 `LIGHTHOUSE_BASE_URL` 자동 read 형태 (직접 hard-code 가능).
+- **`lighthouse.pages`** — 측정 대상 페이지 목록 (path + name).
+- **`lighthouse.auth`** — 인증 방식 (다음 sub-section 자세 안내).
+
+자세한 안내: [docs/figma-config-guide.md](./docs/figma-config-guide.md).
+
+**EN —** After `dsmonitor init` writes `dsmonitor/dsmonitor.config.ts`, fill the entries below to match your environment:
+
+- **`projectRoot`** — usually `..` (the parent of `dsmonitor/`).
+- **`scan.include` / `scan.exclude`** — analysis targets / exclusions (adjust to your folder layout).
+- **`figma.designSystemFiles` + `figma.domainFiles`** — Figma file keys (when using Figma measurement). Extract `<fileKey>` from a Figma URL: `https://www.figma.com/design/<fileKey>/...`.
+- **`lighthouse.baseUrl`** — Lighthouse target URL. By default `init` writes it to read `LIGHTHOUSE_BASE_URL` from `.env.local`; hard-coding is fine.
+- **`lighthouse.pages`** — list of measurement pages (path + name).
+- **`lighthouse.auth`** — authentication strategy (see the next sub-section).
+
+Details: [docs/figma-config-guide.md](./docs/figma-config-guide.md).
+
+#### Lighthouse 인증 흐름 / Lighthouse Auth Flow (0.4.0)
+
+`dsmonitor.config.ts` 안 `lighthouse.auth` 필드 = discriminated union (3종 중 선택):
+
+```ts
+// 1. 인증 없음 — 공개 사이트
+auth: { type: "none" }
+
+// 2. ID/PW 기본 form login — dsmonitor 내장 어댑터 (lighthouse/auth/basic-form-login.js)
+auth: { type: "basic", loginUrl: "/login" }
+
+// 3. 커스텀 어댑터 — 자유 본문 (init 안 lighthouse/auth/custom.js 스켈레톤 자동 생성)
+auth: { type: "custom", adapter: "./lighthouse/auth/custom.js" }
+```
+
+- **none** — `LIGHTHOUSE_BASE_URL` 만 필요. LHCI 가 인증 단계 없이 측정 진입.
+- **basic** — dsmonitor 패키지 내장 어댑터 활용. 환경변수: `LIGHTHOUSE_LOGIN_URL` / `LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_TEST_PW`. selector 기본 추론 (`input[type="email"]` / `input[type="password"]` / `button[type="submit"]`) — 사이트 DOM 구조에 따라 `LIGHTHOUSE_BASIC_SELECTOR_*` 환경변수로 override 가능.
+- **custom** — 다단계 인증 / OAuth / 세션 쿠키 복원 등 자유 흐름. `init` 안 스켈레톤 자동 생성 → `lighthouse/auth/custom.js` 본문 정정.
+
+어댑터 인터페이스 (LHCI `puppeteerScript` + dsmonitor 확장):
+
+```js
+// 필수 — LHCI 호환 (각 측정 URL 진입 전 호출)
+module.exports = async (browser, context) => { /* ... */ };
+
+// 선택 — summary.json 안 메타데이터 누적 (run.js 가 require 후 호출)
+module.exports.getMetadata = () => ({
+  authType: "custom",
+  testAccount: process.env.LIGHTHOUSE_TEST_ID || null,
+  // ... 자유 필드
+});
+```
+
+**EN —** `dsmonitor.config.ts` exposes `lighthouse.auth` as a 3-way discriminated union:
+
+```ts
+auth: { type: "none" }                                              // public site
+auth: { type: "basic", loginUrl: "/login" }                         // built-in ID/PW adapter
+auth: { type: "custom", adapter: "./lighthouse/auth/custom.js" }   // user-authored adapter
+```
+
+- **none** — only `LIGHTHOUSE_BASE_URL` is required. LHCI measures with no login step.
+- **basic** — uses the package-internal `basic-form-login.js`. Reads `LIGHTHOUSE_LOGIN_URL` / `LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_TEST_PW`. Default selectors (`input[type="email"]` / `input[type="password"]` / `button[type="submit"]`) can be overridden with `LIGHTHOUSE_BASIC_SELECTOR_*` env vars.
+- **custom** — for multi-step auth, OAuth redirects, cookie restoration, or anything bespoke. `init` writes a skeleton at `lighthouse/auth/custom.js` for you to fill in.
+
+Adapter interface (LHCI `puppeteerScript` + dsmonitor extension):
+
+```js
+// Required — LHCI compatible (called before each measurement URL)
+module.exports = async (browser, context) => { /* ... */ };
+
+// Optional — adds metadata into summary.json (run.js requires the file and calls this)
+module.exports.getMetadata = () => ({
+  authType: "custom",
+  testAccount: process.env.LIGHTHOUSE_TEST_ID || null,
+  // ... free-form fields
+});
 ```
 
 ### 3. CLI 명령어 / CLI Commands
@@ -241,9 +362,9 @@ DS 1개뿐 = 자동 primary (`primary` 필드 생략 가능) / Single DS = auto-
 
 ### Lighthouse / 인증 어댑터 / Authentication Adapter
 
-Lighthouse 측정 활용 시점에 사용자 측 `dsmonitor/lighthouse/` 안 config + auth 작성 (자세한 안내 — `node_modules/dsmonitor/docs/lighthouse-ci-integration.md`).
+Lighthouse 인증 흐름 자세 = 위 **빠른 시작 §2 안 "Lighthouse 인증 흐름 / Lighthouse Auth Flow" sub-section** 참조. `dsmonitor init` 안 인증 방식 select (none / basic / custom) → `dsmonitor/lighthouse/config.js` 자동 생성 + (custom 케이스) `dsmonitor/lighthouse/auth/custom.js` 스켈레톤 자동 생성.
 
-**EN —** When using Lighthouse, write `config + auth` under `dsmonitor/lighthouse/` on the user side. Details: `node_modules/dsmonitor/docs/lighthouse-ci-integration.md`.
+**EN —** See **"Lighthouse Auth Flow" under Quick Start §2** for the full guide. `dsmonitor init` prompts for an auth type (none / basic / custom), generates `dsmonitor/lighthouse/config.js`, and (for the custom case) writes a skeleton at `dsmonitor/lighthouse/auth/custom.js`.
 
 ## config 작성법 / Writing the Config
 
