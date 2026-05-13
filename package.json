@@ -1,6 +1,6 @@
 {
   "name": "dsmonitor",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "UI Health Monitoring Framework — 코드베이스 / 스타일 / 디자인 일관성을 정량 측정하는 도구. UI Health Monitoring Framework — quantifies codebase / style / design consistency.",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,6 +20,9 @@
       "types": "./dist/plugins/types.d.ts",
       "import": "./dist/plugins/types.js"
     },
+    "./lighthouse/auth/*": "./lighthouse/auth/*.js",
+    "./lighthouse/auth/*.js": "./lighthouse/auth/*.js",
+    "./lighthouse/run.js": "./lighthouse/run.js",
     "./package.json": "./package.json"
   },
   "bin": {

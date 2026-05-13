@@ -16,6 +16,7 @@ import type {
   UIHealthConfig,
   CodebaseReport,
   FigmaInstancesFile,
+  LighthouseConfig,
 } from "./types";
 
 // dotenv 즉시 로드 블록 제거 (이전: __dirname/../.env.local 강제).
@@ -183,7 +184,7 @@ async function main() {
     if (only === "lighthouse") {
       const configDir = path.dirname(configPath);
       console.log(`[dsmonitor] --only lighthouse — Lighthouse 단독 측정`);
-      await runLighthouse(configDir);
+      await runLighthouse(configDir, cfg.lighthouse);
       return;
     }
 
@@ -289,7 +290,7 @@ async function main() {
 
       // 1. Lighthouse 호출 (--skip-lighthouse X 시)
       if (!skipLighthouse) {
-        await runLighthouse(configDir);
+        await runLighthouse(configDir, cfg.lighthouse);
       } else {
         console.log(`[dsmonitor]   skip-lighthouse — Lighthouse 측정 건너뜀`);
       }
@@ -495,18 +496,25 @@ function findLatestInstancesJson(reportsDir: string): string | null {
 }
 
 /**
- * v0.3.0 (2026-05-11) — --all chain 측 Lighthouse 호출.
+ * v0.3.0 (2026-05-11) — --all chain 안 Lighthouse 호출.
  *
- * lighthouse/run.js 측 spawnSync 호출. 사용자 측 사전 준비 필수:
- *   - dsmonitor/lighthouse/config.js (LHCI config)
- *   - dsmonitor/lighthouse/auth/<project>.js (Puppeteer 자동 로그인 어댑터)
- *   - dsmonitor/.env.local (LIGHTHOUSE_BASE_URL / LIGHTHOUSE_TEST_ID 등)
+ * lighthouse/run.js 안 spawnSync 호출. 외부 사용자 사전 준비 필수:
+ *   - dsmonitor/lighthouse/config.js (LHCI config — `dsmonitor init` 안 자동 생성)
+ *   - dsmonitor/.env.local (LIGHTHOUSE_BASE_URL + 어댑터 변수)
  *
- * 사전 준비 X 측 친절 에러 안내 + chain 계속 진행 (report + dashboard 측 호출).
+ * 0.4.0 — `cfg.lighthouse.auth` (3종 union) read → 어댑터 path 결정 →
+ *   `DSMONITOR_LIGHTHOUSE_AUTH_TYPE` / `DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER`
+ *   환경변수 inject. run.js 가 어댑터 require 후 `getMetadata()` 호출 →
+ *   `summary.json` 안 누적.
+ *
+ * 사전 준비 X 시점 = 친절 에러 안내 + chain 계속 진행 (report + dashboard 호출).
  */
-async function runLighthouse(configDir: string): Promise<void> {
+async function runLighthouse(
+  configDir: string,
+  lighthouseConfig?: LighthouseConfig
+): Promise<void> {
   const { spawnSync } = await import("node:child_process");
-  // packages/dsmonitor/dist/cli.js 측 build 후 위치 기준 — lighthouse/run.js = ../lighthouse/run.js
+  // packages/dsmonitor/dist/cli.js 안 build 후 위치 기준 — lighthouse/run.js = ../lighthouse/run.js
   const here = path.dirname(url.fileURLToPath(import.meta.url));
   const candidates = [
     path.resolve(here, "../lighthouse/run.js"),
@@ -528,24 +536,48 @@ async function runLighthouse(configDir: string): Promise<void> {
     return;
   }
 
-  // 사용자 측 dsmonitor/lighthouse/config.js 사전 준비 확인
+  // 외부 사용자 dsmonitor/lighthouse/config.js 사전 준비 확인
   const userLighthouseConfig = path.resolve(configDir, "lighthouse/config.js");
   if (!existsSync(userLighthouseConfig)) {
     console.error(
       `[dsmonitor]   Lighthouse 사전 준비 누락 — 건너뜀.\n` +
         `  필요: ${userLighthouseConfig}\n` +
-        `  자세: node_modules/dsmonitor/docs/lighthouse-ci-integration.md 안내 일관.`
+        `  해결: 'npx dsmonitor init' 안 Lighthouse=Y 선택 시 자동 생성.`
     );
     return;
+  }
+
+  // 0.4.0 — 어댑터 path 결정 (basic = 패키지 내장 / custom = config 안 상대 path / none = 미사용)
+  const authType = lighthouseConfig?.auth?.type ?? "none";
+  let adapterPath = "";
+  if (authType === "basic") {
+    const basicCandidates = [
+      path.resolve(here, "../lighthouse/auth/basic-form-login.js"),
+      path.resolve(here, "../../lighthouse/auth/basic-form-login.js"),
+    ];
+    for (const c of basicCandidates) {
+      if (existsSync(c)) {
+        adapterPath = c;
+        break;
+      }
+    }
+  } else if (lighthouseConfig?.auth?.type === "custom") {
+    adapterPath = path.resolve(configDir, lighthouseConfig.auth.adapter);
   }
 
   console.log(
     `[dsmonitor]   running Lighthouse (~25분 예상) — script: ${lighthouseScript}`
   );
+  console.log(`[dsmonitor]   auth: ${authType}${adapterPath ? ` (${adapterPath})` : ""}`);
+
   const res = spawnSync(process.execPath, [lighthouseScript], {
     cwd: process.cwd(),
     stdio: "inherit",
-    env: process.env,
+    env: {
+      ...process.env,
+      DSMONITOR_LIGHTHOUSE_AUTH_TYPE: authType,
+      DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER: adapterPath,
+    },
   });
   if (res.status !== 0) {
     console.error(
