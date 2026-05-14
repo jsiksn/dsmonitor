@@ -234,6 +234,16 @@ export async function runInit(): Promise<void> {
   console.log("  - npx dsmonitor audit --only lighthouse  # Lighthouse 단독 측정");
   console.log("  - npx dsmonitor audit --skip-lighthouse  # Lighthouse 건너뜀 (빠른 cycle)");
   console.log("  - npx dsmonitor --help                   # 전체 명령 안내");
+  if (answers.lighthouse) {
+    console.log("");
+    console.log("Lighthouse 측정 사전 안내:");
+    console.log("  ⚠ Chrome 자체 사전 install 필요 (https://www.google.com/chrome/)");
+    console.log("    dsmonitor 0.4.2+ = 자동 CHROME_PATH 감지 흐름 진입");
+    console.log("    OS별 install: macOS  → brew install --cask google-chrome");
+    console.log("                  Linux  → apt-get install google-chrome-stable");
+    console.log("                  Win    → choco install googlechrome");
+    console.log("    자세 안내: node_modules/dsmonitor/docs/lighthouse-ci-integration.md");
+  }
   console.log("");
   console.log("참고 안내:");
   console.log("  - README — node_modules/dsmonitor/README.md");

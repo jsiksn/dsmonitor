@@ -8,6 +8,41 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.4.2] — 2026-05-14
+
+### 정정 / Fixed
+
+- **한 —** `@lhci/cli` healthcheck 안 "Chrome installation not found" fail 케이스 사전 회피 흐름 추가. `lighthouse/run.js` 진입부 안 `chrome-launcher.Launcher.getInstallations()` 자체 호출 + `installations[0]` 자동 `process.env.CHROME_PATH` export. `@lhci/cli` 안 `determineChromePath()` 흐름 안 두 번째 source (`process.env.CHROME_PATH`) 자연 활용 → 일부 환경 (옛 chrome-launcher version + 최신 macOS + 사용자 권한 Chrome install path 등 조합) 안 healthcheck fail 우회. 외부 사용자 자체 `CHROME_PATH` 명시 X 자연 작동. 사용자 명시 시점 = 자동 export skip.
+- **한 —** `templates/dsmonitor.config.ts.tpl` 안 `projectRoot` default 정정 — `"."` → `".."`. 옛 default = dsmonitor/ 폴더 자체 측정 안 진입 (`attachAbsRoot` 안 `path.resolve(configDir, ".")` = `<project>/dsmonitor/` → 코드 검색 = 거의 항상 0 매치, 의미 X 결과). 새 default = parent 폴더 = 실제 프로젝트 root, 본 의도 동작. **옛 default 그대로 활용 사용자 환경 = 새 default 정정 후 측정 결과 변경 가능 — 본 의도 정상화 흐름** (### 참고 sub-section 안 자세 안내).
+- **EN —** Avoided the `@lhci/cli` healthcheck "Chrome installation not found" failure observed in some environments (older `chrome-launcher` versions on recent macOS, user-scoped Chrome installs, etc.). `lighthouse/run.js` now calls `chrome-launcher.Launcher.getInstallations()` itself and exports the first hit as `process.env.CHROME_PATH` before spawning LHCI. The healthcheck then resolves Chrome via its second source (`process.env.CHROME_PATH`) and passes. Users who set `CHROME_PATH` themselves are left untouched.
+- **EN —** Corrected the default `projectRoot` in `templates/dsmonitor.config.ts.tpl` from `"."` to `".."`. The old default pointed at the `dsmonitor/` folder itself, so codebase scanning ran against the wrong root and produced essentially empty results. The new default points at the parent project, matching the intent. **Existing users who kept `"."` will see different (correct) numbers after this fix** (more in the Notes section).
+
+### 변경 / Changed
+
+- **한 —** `README.md` 안 "외부 사용자 환경 처리 흐름 / Adopting `dsmonitor` to Your Stack (0.4.2)" sub-section 신규 추가. 위치 = "Filling `dsmonitor.config.ts` After Init" 직후. 본문 = 5종 환경 자세 (TS / JS, React / Vue, 빌드 도구, CSS, 추가 영향 필드) + `stylingPolicy` 4 preset (`scss-project` / `tailwind-project` / `css-modules-project` / `bootstrap-project`) + 환경별 정정 자세 (표 형태) + 측정 노이즈 사항 안내. 한국어 본문 (위) + 영어 본문 (아래) 분리 흐름 자체 도입 (옛 mirror 흐름 정정).
+- **한 —** `README.md` 안 "environment-specific config sketch (0.4.2)" sub-section 신규 추가 — 4 케이스 sample (Next.js + SCSS / Next.js + Tailwind / Next.js + CSS Modules / Vite + Tailwind). Tailwind 환경 안 자세 정정 권고 (`scssVariableCompliance: false` / `scssVariableUsagePatterns: []` / `scssVariableDefFiles: ["src/app/globals.css"]` 등).
+- **한 —** `README.md` 안 "Lighthouse 인증 흐름" sub-section 자체 정정 — 옛 안내 (`puppeteer 별도 install 불필요. LHCI가 self-host`) 정정. 새 안내 = Chrome 사전 install 필수 + OS별 install 흐름 (macOS / Linux / Windows / Docker / CI) + dsmonitor 0.4.2+ 자동 `CHROME_PATH` 흐름 + chrome-launcher 자체 검증 명령. 한 / EN mirror.
+- **한 —** `src/cli/init.ts` 안 끝 안내 본문 보충 — Lighthouse=Y 케이스 안 "Lighthouse 측정 사전 안내" sub-section 신규. Chrome 자체 사전 install 안내 + OS별 install 명령 + `docs/lighthouse-ci-integration.md` 자세 안내 link.
+- **한 —** `docs/lighthouse-ci-integration.md` 전면 재정리 — 옛 STALE 본문 (쿠키 파일 restore 플로우 기반 옛 안내) 자체 제거. 새 본문 = `@lhci/cli` 안 Chrome 감지 흐름 자세 + OS별 사전 install + `CHROME_PATH` 환경변수 자세 + CI 환경 (GitHub Actions / Jenkins / GitLab) 자세 + 사내 환경 다른 path 케이스 + 흔한 에러 정정 흐름.
+- **EN —** Added a new "Adopting `dsmonitor` to Your Stack (0.4.2)" sub-section to `README.md`, placed right after "Filling `dsmonitor.config.ts` After Init". It walks through the five stack axes (TS/JS, React/Vue, build tool, CSS strategy, related fields), the four `stylingPolicy` presets, and per-stack adjustment tables, plus noise-handling notes. Korean above, English below.
+- **EN —** Added an "environment-specific config sketch (0.4.2)" sub-section with four sample configs (Next.js + SCSS, Next.js + Tailwind, Next.js + CSS Modules, Vite + Tailwind). The Tailwind sample includes the correct toggles (`scssVariableCompliance: false`, empty SCSS var patterns, `globals.css` in `scssVariableDefFiles`).
+- **EN —** Rewrote the "Lighthouse Auth Flow" sub-section in `README.md`. The earlier note (`puppeteer not required; LHCI self-hosts`) was wrong; Chrome itself must be installed. Added OS-specific install commands (macOS / Linux / Windows / Docker / CI) and a description of the 0.4.2 auto-`CHROME_PATH` behavior.
+- **EN —** Extended the closing guidance printed by `src/cli/init.ts` with a "Lighthouse 측정 사전 안내" block on the Lighthouse=Y path. Chrome install hint, OS commands, and a pointer to `docs/lighthouse-ci-integration.md`.
+- **EN —** Rewrote `docs/lighthouse-ci-integration.md` from scratch. The old body was a stale, cookie-restore-based note. The new body covers Chrome detection inside `@lhci/cli`, per-OS install steps, the `CHROME_PATH` env var, CI templates (GitHub Actions / Jenkins / GitLab), corporate path layouts, and common error remedies.
+
+### 참고 / Notes
+
+- **한 —** docs / template / init 출력 / `lighthouse/run.js` 정정. dsmonitor 분석 동작 (`code` / `figma` analyzer + `report` + `dashboard`) 변경 0건. `npm run typecheck` + `npm run build` 통과 확인. **BREAKING X** — 외부 사용자 환경 안 옛 0.4.1 config 그대로 작동.
+- **한 —** **`projectRoot` default 정정 영향 안내** — 옛 `templates/dsmonitor.config.ts.tpl` 안 default = `"."` → 새 default = `".."`. 본 정정 자체 = bug fix (옛 default 동작 = dsmonitor/ 자체 측정 = 의미 X 결과). 옛 default 그대로 활용 사용자 환경 (init 후 자체 정정 X 케이스) = 새 default 정정 후 첫 측정 결과 변경 가능. 옛 의도 동작 = 본 정정 흐름 자체 — 옛 흐름 그대로 유지 안 권고. 옛 사용자 환경 안 `projectRoot: "."` 그대로 활용 케이스 = `".."` 정정 권고 (또는 적정한 다른 상대 경로). portal-gateway-web 환경 = 이미 `projectRoot: ".."` 명시 — 영향 X.
+- **한 —** archive-portal-inspector-web 외부 사용성 검증 흐름 안 발견 사항 4종 누적 정정 — (M) environment guide 신규 / (N) projectRoot default / (O) README 핵심 sub-section 한정 한/영 분리 / (P) Chrome 자동 감지 흐름. 본 patch = 발견 사항 일괄 정정.
+- **한 —** chrome-launcher 자체 fail 케이스 (env 자체 안 Chrome 부재) = `lighthouse/run.js` 안 친절 안내 (`Chrome 자체 미감지 — install 권고`) 출력 후 옛 흐름 그대로 진입. `@lhci/cli` 자체 healthcheck fail 흐름 그대로 만남 — 사용자 환경 안 Chrome install 필요.
+- **EN —** Docs / template / init-output / `lighthouse/run.js` changes only. Zero changes to dsmonitor's analyzers (`code` / `figma`), `report`, or `dashboard`. `npm run typecheck` + `npm run build` pass. **Not breaking** — existing 0.4.1 configs keep working.
+- **EN —** **Impact of the `projectRoot` default change** — the template default flipped from `"."` to `".."`. This is a bug fix: the old default scanned the `dsmonitor/` folder itself (essentially nothing). Users who kept `"."` will see their first post-upgrade measurement differ; update to `".."` (or another appropriate relative path) to keep the intended behavior. `portal-gateway-web` already sets `".."`, so it is unaffected.
+- **EN —** Four findings from the archive-portal-inspector-web usability review consolidated into one patch — (M) environment guide, (N) `projectRoot` default, (O) Korean/English split for new sub-sections, (P) Chrome auto-detection.
+- **EN —** When `chrome-launcher` itself can find no Chrome (the system has none), `lighthouse/run.js` prints a friendly install hint and proceeds; `@lhci/cli` will then fail its own healthcheck with the original error — install Chrome to resolve.
+
+[0.4.2]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.4.2
+
 ## [0.4.1] — 2026-05-14
 
 ### 정정 / Fixed

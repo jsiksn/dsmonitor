@@ -23,9 +23,9 @@ const { spawnSync } = require("child_process");
 // LHCI 는 기본적으로 .env 파일을 읽지 않으므로 run.js 가 명시 로드 후
 // child process 로 전파 (lighthouse/plan-b.md §4-4 결정).
 //
-// 패키지 분리 후 .env.local / config.js / reports/ 모두 프로젝트 측
+// 패키지 분리 후 .env.local / config.js / reports/ 모두 외부 사용자 환경 안
 // (dsmonitor/lighthouse/) 에 있음. run.js 는 패키지부 (packages/dsmonitor/lighthouse/)
-// 에 있어 자기 위치 (__dirname) 와 다름. cwd 기반으로 프로젝트 측 dsmonitor/ 검색.
+// 에 있어 자기 위치 (__dirname) 와 다름. cwd 기반으로 외부 사용자 환경 dsmonitor/ 검색.
 const PROJECT_VITAUI_DIR = path.resolve(process.cwd(), "dsmonitor");
 const LH_DIR = path.join(PROJECT_VITAUI_DIR, "lighthouse");
 const ENV_FILE =
@@ -42,6 +42,49 @@ function fail(msg) {
 
 function info(msg) {
   console.log(`[lighthouse] ${msg}`);
+}
+
+// ───────── CHROME_PATH 자동 export (0.4.2 추가) ─────────
+// @lhci/cli healthcheck 안 chrome-launcher 자체 호출 흐름이 일부 환경 안
+// (옛 chrome-launcher version + 최신 macOS + 사용자 권한 Chrome install
+// path 등 조합) 빈 배열 반환 → "Chrome installation not found" healthcheck
+// fail.
+//
+// dsmonitor 자체 안 chrome-launcher 호출 + 첫 항목 자동 export →
+// healthcheck 안 process.env.CHROME_PATH 자연 활용 → 본 케이스 우회.
+//
+// 외부 사용자 자체 CHROME_PATH 명시 X 흐름 = 자연 작동.
+//
+// chrome-launcher 자체 = 1.x ESM only (require fail) / 0.x CommonJS 양쪽
+// version 자연 호환 위해 두 path 자체 fallback 흐름 진입:
+//   (a) top-level node_modules/chrome-launcher (외부 사용자 자체 install)
+//   (b) @lhci/cli nested node_modules/chrome-launcher (transitive 옛 CJS version)
+function autoDetectChromePath() {
+  const candidates = ["chrome-launcher", "@lhci/cli/node_modules/chrome-launcher"];
+  for (const mod of candidates) {
+    try {
+      const ChromeLauncher = require(mod);
+      const installations = ChromeLauncher.Launcher.getInstallations();
+      if (installations.length > 0) return installations[0];
+    } catch (_e) {
+      // require fail (ESM only / 자체 부재) = 다음 candidate 진입
+    }
+  }
+  return undefined;
+}
+
+if (!process.env.CHROME_PATH) {
+  const detected = autoDetectChromePath();
+  if (detected) {
+    process.env.CHROME_PATH = detected;
+    info(`CHROME_PATH auto-set: ${detected}`);
+  } else {
+    info(
+      "Chrome 자체 미감지 — @lhci/cli healthcheck fail 가능. " +
+        "Chrome (또는 Chromium / Brave) 사전 install 권고 " +
+        "(예: brew install --cask google-chrome)."
+    );
+  }
 }
 
 // ───────── 1. LHCI 실행 (환경 검증 + outputDir 준비 + autorun) ─────────
