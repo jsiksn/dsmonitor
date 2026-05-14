@@ -13,8 +13,10 @@
  *     - dsmonitor.config.ts (templates/dsmonitor.config.ts.tpl 안에서 Q1/Q2 + authType 토큰 치환)
  *     - .env.local.example (Q1 = N → BASE_URL 자리 X / authType 별 동적 본문)
  *     - reports/.gitkeep
- *     - (Q1=Y) lighthouse/config.js (authType 별 자동 생성)
  *     - (Q1=Y + authType=custom) lighthouse/auth/custom.js 스켈레톤
+ *
+ *   0.5.0 BREAKING — 옛 lighthouse/config.js 자체 자동 생성 흐름 폐기. dsmonitor
+ *   자체 안 LHCI config 자체 동적 생성 (node_modules/.cache/dsmonitor/lighthouserc.js).
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -181,22 +183,18 @@ export async function runInit(): Promise<void> {
   // 3-c. reports/.gitkeep
   writeFileSync(path.join(projectDir, "reports", ".gitkeep"), "");
 
-  // 3-d. lighthouse/config.js + (custom 케이스) lighthouse/auth/custom.js — Y 케이스만
-  if (answers.lighthouse) {
+  // 3-d. lighthouse/auth/custom.js — custom 케이스만 (0.5.0 BREAKING)
+  //   옛 0.4.x 안 lighthouse/config.js 자체 자동 생성 흐름 = 폐기. dsmonitor 자체
+  //   안 LHCI config 자체 동적 생성 (node_modules/.cache/dsmonitor/lighthouserc.js).
+  //   외부 사용자 자체 LHCI advanced 옵션 자체 정정 흐름 = dsmonitor.config.ts
+  //   안 `lighthouse.advanced?: Record<string, unknown>` 자체 명시.
+  if (answers.lighthouse && answers.authType === "custom") {
     const lighthouseDir = path.join(projectDir, "lighthouse");
-    mkdirSync(lighthouseDir, { recursive: true });
-    const lighthouseConfigPath = path.join(lighthouseDir, "config.js");
-    if (!existsSync(lighthouseConfigPath)) {
-      writeFileSync(lighthouseConfigPath, renderLighthouseConfigJs(answers.authType ?? "none"));
-    }
-
-    if (answers.authType === "custom") {
-      const authDir = path.join(lighthouseDir, "auth");
-      mkdirSync(authDir, { recursive: true });
-      const customAdapterPath = path.join(authDir, "custom.js");
-      if (!existsSync(customAdapterPath)) {
-        writeFileSync(customAdapterPath, renderCustomAdapterSkeleton());
-      }
+    const authDir = path.join(lighthouseDir, "auth");
+    mkdirSync(authDir, { recursive: true });
+    const customAdapterPath = path.join(authDir, "custom.js");
+    if (!existsSync(customAdapterPath)) {
+      writeFileSync(customAdapterPath, renderCustomAdapterSkeleton());
     }
   }
 
@@ -206,11 +204,8 @@ export async function runInit(): Promise<void> {
   console.log("  - dsmonitor/dsmonitor.config.ts");
   console.log("  - dsmonitor/.env.local.example");
   console.log("  - dsmonitor/reports/.gitkeep");
-  if (answers.lighthouse) {
-    console.log("  - dsmonitor/lighthouse/config.js");
-    if (answers.authType === "custom") {
-      console.log("  - dsmonitor/lighthouse/auth/custom.js (스켈레톤)");
-    }
+  if (answers.lighthouse && answers.authType === "custom") {
+    console.log("  - dsmonitor/lighthouse/auth/custom.js (스켈레톤)");
   }
   console.log("");
   console.log("다음 단계:");
@@ -254,17 +249,41 @@ export async function runInit(): Promise<void> {
 function renderLighthouseBlock(authType: LighthouseAuthType): string {
   return `lighthouse: {
     baseUrl: process.env.LIGHTHOUSE_BASE_URL ?? "http://localhost:3000",
+
+    // ── 측정 대상 페이지 (0.5.0+ — 단일 source 흐름) ──
+    // dsmonitor 자체 안 LHCI config 자체 동적 생성 → 본 pages 자체 활용.
+    // 옛 0.4.x 안 dsmonitor/lighthouse/config.js 안 PAGES hard-code 흐름 = 폐기.
     pages: [
-      // TODO: 측정 대상 페이지 추가 (예: { path: "/", name: "Home" })
+      // TODO: 측정 대상 페이지 추가
+      // 예: { path: "/", name: "Home" },
+      //     { path: "/dashboard", name: "Dashboard" },
+      //     { path: "/inspector/management", name: "Management" },
     ],
     runs: 3,
+
     // ── 인증 방식 — 3종 중 선택 ──
     //   1. 인증 없음:     { type: 'none' }
     //   2. ID/PW 기본:    { type: 'basic', loginUrl: '/login' }
     //   3. 커스텀 어댑터: { type: 'custom', adapter: './lighthouse/auth/<name>.js' }
     //
+    // type !== 'none' 자체 = disableStorageReset: true 자동 inject (어댑터 세션 보존).
     // 자세한 안내: node_modules/dsmonitor/README.md 안 "Lighthouse 인증 흐름" sub-section.
     auth: ${renderAuthLiteral(authType)},
+
+    // ── LHCI advanced 옵션 (0.5.0+, 선택) ──
+    // dsmonitor 자체 default options (desktop preset / 1350×940 / 4 카테고리)
+    // 자체 위에 사용자 자체 옵션 자체 deep-merge. 흔한 활용:
+    //   - skipAudits: ["uses-http2"]            // 사내망 자체
+    //   - chromeFlags: ["--no-sandbox"]         // Docker / CI 자체
+    //   - throttlingMethod: "provided"          // 자체 측정 흐름 정정
+    //   - screenEmulation: { mobile: true }     // mobile 측정
+    //   - formFactor: "mobile"
+    //
+    // 자세 안내: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
+    //
+    // advanced: {
+    //   settings: { skipAudits: ["uses-http2"] },
+    // },
   },`;
 }
 
@@ -423,142 +442,6 @@ function renderLighthouseEnvBlock(authType: LighthouseAuthType): string {
   }
 }
 
-function renderLighthouseConfigJs(authType: LighthouseAuthType): string {
-  const header = [
-    "/**",
-    " * Lighthouse CI 설정 — dsmonitor init 안 자동 생성 (0.4.0).",
-    " *",
-    " * 측정 대상 URL = dsmonitor.config.ts 안 lighthouse.pages 정정.",
-    " * 인증 방식 = dsmonitor.config.ts 안 lighthouse.auth 정정.",
-    " */",
-    "",
-    'const path = require("path");',
-    "",
-  ].join("\n");
-
-  switch (authType) {
-    case "none":
-      return (
-        header +
-        `const baseUrl = (process.env.LIGHTHOUSE_BASE_URL || "http://localhost:3000").replace(/\\/$/, "");
-
-// 측정 대상 페이지 — dsmonitor.config.ts 안 lighthouse.pages 와 일관 정정.
-const PAGES = ["/"];
-
-module.exports = {
-  ci: {
-    collect: {
-      url: PAGES.map((p) => \`\${baseUrl}\${p}\`),
-      numberOfRuns: 3,
-      settings: {
-        preset: "desktop",
-        formFactor: "desktop",
-        screenEmulation: {
-          mobile: false,
-          width: 1350,
-          height: 940,
-          deviceScaleFactor: 1,
-          disabled: false,
-        },
-        onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
-      },
-    },
-    upload: {
-      target: "filesystem",
-      outputDir: process.env.LHCI_OUTPUT_DIR || "./reports",
-      reportFilenamePattern: "%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%",
-    },
-  },
-};
-`
-      );
-    case "basic":
-      return (
-        header +
-        `const baseUrl = (process.env.LIGHTHOUSE_BASE_URL || "http://localhost:3000").replace(/\\/$/, "");
-
-// 측정 대상 페이지 — dsmonitor.config.ts 안 lighthouse.pages 와 일관 정정.
-const PAGES = ["/"];
-
-// dsmonitor 내장 basic-form-login 어댑터 — 패키지 경로 자동 검색.
-const basicAdapter = require.resolve("dsmonitor/lighthouse/auth/basic-form-login.js");
-
-module.exports = {
-  ci: {
-    collect: {
-      url: PAGES.map((p) => \`\${baseUrl}\${p}\`),
-      numberOfRuns: 3,
-      puppeteerScript: path.relative(process.cwd(), basicAdapter),
-      puppeteerLaunchOptions: { headless: true },
-      settings: {
-        preset: "desktop",
-        formFactor: "desktop",
-        screenEmulation: {
-          mobile: false,
-          width: 1350,
-          height: 940,
-          deviceScaleFactor: 1,
-          disabled: false,
-        },
-        onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
-        // 어댑터 안 심은 세션 (cookie / localStorage) 보존 — 매 측정 storage clear 회피.
-        disableStorageReset: true,
-      },
-    },
-    upload: {
-      target: "filesystem",
-      outputDir: process.env.LHCI_OUTPUT_DIR || "./reports",
-      reportFilenamePattern: "%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%",
-    },
-  },
-};
-`
-      );
-    case "custom":
-      return (
-        header +
-        `const baseUrl = (process.env.LIGHTHOUSE_BASE_URL || "http://localhost:3000").replace(/\\/$/, "");
-
-// 측정 대상 페이지 — dsmonitor.config.ts 안 lighthouse.pages 와 일관 정정.
-const PAGES = ["/"];
-
-// 커스텀 어댑터 — dsmonitor init 안 lighthouse/auth/custom.js 스켈레톤 자동 생성.
-//   본문 작성: 어댑터 안 module.exports = async (browser, context) => { ... }
-//   메타데이터: module.exports.getMetadata = () => ({ ... }) 추가 → summary.json 누적.
-const customAdapter = path.join(__dirname, "auth/custom.js");
-
-module.exports = {
-  ci: {
-    collect: {
-      url: PAGES.map((p) => \`\${baseUrl}\${p}\`),
-      numberOfRuns: 3,
-      puppeteerScript: path.relative(process.cwd(), customAdapter),
-      puppeteerLaunchOptions: { headless: true },
-      settings: {
-        preset: "desktop",
-        formFactor: "desktop",
-        screenEmulation: {
-          mobile: false,
-          width: 1350,
-          height: 940,
-          deviceScaleFactor: 1,
-          disabled: false,
-        },
-        onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
-        disableStorageReset: true,
-      },
-    },
-    upload: {
-      target: "filesystem",
-      outputDir: process.env.LHCI_OUTPUT_DIR || "./reports",
-      reportFilenamePattern: "%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%",
-    },
-  },
-};
-`
-      );
-  }
-}
 
 function renderCustomAdapterSkeleton(): string {
   return `/**

@@ -2,7 +2,7 @@
 import path from "node:path";
 import url from "node:url";
 import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { analyzeCodebase } from "./analyzers/codebase";
 import { analyzeFigma } from "./analyzers/figma";
 import { generateLintBaseline } from "./analyzers/lintBaseline";
@@ -498,23 +498,22 @@ function findLatestInstancesJson(reportsDir: string): string | null {
 /**
  * v0.3.0 (2026-05-11) — --all chain 안 Lighthouse 호출.
  *
- * lighthouse/run.js 안 spawnSync 호출. 외부 사용자 사전 준비 필수:
- *   - dsmonitor/lighthouse/config.js (LHCI config — `dsmonitor init` 안 자동 생성)
- *   - dsmonitor/.env.local (LIGHTHOUSE_BASE_URL + 어댑터 변수)
+ * 0.5.0 (2026-05-14) BREAKING — 옛 `dsmonitor/lighthouse/config.js` 안
+ *   PAGES hard-code 흐름 자체 폐기. `cfg.lighthouse.{baseUrl, pages, runs,
+ *   auth, advanced}` 자체 read → `node_modules/.cache/dsmonitor/lighthouserc.js`
+ *   자체 임시 파일 동적 생성 → `lhci autorun --config=<temp>` 자체 inject.
  *
- * 0.4.0 — `cfg.lighthouse.auth` (3종 union) read → 어댑터 path 결정 →
- *   `DSMONITOR_LIGHTHOUSE_AUTH_TYPE` / `DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER`
- *   환경변수 inject. run.js 가 어댑터 require 후 `getMetadata()` 호출 →
- *   `summary.json` 안 누적.
- *
- * 사전 준비 X 시점 = 친절 에러 안내 + chain 계속 진행 (report + dashboard 호출).
+ * 흐름:
+ *   1. lighthouseScript (lighthouse/run.js) 자체 위치 자동 검색
+ *   2. 어댑터 path 결정 (basic = 패키지 내장 / custom = config 안 상대 / none = 미사용)
+ *   3. 임시 lighthouserc.js 자체 동적 생성 (default options + advanced deep-merge)
+ *   4. run.js 자체 spawn — DSMONITOR_LIGHTHOUSE_CONFIG_PATH + AUTH_* env inject
  */
 async function runLighthouse(
   configDir: string,
   lighthouseConfig?: LighthouseConfig
 ): Promise<void> {
   const { spawnSync } = await import("node:child_process");
-  // packages/dsmonitor/dist/cli.js 안 build 후 위치 기준 — lighthouse/run.js = ../lighthouse/run.js
   const here = path.dirname(url.fileURLToPath(import.meta.url));
   const candidates = [
     path.resolve(here, "../lighthouse/run.js"),
@@ -536,18 +535,7 @@ async function runLighthouse(
     return;
   }
 
-  // 외부 사용자 dsmonitor/lighthouse/config.js 사전 준비 확인
-  const userLighthouseConfig = path.resolve(configDir, "lighthouse/config.js");
-  if (!existsSync(userLighthouseConfig)) {
-    console.error(
-      `[dsmonitor]   Lighthouse 사전 준비 누락 — 건너뜀.\n` +
-        `  필요: ${userLighthouseConfig}\n` +
-        `  해결: 'npx dsmonitor init' 안 Lighthouse=Y 선택 시 자동 생성.`
-    );
-    return;
-  }
-
-  // 0.4.0 — 어댑터 path 결정 (basic = 패키지 내장 / custom = config 안 상대 path / none = 미사용)
+  // 어댑터 path 결정 (basic = 패키지 내장 / custom = config 안 상대 path / none = 미사용)
   const authType = lighthouseConfig?.auth?.type ?? "none";
   let adapterPath = "";
   if (authType === "basic") {
@@ -565,10 +553,20 @@ async function runLighthouse(
     adapterPath = path.resolve(configDir, lighthouseConfig.auth.adapter);
   }
 
+  // 임시 lighthouserc.js 자체 동적 생성 (0.5.0+)
+  const tempConfigPath = writeLighthouseTempConfig(
+    configDir,
+    lighthouseConfig,
+    adapterPath
+  );
+  const pagesCount = (lighthouseConfig?.pages?.length ?? 0) || 1;
+  const runsCount = lighthouseConfig?.runs ?? 3;
+
   console.log(
-    `[dsmonitor]   running Lighthouse (~25분 예상) — script: ${lighthouseScript}`
+    `[dsmonitor]   running Lighthouse (${pagesCount} URL × ${runsCount}회 = ${pagesCount * runsCount} runs) — script: ${lighthouseScript}`
   );
   console.log(`[dsmonitor]   auth: ${authType}${adapterPath ? ` (${adapterPath})` : ""}`);
+  console.log(`[dsmonitor]   lighthouserc (temp): ${tempConfigPath}`);
 
   const res = spawnSync(process.execPath, [lighthouseScript], {
     cwd: process.cwd(),
@@ -577,6 +575,9 @@ async function runLighthouse(
       ...process.env,
       DSMONITOR_LIGHTHOUSE_AUTH_TYPE: authType,
       DSMONITOR_LIGHTHOUSE_AUTH_ADAPTER: adapterPath,
+      DSMONITOR_LIGHTHOUSE_CONFIG_PATH: tempConfigPath,
+      DSMONITOR_LIGHTHOUSE_PAGES_COUNT: String(pagesCount),
+      DSMONITOR_LIGHTHOUSE_RUNS_COUNT: String(runsCount),
     },
   });
   if (res.status !== 0) {
@@ -586,6 +587,116 @@ async function runLighthouse(
   } else {
     console.log(`[dsmonitor]   Lighthouse 측정 완료.`);
   }
+}
+
+/**
+ * 0.5.0 — 임시 lighthouserc.js 자체 동적 생성. dsmonitor.config.ts 안
+ * `lighthouse.{baseUrl, pages, runs, auth, advanced}` 자체 read → LHCI
+ * config 자체 자세 build → `node_modules/.cache/dsmonitor/lighthouserc.js`
+ * 자체 자세 write → path 자체 반환.
+ *
+ * 외부 사용자 자체 본 파일 자체 직접 정정 X — 매 측정 시점 자세 재생성.
+ * dsmonitor 자체 default options 자체 + `lighthouse.advanced` 자체 deep-merge.
+ */
+function writeLighthouseTempConfig(
+  _configDir: string,
+  lighthouseConfig: LighthouseConfig | undefined,
+  adapterPath: string
+): string {
+  const cwd = process.cwd();
+  const cacheDir = path.join(cwd, "node_modules", ".cache", "dsmonitor");
+  mkdirSync(cacheDir, { recursive: true });
+  const tempPath = path.join(cacheDir, "lighthouserc.js");
+
+  const baseUrlLiteral = lighthouseConfig?.baseUrl
+    ? JSON.stringify(lighthouseConfig.baseUrl)
+    : `process.env.LIGHTHOUSE_BASE_URL || "http://localhost:3000"`;
+  const pages = lighthouseConfig?.pages?.length
+    ? lighthouseConfig.pages.map((p) => p.path)
+    : ["/"];
+  const runs = lighthouseConfig?.runs ?? 3;
+  const authType = lighthouseConfig?.auth?.type ?? "none";
+  const useAuth = authType !== "none" && adapterPath !== "";
+
+  const defaultSettings: Record<string, unknown> = {
+    preset: "desktop",
+    formFactor: "desktop",
+    screenEmulation: {
+      mobile: false,
+      width: 1350,
+      height: 940,
+      deviceScaleFactor: 1,
+      disabled: false,
+    },
+    onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
+    disableStorageReset: useAuth,
+  };
+  const advanced = (lighthouseConfig?.advanced ?? {}) as Record<string, unknown>;
+  const advancedSettings = (advanced.settings ?? {}) as Record<string, unknown>;
+  const settings = deepMerge(defaultSettings, advancedSettings);
+
+  const puppeteerScriptLiteral = useAuth
+    ? JSON.stringify(path.relative(cwd, adapterPath))
+    : null;
+
+  const body = `// dsmonitor 자체 동적 생성 — 0.5.0+ 임시 LHCI config.
+// 본 파일 자체 = dsmonitor 자체 runLighthouse() 안 매 측정 시점 자세 재생성.
+// 외부 사용자 자체 본 파일 자체 직접 정정 X — \`dsmonitor.config.ts\` 안 \`lighthouse\` 자체 정정.
+
+const baseUrl = (${baseUrlLiteral}).replace(/\\/$/, "");
+const PAGES = ${JSON.stringify(pages)};
+const outputDir = process.env.LHCI_OUTPUT_DIR || "./reports";
+
+const collect = {
+  url: PAGES.map((p) => \`\${baseUrl}\${p}\`),
+  numberOfRuns: ${runs},
+  settings: ${JSON.stringify(settings, null, 2)},
+};
+${useAuth ? `collect.puppeteerScript = ${puppeteerScriptLiteral};\ncollect.puppeteerLaunchOptions = { headless: true };\n` : ``}
+module.exports = {
+  ci: {
+    collect,
+    upload: {
+      target: "filesystem",
+      outputDir,
+      reportFilenamePattern: "%%PATHNAME%%-%%DATETIME%%-report.%%EXTENSION%%",
+    },
+  },
+};
+`;
+
+  writeFileSync(tempPath, body);
+  return tempPath;
+}
+
+/**
+ * deep-merge — `lighthouse.advanced` 자체 안 deep-merge 흐름.
+ * source 자체 안 nested object 자체 = recursive merge. 자체 = source 자체 우선.
+ */
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
+  for (const [k, v] of Object.entries(source)) {
+    const existing = result[k];
+    if (
+      v &&
+      typeof v === "object" &&
+      !Array.isArray(v) &&
+      existing &&
+      typeof existing === "object" &&
+      !Array.isArray(existing)
+    ) {
+      result[k] = deepMerge(
+        existing as Record<string, unknown>,
+        v as Record<string, unknown>
+      );
+    } else {
+      result[k] = v;
+    }
+  }
+  return result;
 }
 
 /**

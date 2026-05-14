@@ -33,7 +33,11 @@ const ENV_FILE =
 require("dotenv").config({ path: ENV_FILE });
 
 const REPORTS_DIR = path.join(LH_DIR, "reports");
-const CONFIG_PATH = path.join(LH_DIR, "config.js");
+
+// 0.5.0 BREAKING — 옛 dsmonitor/lighthouse/config.js 자체 read 흐름 자체 폐기.
+// 새 LHCI config = cli.ts 안 writeLighthouseTempConfig() 자체 동적 생성한
+// node_modules/.cache/dsmonitor/lighthouserc.js 자체 자세 inject.
+const CONFIG_PATH = process.env.DSMONITOR_LIGHTHOUSE_CONFIG_PATH || null;
 
 function fail(msg) {
   console.error(`\n[lighthouse] ERROR\n${msg}\n`);
@@ -89,6 +93,20 @@ if (!process.env.CHROME_PATH) {
 
 // ───────── 1. LHCI 실행 (환경 검증 + outputDir 준비 + autorun) ─────────
 
+if (!CONFIG_PATH) {
+  fail(
+    [
+      "DSMONITOR_LIGHTHOUSE_CONFIG_PATH 환경변수 자체 X — 0.5.0 안 본 흐름 자체 X.",
+      "",
+      "본 진입 흐름 자체 = cli.ts 자체 안 runLighthouse() 자체 자세 진입 흐름.",
+      "옛 'node node_modules/dsmonitor/lighthouse/run.js' 자체 직접 호출 흐름 = 0.5.0 안 자체 폐기.",
+      "",
+      "해결: 'npx dsmonitor audit --only lighthouse' 자체 자세 호출",
+      "      (또는 'npx dsmonitor audit --all' 자체 통합 chain).",
+    ].join("\n")
+  );
+}
+
 if (!process.env.LIGHTHOUSE_BASE_URL) {
   fail(
     [
@@ -98,8 +116,6 @@ if (!process.env.LIGHTHOUSE_BASE_URL) {
       "  1) dsmonitor/.env.local.example 을 복사해 .env.local 생성",
       "  2) LIGHTHOUSE_BASE_URL 포함 LIGHTHOUSE_* 변수들을 채움",
       "  3) 재실행",
-      "",
-      "상세: dsmonitor/lighthouse/plan-b.md §6-5",
     ].join("\n")
   );
 }
@@ -117,7 +133,11 @@ const env = {
   LHCI_OUTPUT_DIR: outputDir,
 };
 
-info("lhci autorun 시작 (12 URL × 3회 = 36 runs, 약 20~35분 예상)");
+// 0.5.0 — dynamic log (cli.ts 자체 안 inject env 자체 read).
+const pagesCount = parseInt(process.env.DSMONITOR_LIGHTHOUSE_PAGES_COUNT || "1", 10);
+const runsCount = parseInt(process.env.DSMONITOR_LIGHTHOUSE_RUNS_COUNT || "3", 10);
+const totalRuns = pagesCount * runsCount;
+info(`lhci autorun 시작 (${pagesCount} URL × ${runsCount}회 = ${totalRuns} runs)`);
 const result = spawnSync(
   "npx",
   ["--no-install", "lhci", "autorun", `--config=${CONFIG_PATH}`],

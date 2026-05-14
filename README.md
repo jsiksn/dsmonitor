@@ -421,6 +421,47 @@ See the four sketches in the Korean section above. Inline summary:
 3. **Next.js + TS + React + CSS Modules** — `css-modules-project` preset, `scssVariableCompliance` typically `false` (depends on whether you use CSS variables).
 4. **Vite + React + Tailwind** — same CSS sketch as (2); add `**/dist/**` to `scan.ignore` if not already present.
 
+#### Lighthouse 측정 흐름 / Lighthouse Measurement Flow (0.5.0 BREAKING)
+
+**0.5.0 BREAKING 안내** — 옛 `dsmonitor/lighthouse/config.js` 안 PAGES hard-code 흐름 자체 폐기. 측정 대상 자세 명시 = `dsmonitor.config.ts` 안 `lighthouse` 자체 단일 source. dsmonitor 자체 안 LHCI config 자체 동적 생성 → `node_modules/.cache/dsmonitor/lighthouserc.js` 자체 임시 파일 자체 자세 inject.
+
+자세 자세 명시 필드:
+
+```ts
+lighthouse: {
+  baseUrl: process.env.LIGHTHOUSE_BASE_URL ?? "http://localhost:3000",
+  pages: [
+    { path: "/", name: "Home" },
+    { path: "/dashboard", name: "Dashboard" },
+  ],
+  runs: 3,
+  auth: { type: "none" },              // 인증 방식 — 아래 자세 자세 안내
+  advanced: {                          // (선택) LHCI advanced 옵션 자체 deep-merge
+    settings: { skipAudits: ["uses-http2"] },
+  },
+},
+```
+
+dsmonitor 자체 안 default LHCI options:
+- `preset: "desktop"` / `formFactor: "desktop"` / `screenEmulation: 1350×940`
+- `onlyCategories: ["performance", "accessibility", "best-practices", "seo"]`
+- `disableStorageReset` 자체 = `auth.type !== "none"` 자체 자동 결정
+- `puppeteerLaunchOptions: { headless: true }` (auth 자체 활용 시점만)
+
+외부 사용자 자체 LHCI 자세 옵션 자체 정정 흐름 = `lighthouse.advanced` 자체 명시 → dsmonitor 자체 안 deep-merge.
+
+**migration 안내 (0.4.x → 0.5.0)**:
+
+| 0.4.x 흐름 | 0.5.0 흐름 |
+|---|---|
+| `dsmonitor/lighthouse/config.js` 안 `const PAGES = [...]` | `dsmonitor.config.ts` 안 `lighthouse.pages: [{ path, name }, ...]` |
+| `dsmonitor/lighthouse/config.js` 안 `numberOfRuns: 3` | `lighthouse.runs: 3` |
+| `dsmonitor/lighthouse/config.js` 안 `settings: { ... }` 자세 | `lighthouse.advanced: { settings: { ... } }` |
+| `dsmonitor/lighthouse/config.js` 안 `puppeteerScript: "..."` | `lighthouse.auth: { type: "custom", adapter: "..." }` |
+| `dsmonitor/lighthouse/config.js` 안 `disableStorageReset: true` | 자동 (auth.type !== "none" 자체) — override 필요 시 `advanced.settings.disableStorageReset` |
+
+**옛 외부 사용자 환경 안 자체 `dsmonitor/lighthouse/config.js` 잔여 케이스** = dsmonitor 자체 read 안 함 자연 무시. 사용자 자체 본 파일 자체 삭제 권고 (혼동 자체 회피).
+
 #### Lighthouse 인증 흐름 / Lighthouse Auth Flow (0.4.0)
 
 `dsmonitor.config.ts` 안 `lighthouse.auth` 필드 = discriminated union (3종 중 선택):
@@ -631,9 +672,9 @@ DS 1개뿐 = 자동 primary (`primary` 필드 생략 가능) / Single DS = auto-
 
 ### Lighthouse / 인증 어댑터 / Authentication Adapter
 
-Lighthouse 인증 흐름 자세 = 위 **빠른 시작 §2 안 "Lighthouse 인증 흐름 / Lighthouse Auth Flow" sub-section** 참조. `dsmonitor init` 안 인증 방식 select (none / basic / custom) → `dsmonitor/lighthouse/config.js` 자동 생성 + (custom 케이스) `dsmonitor/lighthouse/auth/custom.js` 스켈레톤 자동 생성.
+Lighthouse 측정 흐름 자세 = 위 **빠른 시작 §2 안 "Lighthouse 측정 흐름" + "Lighthouse 인증 흐름" sub-section** 참조. 0.5.0 BREAKING 안 측정 대상 자체 단일 source (`dsmonitor.config.ts` 안 `lighthouse.pages` 자체) + dsmonitor 자체 안 LHCI config 자체 동적 생성. `dsmonitor init` 안 인증 방식 select (none / basic / custom) → (custom 케이스) `dsmonitor/lighthouse/auth/custom.js` 스켈레톤 자동 생성.
 
-**EN —** See **"Lighthouse Auth Flow" under Quick Start §2** for the full guide. `dsmonitor init` prompts for an auth type (none / basic / custom), generates `dsmonitor/lighthouse/config.js`, and (for the custom case) writes a skeleton at `dsmonitor/lighthouse/auth/custom.js`.
+**EN —** See **"Lighthouse Measurement Flow" + "Lighthouse Auth Flow" under Quick Start §2** for the full guide. 0.5.0 introduces a single-source flow: `dsmonitor.config.ts` `lighthouse.pages` is now the only place to declare measurement URLs, and dsmonitor auto-generates the LHCI config. `dsmonitor init` prompts for an auth type (none / basic / custom); the custom branch scaffolds `dsmonitor/lighthouse/auth/custom.js`.
 
 ## config 작성법 / Writing the Config
 
