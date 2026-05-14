@@ -174,6 +174,110 @@ cp dsmonitor/.env.local.example dsmonitor/.env.local
 
 Details: [docs/figma-config-guide.md](./docs/figma-config-guide.md).
 
+#### Figma 입력 흐름 / Figma Input Flow (0.4.1)
+
+`dsmonitor.config.ts` 안 `figma.designSystemFiles` + `figma.domainFiles` 두 항목 = Figma "Copy link" URL을 그대로 입력하는 흐름. fileKey 별도 추출 X (URL 자체에 포함, 도구가 자체 파싱).
+
+**DS 파일 (`designSystemFiles`)** = 컴포넌트 / Variables / Styles 정의 파일.
+- 측정 = 파일 전체의 Styles / Main Components 카운트
+- 페이지 / 프레임 선택 X (파일 전체 대상)
+- 입력: `{ url, label, primary?, comment? }`
+  - `url` = 파일 루트 Copy link (node-id 자리 X)
+  - `label` = 리포트 / 매칭용 고유 라벨 (자유 결정 — `"ds-new"` / `"v1"` / `"legacy"` 등)
+  - `primary` = DS 2개 이상이면 정확히 1개에 명시 필수 (1개뿐이면 자동)
+
+**도메인 파일 (`domainFiles`)** = 실제 UI 시안 / 프로토타입 파일. 측정 = 출처 미상 Instance 비율 + Top N 마이그레이션 우선순위. 3 패턴 중 선택:
+
+```ts
+// 패턴 A — 파일 전체 측정 (archive 등 섞여 있지 않을 때 적합)
+{
+  label: "domain-a",
+  url: "https://www.figma.com/design/AAAAA/Domain-A",
+  comment: "파일 전체 측정",
+}
+
+// 패턴 B — 특정 페이지 전체 측정
+{
+  label: "domain-b",
+  pages: [
+    { url: "https://www.figma.com/design/BBBBB/Domain-B?node-id=2-2", comment: "계정관리" },
+    { url: "https://www.figma.com/design/BBBBB/Domain-B?node-id=3-1", comment: "권한설정" },
+  ],
+}
+
+// 패턴 C — 페이지 안 특정 frame만 측정
+{
+  label: "domain-c",
+  pages: [
+    {
+      comment: "대시보드",  // 페이지 이름 (URL 자리 X)
+      frames: [
+        { url: "https://www.figma.com/design/CCCCC/Domain-C?node-id=100-5", comment: "메인위젯" },
+        { url: "https://www.figma.com/design/CCCCC/Domain-C?node-id=100-10", comment: "상단요약" },
+      ],
+    },
+  ],
+}
+```
+
+**혼합 흐름** = 한 도메인 파일 안 패턴 B + C 섞기 가능. 단 모든 URL이 같은 파일 소속이어야 함 (`fileKeyValidator`가 자체 검증).
+
+**URL 추출 방법** (Figma 안):
+- 파일 루트 URL = 파일 진입 후 주소창 URL 그대로 (node-id 자리 X)
+- 페이지 URL = 좌측 페이지 탭 우클릭 → "Copy link"
+- 프레임 URL = 캔버스 안 frame 선택 → 우클릭 → "Copy link to selection"
+
+**node-id 정규화** = URL 안 `node-id=2-2` ↔ REST API `2:2` 자동 변환 (도구 자체 처리). 사용자 = URL 그대로 복사 / 붙여넣기.
+
+**EN —** The `figma.designSystemFiles` + `figma.domainFiles` fields take Figma "Copy link" URLs verbatim. No need to extract fileKey by hand — the tool parses it from the URL.
+
+**DS files (`designSystemFiles`)** = component / Variables / Styles definition files.
+- Measured = file-level counts of Styles / Main Components
+- No page / frame selection (the whole file is the target)
+- Input: `{ url, label, primary?, comment? }`
+  - `url` = file-root Copy link (no `node-id`)
+  - `label` = free-form identifier (e.g. `"ds-new"`, `"v1"`, `"legacy"`)
+  - `primary` = required when there are 2+ DS files; auto when there is exactly 1
+
+**Domain files (`domainFiles`)** = actual UI mockup / prototype files. Measured = unknown-source Instance ratio + Top N migration priority. Choose one of 3 patterns:
+
+```ts
+// Pattern A — measure the entire file (suitable when no archive pages are mixed in)
+{ label: "domain-a", url: "https://www.figma.com/design/AAAAA/Domain-A", comment: "whole file" }
+
+// Pattern B — measure selected pages
+{
+  label: "domain-b",
+  pages: [
+    { url: "https://www.figma.com/design/BBBBB/Domain-B?node-id=2-2", comment: "Accounts" },
+    { url: "https://www.figma.com/design/BBBBB/Domain-B?node-id=3-1", comment: "Permissions" },
+  ],
+}
+
+// Pattern C — measure selected frames inside named pages
+{
+  label: "domain-c",
+  pages: [
+    {
+      comment: "Dashboard",       // page label (no URL)
+      frames: [
+        { url: "https://www.figma.com/design/CCCCC/Domain-C?node-id=100-5", comment: "Main widget" },
+        { url: "https://www.figma.com/design/CCCCC/Domain-C?node-id=100-10", comment: "Top summary" },
+      ],
+    },
+  ],
+}
+```
+
+**Mixed flow** — a single domain file may combine Pattern B + C entries. All URLs must belong to the same file (validated by `fileKeyValidator`).
+
+**Extracting URLs from Figma**:
+- File-root URL = open the file, copy the address-bar URL (no `node-id`)
+- Page URL = right-click the page tab on the left panel → "Copy link"
+- Frame URL = select the frame on the canvas → right-click → "Copy link to selection"
+
+**node-id normalization** — `node-id=2-2` (in URLs) and `2:2` (in the REST API) are auto-converted by the tool. Just paste the URL verbatim.
+
 #### Lighthouse 인증 흐름 / Lighthouse Auth Flow (0.4.0)
 
 `dsmonitor.config.ts` 안 `lighthouse.auth` 필드 = discriminated union (3종 중 선택):
