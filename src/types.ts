@@ -457,13 +457,46 @@ export type FigmaDomainFile =
  *
  * 0.4.0 (2026-05-12) — 인증 흐름 재설계. 옛 `authAdapter?: string` 제거,
  * 새 `auth?: LighthouseAuthConfig` 도입 (3종 discriminated union).
+ *
+ * 0.5.0 (2026-05-14) — 단일 source 흐름 BREAKING. 옛
+ * `dsmonitor/lighthouse/config.js` 안 PAGES hard-code 자체 폐기.
+ * `lighthouse.{baseUrl, pages, runs, auth, advanced?}` 자체 안에서만 명시.
+ * dsmonitor 자체 안 LHCI config 자체 동적 생성 → `node_modules/.cache/dsmonitor/lighthouserc.js`
+ * 자체 임시 파일 inject.
  */
 export type LighthouseConfig = {
   /**
+   * 측정 대상 base URL (dev / it / prod 환경 전환 시 본 값만 정정).
+   *
+   * 미지정 시점 = `process.env.LIGHTHOUSE_BASE_URL ?? "http://localhost:3000"` fallback.
+   * 외부 사용자 환경 안 명시 권고: `process.env.LIGHTHOUSE_BASE_URL ?? "..."`.
+   */
+  baseUrl?: string;
+
+  /**
+   * 측정 대상 페이지 목록 (0.5.0+). `baseUrl + path` 자체 LHCI url 자체 활용.
+   *
+   * 미지정 / 빈 배열 시점 = `["/"]` fallback (baseUrl 자체 1 URL 측정).
+   *
+   * 0.4.x 이하 안 본 필드 자체 = dead. 옛 외부 사용자 환경 안
+   * `dsmonitor/lighthouse/config.js` 안 `const PAGES = [...]` 자체 hard-code
+   * 흐름 활용 → 0.5.0 안 본 필드 자체 활용 흐름 자세.
+   */
+  pages?: LighthousePageRef[];
+
+  /**
+   * URL 1개당 측정 반복 수. default = 3.
+   *
+   * LHCI 안 `ci.collect.numberOfRuns` 자체 inject. 자세 = 3 자체 (대표 median
+   * 값 자체 추출 자체 자세). 1 자체 = 빠른 자세 (대표값 의미 자세 약함).
+   */
+  runs?: number;
+
+  /**
    * 인증 방식 — 3종 중 선택. 미지정 시 = `{ type: 'none' }` 자연 처리.
    *
-   * - `none`   = 인증 없는 공개 사이트. `lighthouse/config.js` 안
-   *              `puppeteerScript` 옵션 미사용.
+   * - `none`   = 인증 없는 공개 사이트. `puppeteerScript` 자체 미사용.
+   *              `disableStorageReset` 자체 = LHCI default `false`.
    * - `basic`  = ID/PW form login. dsmonitor 패키지 내장 어댑터
    *              (`lighthouse/auth/basic-form-login.js`) 활용.
    *              `LIGHTHOUSE_LOGIN_URL` / `LIGHTHOUSE_TEST_ID` /
@@ -474,8 +507,38 @@ export type LighthouseConfig = {
    *              export `async (browser, context) => void`).
    *              어댑터 안 `getMetadata()` 함수 export 시 → `summary.json`
    *              안 메타데이터 등록.
+   *
+   * `type !== "none"` 자체 = `disableStorageReset: true` 자동 inject
+   * (어댑터 안 심은 세션 / JWT 보존).
    */
   auth?: LighthouseAuthConfig;
+
+  /**
+   * LHCI `ci.collect.settings` 안 deep-merge 자세 (0.5.0+, untyped passthrough).
+   *
+   * dsmonitor default options 자체 위에 외부 사용자 옵션 자체 우선. 흔한 자세 활용:
+   * - `skipAudits: ["uses-http2"]` (사내망 자체 등)
+   * - `chromeFlags: ["--no-sandbox"]` (Docker / CI 자체)
+   * - `throttlingMethod: "provided"` 자체 자세 측정 자세 정정
+   * - `screenEmulation: { ... }` (mobile / 자세 viewport)
+   * - `formFactor: "mobile"` (default desktop 자체 정정)
+   *
+   * 자세 안내: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
+   *
+   * 흔치 않은 활용 흐름 (assertions / upload 자세 등) = 자세 자세 release 진입 예정.
+   */
+  advanced?: Record<string, unknown>;
+};
+
+/**
+ * Lighthouse 측정 대상 페이지 1개 자세 (0.5.0+).
+ *
+ * `path` = `baseUrl` 자체 기준 path 자체 (예: `/dashboard`). `name` = 리포트
+ * 안 표시용 자세 (예: "Dashboard").
+ */
+export type LighthousePageRef = {
+  path: string;
+  name?: string;
 };
 
 /** Lighthouse 인증 방식 — 3종 discriminated union. */

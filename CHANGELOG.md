@@ -8,6 +8,64 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.5.0] — 2026-05-14
+
+### 변경 (BREAKING) / Changed (BREAKING)
+
+- **한 —** Lighthouse 측정 흐름 단일 source 자체 진입. 옛 `dsmonitor/lighthouse/config.js` 안 PAGES hard-code 흐름 자체 폐기. 측정 대상 자체 명시 = `dsmonitor.config.ts` 안 `lighthouse.{baseUrl, pages, runs, auth, advanced?}` 자체 단일 source. dsmonitor 자체 안 LHCI config 자체 동적 생성 (`node_modules/.cache/dsmonitor/lighthouserc.js` 자체 임시 파일 자세 inject). 외부 사용자 자체 옛 `dsmonitor/lighthouse/config.js` 잔여 = dsmonitor 자체 read 안 함 자연 무시.
+- **한 —** `LighthouseConfig` 타입 자세 확장 — 옛 `{ auth? }` 자체 → 새 `{ baseUrl?, pages?, runs?, auth?, advanced? }` 5 필드. `LighthousePageRef = { path: string; name?: string }` 신규 type. `advanced?: Record<string, unknown>` 자체 = LHCI `ci.collect.settings` 안 deep-merge (untyped passthrough — `skipAudits` / `chromeFlags` / `throttlingMethod` / `screenEmulation` 등 흔한 자세 활용).
+- **한 —** dsmonitor 자체 안 LHCI default options 자세 hard-code — `preset: "desktop"` / `formFactor: "desktop"` / `screenEmulation: 1350×940` / `onlyCategories: 4종` / `disableStorageReset: auth.type !== "none"` 자체 자동. 외부 사용자 자체 옵션 자체 정정 흐름 = `lighthouse.advanced` 자체 명시 → deep-merge.
+- **한 —** `lighthouse/run.js` 안 옛 hard-code log `"12 URL × 3회 = 36 runs"` 자체 dynamic 정정. `DSMONITOR_LIGHTHOUSE_PAGES_COUNT` + `DSMONITOR_LIGHTHOUSE_RUNS_COUNT` 자체 env read → 실제 측정 자세 일관 출력.
+- **한 —** `lighthouse/run.js` 안 옛 `--config=dsmonitor/lighthouse/config.js` 자체 hard-code 자체 폐기. 새 = `DSMONITOR_LIGHTHOUSE_CONFIG_PATH` 자체 env 자체 read (cli.ts 자체 inject). env 자체 X 케이스 = 친절 안내 + exit (옛 `node node_modules/dsmonitor/lighthouse/run.js` 자체 직접 호출 자체 폐기 — `npx dsmonitor audit --only lighthouse` 자체 권고).
+- **한 —** `dsmonitor init` 안 `lighthouse/config.js` 자체 자동 생성 흐름 자체 폐기. `lighthouse/auth/custom.js` 자체 스켈레톤 자동 생성 흐름 자체 = custom 케이스 한정 자세 (옛 0.4.x 흐름 일관).
+- **EN —** Switched Lighthouse to a single-source flow. The legacy `dsmonitor/lighthouse/config.js` with hard-coded PAGES is dropped. Measurement targets now live exclusively in `dsmonitor.config.ts` under `lighthouse.{baseUrl, pages, runs, auth, advanced?}`. dsmonitor auto-generates the LHCI rc at `node_modules/.cache/dsmonitor/lighthouserc.js` per run; leftover `dsmonitor/lighthouse/config.js` files in user repos are simply ignored.
+- **EN —** Extended the `LighthouseConfig` type from `{ auth? }` to `{ baseUrl?, pages?, runs?, auth?, advanced? }`. Added `LighthousePageRef = { path: string; name?: string }`. The new `advanced?: Record<string, unknown>` is an untyped passthrough deep-merged into LHCI `ci.collect.settings` (commonly used for `skipAudits`, `chromeFlags`, `throttlingMethod`, `screenEmulation`, etc.).
+- **EN —** Hard-coded sensible LHCI defaults inside dsmonitor — `preset: "desktop"`, `formFactor: "desktop"`, 1350×940 `screenEmulation`, the four standard categories, and automatic `disableStorageReset` when `auth.type !== "none"`. Override anything via `lighthouse.advanced`.
+- **EN —** Replaced the hard-coded `"12 URL × 3회 = 36 runs"` log line in `lighthouse/run.js` with a dynamic one driven by `DSMONITOR_LIGHTHOUSE_PAGES_COUNT` and `DSMONITOR_LIGHTHOUSE_RUNS_COUNT`.
+- **EN —** `lighthouse/run.js` no longer hard-codes `--config=dsmonitor/lighthouse/config.js`. It now reads `DSMONITOR_LIGHTHOUSE_CONFIG_PATH` (injected by `cli.ts`) and exits with guidance if that env var is missing — direct `node node_modules/dsmonitor/lighthouse/run.js` invocation is no longer supported (use `npx dsmonitor audit --only lighthouse`).
+- **EN —** `dsmonitor init` no longer scaffolds `lighthouse/config.js`. The `lighthouse/auth/custom.js` skeleton (custom auth branch only) is still generated as in 0.4.x.
+
+### 정정 / Fixed
+
+- **한 —** archive-portal-inspector-web 외부 사용성 검증 흐름 안 발견 사항 (Q) — `dsmonitor.config.ts` 안 `lighthouse.pages` 자체 = 옛 dead field (자체 활용 X 흐름) → 본 release 안 자체 활용 흐름 진입. 외부 사용자 자체 본 필드 자체 자세 명시 = 자연 측정 대상 자세 정정 흐름.
+- **EN —** Resolved finding (Q) from the archive-portal-inspector-web review: `dsmonitor.config.ts`'s `lighthouse.pages` was previously a dead field. It is now the authoritative source for measurement URLs.
+
+### 변경 / Changed
+
+- **한 —** `README.md` 안 "Lighthouse 측정 흐름 / Lighthouse Measurement Flow (0.5.0 BREAKING)" sub-section 신규 — `lighthouse.{baseUrl, pages, runs, auth, advanced}` 자체 자세 안내 + default LHCI options 자세 + migration 자세 표 (0.4.x → 0.5.0). 한 / EN mirror.
+- **한 —** `README.md` 안 옛 "Lighthouse / 인증 어댑터 / Authentication Adapter" sub-section 자세 정정 — 옛 `dsmonitor/lighthouse/config.js` 자체 안내 자체 정정.
+- **한 —** `docs/lighthouse-ci-integration.md` 안 §0 "LHCI config 자체 동적 생성 (0.5.0+)" sub-section 신규 — 자세 흐름 자세 + 옛 `dsmonitor/lighthouse/config.js` 자체 폐기 안내.
+- **한 —** `templates/dsmonitor.config.ts.tpl` 안 `lighthouse` 블록 자체 sample 자체 정정 — `pages` 자체 단일 source 안내 + `advanced` 자체 활용 안내.
+- **EN —** Added a "Lighthouse Measurement Flow (0.5.0 BREAKING)" sub-section to `README.md` covering the new `lighthouse.{baseUrl, pages, runs, auth, advanced}` shape, dsmonitor's default LHCI options, and a 0.4.x → 0.5.0 migration table. KO / EN mirrored.
+- **EN —** Updated the existing "Authentication Adapter" sub-section to reflect that no `dsmonitor/lighthouse/config.js` is scaffolded any more.
+- **EN —** Added §0 "Auto-generated LHCI config (0.5.0+)" to `docs/lighthouse-ci-integration.md` with the new flow and a note on the dropped `dsmonitor/lighthouse/config.js` file.
+- **EN —** Updated the `lighthouse` block sample in `templates/dsmonitor.config.ts.tpl` to show the new `pages` single source and the `advanced` passthrough.
+
+### 참고 (migration) / Notes (migration)
+
+- **한 —** **옛 0.4.x 환경 안 migration 자세** — `dsmonitor/lighthouse/config.js` 안 hard-code 본문 자체 = `dsmonitor.config.ts` 안 `lighthouse` 자체 자세 옮김. 자세 자세:
+  - `const PAGES = [...]` → `lighthouse.pages: [{ path, name }, ...]`
+  - `numberOfRuns: 3` → `lighthouse.runs: 3`
+  - `settings: { ... }` 자세 → `lighthouse.advanced: { settings: { ... } }`
+  - `puppeteerScript: "..."` → `lighthouse.auth: { type: "custom", adapter: "..." }`
+  - `disableStorageReset: true` → 자동 (auth.type !== "none" 자체) — override 필요 시 `advanced.settings.disableStorageReset`
+- **한 —** 본 migration 진입 후 = `dsmonitor/lighthouse/config.js` 자체 삭제 권고 (혼동 자체 회피). 자체 잔존 = dsmonitor 자체 read 안 함 자연 무시.
+- **한 —** 옛 `node node_modules/dsmonitor/lighthouse/run.js` 자체 직접 호출 흐름 자체 폐기 — 새 흐름 자체 = `npx dsmonitor audit --only lighthouse` (단독 측정) 또는 `npx dsmonitor audit --all` (통합 chain).
+- **한 —** 자체 dsmonitor 자체 안 LHCI default options 자체 hard-code 흐름 = 옛 portal-gateway 환경 안 자세 자세 (desktop preset / 1350×940 / skipAudits 자체 없음 / disableStorageReset 자체 auth.type 안 자동) 자세 자세 자체 일관. 사내망 안 `skipAudits: ["uses-http2"]` 자체 활용 케이스 = `lighthouse.advanced.settings.skipAudits` 자체 명시.
+- **한 —** dsmonitor 분석 동작 (`code` / `figma` analyzer + `report` + `dashboard`) 변경 0건. `npm run typecheck` + `npm run build` 통과 확인.
+- **EN —** **0.4.x → 0.5.0 migration table** — move the hard-coded body in `dsmonitor/lighthouse/config.js` into `lighthouse` inside `dsmonitor.config.ts`:
+  - `const PAGES = [...]` → `lighthouse.pages: [{ path, name }, ...]`
+  - `numberOfRuns: 3` → `lighthouse.runs: 3`
+  - `settings: { ... }` → `lighthouse.advanced: { settings: { ... } }`
+  - `puppeteerScript: "..."` → `lighthouse.auth: { type: "custom", adapter: "..." }`
+  - `disableStorageReset: true` → automatic when `auth.type !== "none"`; override via `advanced.settings.disableStorageReset` if needed
+- **EN —** After migration, delete `dsmonitor/lighthouse/config.js` to avoid confusion. Leaving it in place is harmless (dsmonitor ignores it).
+- **EN —** Direct invocation of `node node_modules/dsmonitor/lighthouse/run.js` is no longer supported. Use `npx dsmonitor audit --only lighthouse` (standalone) or `npx dsmonitor audit --all` (chained with code + figma + report + dashboard).
+- **EN —** The hard-coded LHCI defaults match the portal-gateway-web setup (desktop preset, 1350×940, no `skipAudits`, automatic `disableStorageReset`). Add intranet-specific options like `skipAudits: ["uses-http2"]` via `lighthouse.advanced.settings.skipAudits`.
+- **EN —** Zero changes to dsmonitor's analyzers (`code` / `figma`), `report`, or `dashboard`. `npm run typecheck` and `npm run build` pass.
+
+[0.5.0]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.5.0
+
 ## [0.4.2] — 2026-05-14
 
 ### 정정 / Fixed

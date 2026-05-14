@@ -1,8 +1,34 @@
-# Lighthouse CI 연동 가이드 (0.4.2 재정리)
+# Lighthouse CI 연동 가이드 (0.5.0 재정리)
 
-> 본 문서 = `@lhci/cli` 안 시스템 Chrome 자체 자동 감지 흐름 + 외부 사용자 환경별 사전 install 자세. dsmonitor 0.4.2 안 자동 `CHROME_PATH` 감지 흐름 도입 — 외부 사용자 자체 명시 X 자연 작동 흐름 안 자세 안내.
+> 본 문서 = `@lhci/cli` 안 시스템 Chrome 자체 자동 감지 흐름 + 외부 사용자 환경별 사전 install 자세 + LHCI config 자체 동적 생성 흐름 자세. dsmonitor 0.4.2+ 안 자동 `CHROME_PATH` 감지 흐름. dsmonitor 0.5.0+ 안 LHCI config 자체 동적 생성 (옛 `lighthouse/config.js` 안 hard-code PAGES 흐름 폐기).
 
-> **EN —** This guide covers system-Chrome detection by `@lhci/cli` and environment-specific install steps. From `dsmonitor` 0.4.2, the package auto-exports `CHROME_PATH` via `chrome-launcher`, so most users do not need to set it by hand.
+> **EN —** This guide covers system-Chrome detection by `@lhci/cli`, environment-specific install steps, and dsmonitor's auto-generated LHCI config. From `dsmonitor` 0.4.2, `CHROME_PATH` is auto-exported via `chrome-launcher`. From `dsmonitor` 0.5.0, the LHCI `lighthouserc.js` is auto-generated from `dsmonitor.config.ts` (the old `dsmonitor/lighthouse/config.js` with hard-coded PAGES is gone).
+
+---
+
+## 0. LHCI config 자체 동적 생성 (0.5.0+)
+
+dsmonitor 자체 안 `runLighthouse()` 진입 시점에 LHCI config 자체 자세 동적 생성:
+
+- 위치: `node_modules/.cache/dsmonitor/lighthouserc.js` (cwd 기준)
+- source: `dsmonitor.config.ts` 안 `lighthouse.{baseUrl, pages, runs, auth, advanced}` 자체 자세
+- LHCI default options (desktop preset / 1350×940 / 4 카테고리 / disableStorageReset 자동) 자체 + `lighthouse.advanced` 자체 deep-merge
+- 외부 사용자 자체 본 파일 자체 직접 정정 X — 매 측정 시점 자세 재생성 (수정 자체 자세 자세 자체 자세 자세)
+
+옛 0.4.x 안 `dsmonitor/lighthouse/config.js` 자체 흐름 = 폐기. 본 파일 자체 잔존 = dsmonitor 자체 read 안 함 자연 무시 (삭제 권고).
+
+자세 흐름 자세 자세:
+
+```
+dsmonitor.config.ts 안 lighthouse 자체
+   ↓ src/cli.ts 안 runLighthouse()
+   ↓ writeLighthouseTempConfig()
+node_modules/.cache/dsmonitor/lighthouserc.js (자동 생성)
+   ↓ DSMONITOR_LIGHTHOUSE_CONFIG_PATH 자체 env inject
+   ↓ lighthouse/run.js
+   ↓ npx --no-install lhci autorun --config=<temp-path>
+LHCI 측정 진입
+```
 
 ---
 
