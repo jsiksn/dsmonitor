@@ -273,24 +273,105 @@ function renderAuthLiteral(authType: LighthouseAuthType): string {
 function renderFigmaBlock(): string {
   return `figma: {
     apiToken: process.env.FIGMA_API_TOKEN ?? "",
-    // Primary 명시 규칙 / Primary specification rules (0.2.0):
-    //   - DS 1개뿐 = 자동 primary (primary 필드 생략 가능)
-    //   - DS 2개 이상 = 정확히 1개에 primary: true 명시 필수
-    //   - primary 0개 또는 2개 이상 = 에러 throw
-    // 라벨 형태 = 사용자 자유 결정 (예: "v1", "v2", "main", "legacy").
-    // dashboard 안 사용자 라벨 그대로 표시.
+    validationLevel: "lite",
+
+    // ═══ DS 파일 / Design System Files ═══════════════════════════
     //
-    // (KO above / EN below — same rules)
-    //   - 1 DS file  = automatically primary (primary field can be omitted)
-    //   - 2+ files   = exactly one must have primary: true
+    // DS 파일 = 컴포넌트 / Variables / Styles 정의 파일. 측정 = 파일 전체의
+    // Styles / Main Components 카운트. 페이지 / 프레임 선택 X (파일 전체 대상).
+    //
+    // 입력 형태: { url, label, primary?, comment? }
+    //   - url     = Figma "Copy link" (파일 루트 URL, node-id 자리 X)
+    //   - label   = 리포트 / 매칭용 고유 라벨 (자유 결정 — "ds-new" / "v1" / "legacy" 등)
+    //   - primary = 0.2.0 규칙: DS 1개 = 자동 / DS 2개 이상 = 정확히 1개에 명시 필수
+    //   - comment = 가독성용 메모 (선택)
+    //
+    // Primary specification rules (0.2.0):
+    //   - 1 DS file = automatically primary (primary field can be omitted)
+    //   - 2+ files  = exactly one must have primary: true
     //   - 0 or 2+ primaries = error
     designSystemFiles: [
-      // TODO: { label: "v1", fileKey: "<Figma file key>", nodes: [...] }
-      // TODO: { label: "v2", fileKey: "<Figma file key>", primary: true, nodes: [...] }
+      // TODO: { url: "https://www.figma.com/design/XXXXXXXXXXXXXXXXXXXXXX/DS-Legacy", label: "ds-legacy" },
+      // TODO: { url: "https://www.figma.com/design/YYYYYYYYYYYYYYYYYYYYYY/DS-New", label: "ds-new", primary: true },
     ],
+
+    // ═══ 도메인 파일 / Domain Files ═══════════════════════════════
+    //
+    // 도메인 파일 = 실제 UI 시안 / 프로토타입 파일. 측정 = 출처 미상 Instance
+    // 비율 + Top N 마이그레이션 우선순위. 3 패턴 중 선택:
+    //
+    // 패턴 A — 파일 전체 측정 (archive 등 섞여 있지 않을 때 적합):
+    //   { label, url, comment? }
+    //     - url = 파일 루트 URL (node-id 자리 X)
+    //
+    // 패턴 B — 특정 페이지 전체 측정:
+    //   { label, pages: [{ url, comment? }, ...] }
+    //     - pages[].url = 페이지 URL (Figma 페이지 탭 우클릭 → Copy link)
+    //     - 각 페이지의 모든 frame 측정 대상
+    //
+    // 패턴 C — 페이지 안 특정 frame만 측정:
+    //   { label, pages: [{ comment?, frames: [{ url, comment? }, ...] }, ...] }
+    //     - pages[].comment = 페이지 이름 (URL X)
+    //     - pages[].frames[].url = frame URL (Figma frame 선택 → Copy link to selection)
+    //
+    // 혼합 흐름: 한 도메인 파일 안 패턴 B + C 섞기 가능. 단 모든 URL이 같은 파일 소속.
+    //
+    // node-id 정규화: URL 안 \`node-id=2-2\` ↔ REST API \`2:2\` 자동 변환 (도구 자체 처리).
+    //
+    // 자세한 안내 = README 안 "Figma 입력 흐름 / Figma Input Flow" sub-section.
+    //
+    // (EN —)
+    // Domain files = actual UI mockup / prototype files. Measured = unknown-source
+    // Instance ratio + Top N migration priority. Choose one of 3 patterns:
+    //   Pattern A — measure the entire file:    { label, url, comment? }
+    //   Pattern B — measure selected pages:     { label, pages: [{ url, comment? }] }
+    //   Pattern C — measure selected frames:    { label, pages: [{ comment?, frames: [{ url, comment? }] }] }
+    //   Mixed: one domain file may combine B + C entries (same file scope).
+    //   node-id auto-normalized: URL \`node-id=2-2\` ↔ REST API \`2:2\`.
+    //   Full guide: see "Figma Input Flow" sub-section in README.
     domainFiles: [
-      // TODO: { label: "domain", fileKey: "<Figma file key>", frames: [...] }
+      // TODO 패턴 A: { label: "domain-a", url: "https://www.figma.com/design/AAAAAAAAAAAAAAAAAAAAAA/Domain-A", comment: "파일 전체" },
+      //
+      // TODO 패턴 B:
+      // {
+      //   label: "domain-b",
+      //   pages: [
+      //     { url: "https://www.figma.com/design/BBBBBBBBBBBBBBBBBBBBBB/Domain-B?node-id=2-2", comment: "계정관리" },
+      //     { url: "https://www.figma.com/design/BBBBBBBBBBBBBBBBBBBBBB/Domain-B?node-id=3-1", comment: "권한설정" },
+      //   ],
+      // },
+      //
+      // TODO 패턴 C:
+      // {
+      //   label: "domain-c",
+      //   pages: [
+      //     {
+      //       comment: "대시보드",
+      //       frames: [
+      //         { url: "https://www.figma.com/design/CCCCCCCCCCCCCCCCCCCCCC/Domain-C?node-id=100-5", comment: "메인위젯" },
+      //         { url: "https://www.figma.com/design/CCCCCCCCCCCCCCCCCCCCCC/Domain-C?node-id=100-10", comment: "상단요약" },
+      //       ],
+      //     },
+      //   ],
+      // },
     ],
+
+    // ═══ 출처 미상 Instance 옵션 / Unknown Instance Options ═══════
+    unknownInstances: {
+      topN: 10,
+      // true = 외주 / 옛 DS 등 미등록 출처도 결과에 포함 (planning.md §7 2026-04-23 합의).
+      // EN — true: include instances whose source is unregistered (e.g. vendor / legacy DS).
+      allowUnknownSource: false,
+    },
+
+    // ═══ 코드 측 토큰 파서 / Code Token Parsers ═══════════════════
+    // 단계 3 (2026-04-24) 리팩토링. 빈 배열이어도 에러 X (codeCount=0 으로 tokenMatrix 생성).
+    // EN — empty array is allowed; tokenMatrix is still generated with codeCount=0.
+    codeTokens: {
+      parsers: [
+        // TODO: { type: "scss", patterns: ["styles/**/*.scss"] }
+      ],
+    },
   },`;
 }
 
