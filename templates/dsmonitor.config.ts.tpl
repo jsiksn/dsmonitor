@@ -10,7 +10,10 @@
 import type { UIHealthConfig } from "dsmonitor";
 
 const config: UIHealthConfig = {
-  projectRoot: ".",
+  // ".." = dsmonitor/ 폴더 한 단계 위 (실제 프로젝트 root). 본 흐름 = dsmonitor init
+  // 자체가 dsmonitor/ sub-folder 부트스트랩 진입 = 측정 대상 root = parent 폴더.
+  // 옛 default "." 그대로 활용 시점 = dsmonitor/ 자체 안 측정 진입 (의미 X 결과).
+  projectRoot: "..",
 
   // ────── 프로젝트 이름 (선택) ──────
   // dashboard header / footer 안 표시. 미지정 시 = `package.json` 안

@@ -278,6 +278,149 @@ Details: [docs/figma-config-guide.md](./docs/figma-config-guide.md).
 
 **node-id normalization** — `node-id=2-2` (in URLs) and `2:2` (in the REST API) are auto-converted by the tool. Just paste the URL verbatim.
 
+#### 외부 사용자 환경 처리 흐름 / Adopting `dsmonitor` to Your Stack (0.4.2)
+
+**[English version below ↓](#en-adopting-dsmonitor-to-your-stack)**
+
+dsmonitor codebase 측정 흐름 안 5종 환경 처리 자세:
+
+**1. TypeScript vs JavaScript** — `scan.codeExts` 명시 설정. default = `[".ts", ".tsx", ".js", ".jsx"]` 양쪽 자연 처리. 순수 TS 프로젝트 환경 = `metrics.tsMigration: false` 권고 (마이그레이션 측정 의미 X).
+
+**2. React vs Vue / Svelte** — `framework.id` 명시 설정. 현재 지원 = `"react"` 1종만. Vue / Svelte / 다른 = 어댑터 미구현, 사용자 환경 안 `getFrameworkAdapter()` 호출 시점에 `Unknown framework` throw. Phase B 진입 예정.
+
+**3. Next.js / Vite / CRA 같은 빌드 도구** — 명시 X / 자동 X. dsmonitor = 정적 분석 도구. 빌드 도구 자체에 의존 X. 영향 = `scan.codeRoots` (default `["src", "components", "pages", "app"]` — Pages Router + App Router 자연 포함) + `scan.ignore` (default `["**/node_modules/**", "**/dist/**", "**/.next/**"]` — Next.js / Vite 출력 폴더 자연 ignore). CRA 환경 = `"**/build/**"` 추가 권고.
+
+**4. CSS 흐름 (SCSS / Tailwind / CSS Modules / Bootstrap / styled-components)** — `stylingPolicy` 명시 설정, 4 preset 중 require:
+
+| preset | 안 활용 시점 | allowed / preferred |
+|---|---|---|
+| `dsmonitor/presets/scss-project` | SCSS 정식 환경 | SCSS / CSS imports |
+| `dsmonitor/presets/tailwind-project` | Tailwind 정식 환경 | Tailwind utility classes |
+| `dsmonitor/presets/css-modules-project` | CSS Modules 정식 환경 | `.module.{css,scss}` imports |
+| `dsmonitor/presets/bootstrap-project` | Bootstrap 정식 환경 | Bootstrap utility classes |
+
+styled-components / 다른 흐름 = preset 부재. 사용자 custom `StylingPolicy` 작성 (옛 `src/policy.ts` 안 `StylingPolicy` 타입 직접 import).
+
+**5. 추가 영향 받는 필드** — 환경별 정정 권고:
+
+| 필드 | SCSS 환경 | Tailwind 환경 | CSS Modules 환경 |
+|---|---|---|---|
+| `scan.styleExts` | `[".scss", ".css"]` | `[".css"]` (SCSS 미사용) | `[".scss", ".css"]` |
+| `hardcodedValues.scssVariableUsagePatterns` | `[/\bvar\s*\(--[\w-]+/g, /\$[\w-]+/g]` | `[]` | `[/\bvar\s*\(--[\w-]+/g]` |
+| `hardcodedValues.scssVariableDefFiles` | SCSS 정의 파일 path 배열 | CSS variable 정의 원본 (예: `["src/app/globals.css"]`) | `[]` 또는 css var 정의 원본 |
+| `metrics.scssVariableCompliance` | `true` | `false` | `true` 또는 `false` |
+| `figma.codeTokens.parsers` | `[{ type: "scss", files: [...] }]` | `[]` (0.4.x 안 Tailwind 토큰 파서 미지원) | `[{ type: "scss", files: [...] }]` 또는 `[]` |
+| `globalStyleSources` | `["styles/**/*.{scss,css}"]` | `["src/app/globals.css", "src/styles/**/*.css"]` | `["src/styles/global*.{scss,css}"]` |
+
+**측정 노이즈 사항 안내**:
+- Tailwind 환경 안 `scssVariableCompliance: true` 그대로 유지 = SCSS 변수 사용 0 → compliance 0% → 의미 X 결과. 본 환경 = `false` 정정 권고.
+- `hardcodedValues.colorPatterns` 안 hex 색상 패턴 = `app/globals.css` 안 Tailwind `@theme` 정의 안 색상 hex 자체 매치 가능 = noise. `scssVariableDefFiles` 안 본 파일 명시 = noise 제외.
+- 환경에 맞지 않는 metrics 토글 그대로 유지 시점 = 이상한 수치 (compliance 0% / 5% 등) 결과. 의미 X 결과와 본 환경 안 자연 0% 결과 분리 안 자세 진입.
+
+#### environment-specific config sketch (0.4.2)
+
+**(1) Next.js + TypeScript + React + SCSS** — gateway 케이스:
+
+```ts
+stylingPolicy: require("dsmonitor/presets/scss-project"),
+scan: {
+  styleExts: [".scss", ".css"],
+},
+globalStyleSources: ["styles/**/*.{scss,css}"],
+hardcodedValues: {
+  scssVariableUsagePatterns: [/\bvar\s*\(\s*--[\w-]+/g, /\$[\w-]+/g],
+  scssVariableDefFiles: ["styles/variables.scss"],
+},
+metrics: {
+  scssVariableCompliance: true,
+},
+figma: {
+  codeTokens: { parsers: [{ type: "scss", files: ["styles/tokens.scss"] }] },
+},
+```
+
+**(2) Next.js + TypeScript + React + Tailwind** — inspector 케이스:
+
+```ts
+stylingPolicy: require("dsmonitor/presets/tailwind-project"),
+scan: {
+  styleExts: [".css"],                              // SCSS 미사용
+},
+globalStyleSources: ["src/app/globals.css", "src/styles/**/*.css"],
+hardcodedValues: {
+  scssVariableUsagePatterns: [],                    // Tailwind 환경 안 SCSS 변수 의미 X
+  scssVariableDefFiles: ["src/app/globals.css"],    // CSS variable 정의 원본 — hex 색상 noise 제외
+},
+metrics: {
+  scssVariableCompliance: false,                    // Tailwind 환경 안 측정 의미 X
+},
+figma: {
+  codeTokens: { parsers: [] },                      // Tailwind 토큰 파서 0.4.x 미지원
+},
+```
+
+**(3) Next.js + TypeScript + React + CSS Modules**:
+
+```ts
+stylingPolicy: require("dsmonitor/presets/css-modules-project"),
+scan: {
+  styleExts: [".scss", ".css"],
+},
+globalStyleSources: ["src/styles/global*.{scss,css}"],
+hardcodedValues: {
+  scssVariableUsagePatterns: [/\bvar\s*\(\s*--[\w-]+/g],
+  scssVariableDefFiles: ["src/styles/variables.css"],
+},
+metrics: {
+  scssVariableCompliance: false,                    // CSS Modules 안 변수 자체 의미 케이스별
+},
+figma: {
+  codeTokens: { parsers: [] },
+},
+```
+
+**(4) Vite + React + Tailwind** — 빌드 도구 무관 흐름:
+
+```ts
+// 빌드 도구 자체 = dsmonitor 무관 (정적 분석 도구).
+// Vite 출력 폴더 = scan.ignore 안 default 포함 안 됨, 명시 권고.
+scan: {
+  ignore: [
+    "**/node_modules/**",
+    "**/dist/**",       // Vite 출력 폴더
+    "**/build/**",      // CRA 출력 폴더 (혼합 환경 안)
+  ],
+},
+// stylingPolicy / hardcodedValues 자체 = (2) Tailwind 케이스 흐름 일관.
+```
+
+<a name="en-adopting-dsmonitor-to-your-stack"></a>
+
+**EN — Adopting `dsmonitor` to Your Stack (0.4.2)**
+
+**[← 한국어 본문](#외부-사용자-환경-처리-흐름--adopting-dsmonitor-to-your-stack-042)**
+
+dsmonitor codebase analysis handles five stack axes:
+
+1. **TypeScript vs JavaScript** — `scan.codeExts` is explicit. Default `[".ts", ".tsx", ".js", ".jsx"]` covers both. For a TS-only project set `metrics.tsMigration: false` (migration measurement is meaningless).
+2. **React vs Vue / Svelte** — `framework.id` is explicit. `"react"` is the only adapter today; others throw `Unknown framework`. Phase B will add more.
+3. **Next.js / Vite / CRA build tools** — neither explicit nor auto-detected. dsmonitor is a static analyzer and doesn't depend on the build tool. The defaults for `scan.codeRoots` (`["src", "components", "pages", "app"]`) cover Pages Router + App Router; `scan.ignore` already excludes `**/node_modules/**`, `**/dist/**`, `**/.next/**`. CRA users should add `**/build/**`.
+4. **CSS strategy (SCSS / Tailwind / CSS Modules / Bootstrap / styled-components)** — `stylingPolicy` is explicit; require one of four presets (`scss-project` / `tailwind-project` / `css-modules-project` / `bootstrap-project`). styled-components or other strategies require a hand-written `StylingPolicy`.
+5. **Related fields per stack** — adjust `scan.styleExts`, `hardcodedValues.scssVariableUsagePatterns`, `scssVariableDefFiles`, `metrics.scssVariableCompliance`, `figma.codeTokens.parsers`, `globalStyleSources` to match the chosen CSS strategy. See the Korean table above for concrete values.
+
+**Noise notes**:
+- Tailwind project with `scssVariableCompliance: true` always reports 0%, which is meaningless rather than informative — flip to `false`.
+- The hex-color patterns in `hardcodedValues.colorPatterns` will match Tailwind `@theme` color hex literals in `globals.css`; list that file in `scssVariableDefFiles` to exclude it from the noise.
+- Mismatched `metrics` toggles produce strange-looking percentages (0% / 5%). Distinguish "naturally zero in this stack" from "misconfigured measurement" before reading the report.
+
+**EN — environment-specific config sketch (0.4.2)**:
+
+See the four sketches in the Korean section above. Inline summary:
+1. **Next.js + TS + React + SCSS** — `scss-project` preset, `scssVariableCompliance: true`, SCSS parsers populated.
+2. **Next.js + TS + React + Tailwind** — `tailwind-project` preset, `scssVariableCompliance: false`, parsers `[]`, `globals.css` listed under `scssVariableDefFiles` to suppress hex-color noise.
+3. **Next.js + TS + React + CSS Modules** — `css-modules-project` preset, `scssVariableCompliance` typically `false` (depends on whether you use CSS variables).
+4. **Vite + React + Tailwind** — same CSS sketch as (2); add `**/dist/**` to `scan.ignore` if not already present.
+
 #### Lighthouse 인증 흐름 / Lighthouse Auth Flow (0.4.0)
 
 `dsmonitor.config.ts` 안 `lighthouse.auth` 필드 = discriminated union (3종 중 선택):
@@ -336,6 +479,28 @@ module.exports.getMetadata = () => ({
   // ... free-form fields
 });
 ```
+
+**Chrome 자체 사전 install 필요 (0.4.2 정정)**:
+- 옛 안내 (`puppeteer 별도 install 불필요. LHCI가 self-host`) = 정정. `@lhci/cli`는 `chrome-launcher` transitive 안 시스템 Chrome 자체 자동 감지 흐름 — Chrome (또는 Chromium / Brave 등 chrome-launcher 호환 brand) 자체 사전 install 필수.
+- dsmonitor 0.4.2+ = `lighthouse/run.js` 안 사전 `CHROME_PATH` 자동 export 흐름 진입. 외부 사용자 환경 자체 `CHROME_PATH` 명시 X 자연 작동.
+- OS별 install 흐름:
+  - **macOS** — `brew install --cask google-chrome` (또는 https://www.google.com/chrome/ 직접 download)
+  - **Linux** — `apt-get install google-chrome-stable` (Ubuntu / Debian) / `dnf install google-chrome-stable` (Fedora)
+  - **Windows** — `choco install googlechrome` (Chocolatey) / 또는 직접 download
+  - **Docker** — `node:20-bookworm-slim` base 안 `apt-get install chromium` 자체 추가
+  - **CI** — GitHub Actions = `ubuntu-latest` 안 Chrome 자연 install 끝. Jenkins = `apt-get install google-chrome-stable` 사전 진입. 자세 안내: [`docs/lighthouse-ci-integration.md`](./docs/lighthouse-ci-integration.md).
+- chrome-launcher 자체 검증: `node -e "console.log(require('chrome-launcher').Launcher.getInstallations())"` 호출 결과 안 1개 이상 path 반환 = OK. 빈 배열 = Chrome 자체 미감지 = install 필요.
+
+**EN — Chrome must be installed (0.4.2 fix)**:
+- The earlier note (`no need to install puppeteer; LHCI self-hosts`) was wrong. `@lhci/cli` relies on `chrome-launcher` (a transitive dep) to find a system Chrome — install Chrome (or Chromium / Brave / any chrome-launcher-compatible brand) before running Lighthouse.
+- From 0.4.2, `dsmonitor`'s `lighthouse/run.js` auto-detects the Chrome path via `chrome-launcher.Launcher.getInstallations()` and exports it as `CHROME_PATH` before spawning LHCI — no manual env var is required in most environments.
+- OS-specific install:
+  - **macOS** — `brew install --cask google-chrome` (or download from https://www.google.com/chrome/)
+  - **Linux** — `apt-get install google-chrome-stable` (Ubuntu / Debian) / `dnf install google-chrome-stable` (Fedora)
+  - **Windows** — `choco install googlechrome` (Chocolatey) or direct download
+  - **Docker** — add `apt-get install chromium` to a Debian / `node:20-bookworm-slim` base image
+  - **CI** — GitHub Actions `ubuntu-latest` already ships Chrome; Jenkins workers need `apt-get install google-chrome-stable`. See [`docs/lighthouse-ci-integration.md`](./docs/lighthouse-ci-integration.md).
+- Sanity check: `node -e "console.log(require('chrome-launcher').Launcher.getInstallations())"` — one or more paths = OK, empty array = no Chrome detected.
 
 ### 3. CLI 명령어 / CLI Commands
 
