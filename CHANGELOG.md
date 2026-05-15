@@ -8,6 +8,36 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.7.0] — 2026-05-15
+
+### 추가 / Added
+
+- **한 —** (Y) `dsmonitor init` 이 cwd 기준으로 흔한 path 들을 자동 감지해 default 값을 채웁니다. Tailwind config 는 `tailwind.config.{ts,js,mjs,cjs}` 4종, globals.css 는 `src/app/globals.css` / `src/styles/globals.css` 등 6종, SCSS tokens 는 `styles/tokens.scss` 등 4종을 순서대로 탐색합니다. 감지된 경우 활성 entry 로 채우고, 감지 0건이면 흔한 옵션을 주석으로 함께 노출해 한 줄만 풀어 쓰면 됩니다. `globalStyleSources` 와 `hardcodedValues.scssVariableDefFiles` 도 같은 감지 결과를 활용합니다.
+- **EN —** (Y) `dsmonitor init` now auto-detects common paths from cwd. It probes `tailwind.config.{ts,js,mjs,cjs}` for Tailwind, six locations (e.g. `src/app/globals.css`, `src/styles/globals.css`) for `globals.css`, and four for SCSS tokens. The first match becomes the active default; if nothing matches, common alternatives are listed as comments so a single uncomment is enough. `globalStyleSources` and `hardcodedValues.scssVariableDefFiles` also reuse the detection results.
+- **한 —** (Z) 코드 토큰 파서가 path 부재 / 로드 실패를 구조화 warning 으로 보고합니다. audit 실행 시 stderr 에 `⚠ codeTokens.parsers (...) — file_not_found` 한 줄로 emit 되고, baseline JSON 의 `figma.tokenMatrix.warnings: CodeTokenParserWarning[]` 에 누적되며, dashboard 의 토큰 매트릭스 sub-section 헤더에 노란 배너로 표시됩니다. 옛 silent failure (path 가 달라도 0건으로 통과) 가 정리되어 잘못된 설정이 즉시 눈에 띕니다.
+- **EN —** (Z) Code-token parsers now report missing or unloadable paths as structured warnings. Each one becomes a `⚠ codeTokens.parsers (...) — file_not_found` line on stderr at audit time, lands in `figma.tokenMatrix.warnings: CodeTokenParserWarning[]` in the baseline JSON, and is rendered as a yellow banner above the dashboard's token matrix subsection. This replaces the prior silent failure where a wrong path silently produced zero tokens.
+- **한 —** (BB) `dsmonitor doctor` 명령이 추가되었습니다 — config 와 환경변수를 한 번에 점검하는 진단 도구입니다. `scan.codeRoots` / `styleRoots`, `globalStyleSources`, `hardcodedValues.scssVariableDefFiles`, `designSystem.officialPaths`, `figma.codeTokens.parsers`, `figma.designSystemFiles[].url` / `domainFiles[].url`, `lighthouse.auth.adapter` (custom 인증), `FIGMA_API_TOKEN` / `LIGHTHOUSE_BASE_URL` 환경변수를 모두 확인합니다. 네트워크 호출은 없습니다. `--json` 으로 CI 통합용 출력, `--strict` 로 경고도 오류 취급. exit code = 오류 있음 1 / 아니면 0.
+- **EN —** (BB) New `dsmonitor doctor` command — a single-shot diagnostic that verifies config and environment variables without any network calls. It checks `scan.codeRoots` / `styleRoots`, `globalStyleSources`, `hardcodedValues.scssVariableDefFiles`, `designSystem.officialPaths`, `figma.codeTokens.parsers`, every Figma URL under `designSystemFiles` / `domainFiles`, `lighthouse.auth.adapter` (for custom auth), and the `FIGMA_API_TOKEN` / `LIGHTHOUSE_BASE_URL` env vars. Pass `--json` for CI-friendly output and `--strict` to treat warnings as errors. Exit code 1 when there are errors, 0 otherwise.
+
+### 변경 / Changed
+
+- **한 —** (AA) README §6.6 `designSystem` 부분이 `officialPaths` 와 `officialAliases` 의 차이를 명확히 설명하도록 다시 작성되었습니다. `officialPaths` 는 파일시스템 경로 (영향 지표 `totals.dsComponentFiles`), `officialAliases` 는 import alias prefix (영향 지표 `dsCoverage.coverage`) 라는 점을 풀어 적었고, 두 값이 보통 다르다는 안내를 추가했습니다.
+- **EN —** (AA) README §6.6 `designSystem` was rewritten to make the distinction between `officialPaths` and `officialAliases` explicit — the former is a filesystem path (affecting `totals.dsComponentFiles`), the latter is an import-path prefix (affecting `dsCoverage.coverage`), and the two usually differ.
+- **한 —** (AA) README §6.11 `figma.codeTokens.parsers` 항목에 자동 감지 흐름 안내, 흔한 path 후보 표, audit / dashboard / doctor 를 통한 진단 흐름을 추가했습니다.
+- **EN —** (AA) Added an auto-detection guide, a candidate-paths table, and a how-to-diagnose flow (audit, dashboard, doctor) to README §6.11 `figma.codeTokens.parsers`.
+- **한 —** (AA) README §13 트러블슈팅에 신규 Q 6개를 추가했습니다 — codeCount = 0, tailwind.config 위치, globals.css 위치, 파서 검증 신호, 버전 업그레이드 후 검출 변동, `officialPaths` vs `officialAliases`.
+- **EN —** (AA) Added six new Q&As to README §13 — `codeCount = 0`, `tailwind.config` location, `globals.css` location, how to verify parsers, detection deltas after upgrades, and `officialPaths` vs `officialAliases`.
+- **한 —** (AA) init template (`templates/dsmonitor.config.ts.tpl`) 의 `globalStyleSources` / `scssVariableDefFiles` / `designSystem` 주석이 풀려 작성되었고, `migrationTargets.aliases` 의 barrel + 구체 경로 함께 등록 패턴이 추가되었습니다. `dsmonitor init` 으로 생성되는 `codeTokens.parsers` 코멘트에도 자동 감지 / doctor 진단 안내가 추가되었습니다.
+- **EN —** (AA) The init template (`templates/dsmonitor.config.ts.tpl`) gains expanded comments for `globalStyleSources`, `scssVariableDefFiles`, and `designSystem`, plus a barrel-plus-specific-path pattern for `migrationTargets.aliases`. The `codeTokens.parsers` block emitted by `dsmonitor init` also points users at the auto-detection flow and `dsmonitor doctor`.
+
+### 참고 / Notes
+
+- 본 release 는 BREAKING 변경이 없습니다. 옛 config 도 그대로 작동합니다 — Y 자동 감지는 새 `dsmonitor init` 실행 시에만 적용되고, Z warning 은 옛 baseline JSON 형식 위에 optional 로 더해집니다.
+- This release has no BREAKING changes. Existing configs keep working — Y's auto-detection only applies to a fresh `dsmonitor init`, and Z's warnings are added as an optional field on top of the existing baseline JSON shape.
+- `FileSignals` 는 0.6.1 의 `importEntries?` 추가 외 변경 없음. `CodeTokenParser.parse(...)` 에 4번째 인자 `warnings?: CodeTokenParserWarning[]` 가 추가되었지만 옛 어댑터 / 파서도 인자 무시로 호환됩니다.
+- The `FileSignals` shape is unchanged since the 0.6.1 `importEntries?` addition. `CodeTokenParser.parse(...)` gained an optional fourth argument `warnings?: CodeTokenParserWarning[]`; existing adapters / parsers remain compatible by ignoring it.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.6.1] — 2026-05-15
 
 ### 변경 / Changed

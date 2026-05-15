@@ -43,6 +43,7 @@ import type {
   CodeTokenEntry,
   CodeTokenParser,
   CodeTokenParserConfig,
+  CodeTokenParserWarning,
 } from "../../types";
 import { scssParser } from "./parsers/scss";
 import { cssVariablesParser } from "./parsers/cssVariables";
@@ -83,11 +84,15 @@ export function listRegisteredParserTypes(): string[] {
  * @param absRoot projectRoot 절대 경로
  * @param warnings 비치명적 경고를 누적할 외부 배열 (미등록 type / 파서 예외 등).
  *                 호출부에서 FigmaReport.warnings 로 bubble up.
+ * @param parserWarnings (0.7.0+) 구조화된 파서 진단을 누적할 배열. path 부재 /
+ *                       로드 실패 등이 들어갑니다. 호출부에서 TokenMatrix.warnings
+ *                       로 bubble up 합니다.
  */
 export async function loadCodeTokens(
   parsersCfg: CodeTokenParserConfig[],
   absRoot: string,
-  warnings: string[]
+  warnings: string[],
+  parserWarnings?: CodeTokenParserWarning[]
 ): Promise<CodeTokenEntry[]> {
   const out: CodeTokenEntry[] = [];
   const seenNames = new Set<string>();
@@ -105,12 +110,20 @@ export async function loadCodeTokens(
 
     let tokens: CodeTokenEntry[];
     try {
-      tokens = await parser.parse(cfg, absRoot);
+      tokens = await parser.parse(cfg, absRoot, parserWarnings);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       warnings.push(
         `codeTokens: 파서 "${cfg.type}" (parsers[${i}]) 실행 실패 — ${msg}. 이 파서 결과는 매칭에서 제외.`
       );
+      if (parserWarnings) {
+        parserWarnings.push({
+          parser: cfg.type,
+          path: pathOf(cfg),
+          issue: "load_error",
+          message: msg,
+        });
+      }
       continue;
     }
 
@@ -122,4 +135,17 @@ export async function loadCodeTokens(
   }
 
   return out;
+}
+
+/**
+ * parser warning 에 표시할 대표 path 를 config 에서 추출.
+ * - scss / cssVariables: `files` 배열의 첫 entry (실제 fail 위치는 파서 안에서 개별 push).
+ * - tailwind: `config` 단일 path.
+ */
+function pathOf(cfg: CodeTokenParserConfig): string {
+  if (cfg.type === "tailwind") return cfg.config;
+  if (cfg.type === "scss" || cfg.type === "cssVariables") {
+    return cfg.files[0] ?? "";
+  }
+  return "";
 }

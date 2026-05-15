@@ -15,23 +15,38 @@
  */
 
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import type {
   CodeTokenEntry,
   CodeTokenParser,
   CodeTokenParserConfig,
+  CodeTokenParserWarning,
 } from "../../../types";
 
 export const cssVariablesParser: CodeTokenParser = {
   type: "cssVariables",
   async parse(
     config: CodeTokenParserConfig,
-    absRoot: string
+    absRoot: string,
+    warnings?: CodeTokenParserWarning[]
   ): Promise<CodeTokenEntry[]> {
     if (config.type !== "cssVariables") {
       throw new Error(
         `cssVariablesParser: expected config.type === "cssVariables", got "${config.type}"`
       );
+    }
+    // 0.7.0 (Z): path 존재 확인 → 부재 file 은 warning 으로 보고.
+    if (warnings) {
+      for (const rel of config.files) {
+        if (!existsSync(path.resolve(absRoot, rel))) {
+          warnings.push({
+            parser: "cssVariables",
+            path: rel,
+            issue: "file_not_found",
+          });
+        }
+      }
     }
     return parseCssVariableFiles(absRoot, config.files);
   },

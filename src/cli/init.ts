@@ -49,6 +49,61 @@ interface InitAnswers {
   overwrite?: boolean;
 }
 
+/**
+ * 0.7.0 (Y): cwd 기준으로 흔한 path 들을 탐색해 init template 의 default 값을
+ * 자동으로 채우기 위한 결과. 발견 0건이면 각 필드는 null 이고 template 안에는
+ * "자동 감지 안 됨" 안내 + 흔한 옵션을 주석으로 노출합니다.
+ *
+ * 탐색은 dsmonitor/ 폴더가 생기는 자리 (cwd) 기준입니다. 결과 경로는 dsmonitor/
+ * 폴더 안 config 에서 projectRoot = ".." 으로 두는 흐름을 가정해 그대로 보존
+ * (config 안에서는 projectRoot 기준으로 해석되므로 상대 경로 그대로 활용 가능).
+ */
+export interface DetectedPaths {
+  tailwindConfig: string | null;
+  cssGlobals: string | null;
+  scssTokens: string | null;
+  hasStylesDir: boolean;
+  hasSrcStylesDir: boolean;
+}
+
+const TAILWIND_CONFIG_CANDIDATES = [
+  "tailwind.config.ts",
+  "tailwind.config.js",
+  "tailwind.config.mjs",
+  "tailwind.config.cjs",
+];
+
+const CSS_GLOBALS_CANDIDATES = [
+  "src/app/globals.css",     // Next.js App Router
+  "src/styles/globals.css",  // Next.js Pages Router / Vite
+  "app/globals.css",         // App Router (no src/)
+  "styles/globals.css",      // Pages Router (no src/)
+  "src/index.css",           // Vite default
+  "src/styles/main.css",
+];
+
+const SCSS_TOKENS_CANDIDATES = [
+  "styles/tokens.scss",
+  "src/styles/tokens.scss",
+  "styles/variables.scss",
+  "src/styles/variables.scss",
+];
+
+export function detectProjectPaths(cwd: string): DetectedPaths {
+  const exists = (rel: string): boolean => existsSync(path.join(cwd, rel));
+  const findFirst = (cands: string[]): string | null => {
+    for (const c of cands) if (exists(c)) return c;
+    return null;
+  };
+  return {
+    tailwindConfig: findFirst(TAILWIND_CONFIG_CANDIDATES),
+    cssGlobals: findFirst(CSS_GLOBALS_CANDIDATES),
+    scssTokens: findFirst(SCSS_TOKENS_CANDIDATES),
+    hasStylesDir: exists("styles"),
+    hasSrcStylesDir: exists("src/styles"),
+  };
+}
+
 export async function runInit(): Promise<void> {
   console.log("");
   console.log("DSMonitor init — 외부 사용자 dsmonitor/ 폴더 부트스트랩");
@@ -149,6 +204,16 @@ export async function runInit(): Promise<void> {
   mkdirSync(projectDir, { recursive: true });
   mkdirSync(path.join(projectDir, "reports"), { recursive: true });
 
+  // 0.7.0 (Y): cwd 기준 path 자동 감지 — codeTokens / globalStyleSources /
+  // scssVariableDefFiles 의 default 값을 흔한 위치에서 첫 발견되는 파일로 미리
+  // 채워 줍니다. 발견 0건이면 주석으로 흔한 옵션 4종을 함께 노출합니다.
+  const detected = detectProjectPaths(cwd);
+  console.log("");
+  console.log("▶ path 자동 감지 (cwd 기준)");
+  console.log(`  tailwind.config: ${detected.tailwindConfig ?? "(없음)"}`);
+  console.log(`  globals.css    : ${detected.cssGlobals ?? "(없음)"}`);
+  console.log(`  scss tokens    : ${detected.scssTokens ?? "(없음)"}`);
+
   // 3-a. dsmonitor.config.ts (templates/dsmonitor.config.ts.tpl 안 토큰 치환)
   const configTpl = readFileSync(path.join(TEMPLATES_DIR, "dsmonitor.config.ts.tpl"), "utf8");
   const config = configTpl
@@ -160,9 +225,11 @@ export async function runInit(): Promise<void> {
     )
     .replace(
       /\{\{FIGMA_BLOCK\}\}/g,
-      answers.figma ? renderFigmaBlock() : "// figma 부분 누락 (dsmonitor init 안 N 선택)"
+      answers.figma ? renderFigmaBlock(detected) : "// figma 부분 누락 (dsmonitor init 안 N 선택)"
     )
-    .replace(/\{\{FIGMA_METRIC\}\}/g, answers.figma ? "true" : "false");
+    .replace(/\{\{FIGMA_METRIC\}\}/g, answers.figma ? "true" : "false")
+    .replace(/\{\{GLOBAL_STYLE_SOURCES\}\}/g, renderGlobalStyleSources(detected))
+    .replace(/\{\{SCSS_VAR_DEF_FILES\}\}/g, renderScssVarDefFiles(detected));
   writeFileSync(configPath, config);
 
   // 3-b. .env.local.example (figma + lighthouse 안내 — authType 동적 생성)
@@ -299,7 +366,8 @@ function renderAuthLiteral(authType: LighthouseAuthType): string {
   }
 }
 
-function renderFigmaBlock(): string {
+function renderFigmaBlock(detected: DetectedPaths): string {
+  const codeTokensBody = renderCodeTokensBody(detected);
   return `figma: {
     apiToken: process.env.FIGMA_API_TOKEN ?? "",
     validationLevel: "lite",
@@ -396,21 +464,104 @@ function renderFigmaBlock(): string {
     // ═══ 코드 측 토큰 파서 / Code Token Parsers ═══════════════════
     // 빈 배열이어도 에러 X (codeCount=0 으로 tokenMatrix 생성).
     // 0.6.0 부터 SCSS 외에 cssVariables / tailwind 파서를 지원합니다.
+    // 0.7.0 부터 init 시점에 cwd 기준으로 흔한 path 들을 탐색해 default 를 채워
+    // 줍니다. 자동 감지 안 된 항목은 주석에 흔한 옵션 4종이 함께 표시되며,
+    // 측정 후 dashboard 의 "Figma 토큰 매트릭스 → code 컬럼" 이 0 으로 잡힌다면
+    // path 를 다시 점검하세요. \`npx dsmonitor doctor\` 명령으로 일괄 진단 가능합니다.
     // EN — empty array is allowed (tokenMatrix is still generated with codeCount=0).
     //      Since 0.6.0, cssVariables and tailwind parsers are available in addition to scss.
+    //      Since 0.7.0, \`dsmonitor init\` auto-detects common path candidates from cwd and
+    //      fills in defaults. If detection misses, common alternatives are listed as comments.
+    //      Run \`npx dsmonitor doctor\` to verify every path at once.
     codeTokens: {
       parsers: [
-        // SCSS 변수 + SCSS map + @each 동적 emit 추출
-        // { type: "scss", files: ["styles/tokens.scss"] },
-        //
-        // 순수 CSS 의 --* 정의 추출 (Tailwind v4 의 @theme 포함)
-        // { type: "cssVariables", files: ["src/app/globals.css"] },
-        //
-        // Tailwind v3 의 theme 토큰 추출 (colors / spacing / fontSize / borderRadius 기본)
-        // { type: "tailwind", config: "tailwind.config.ts" },
-      ],
+${codeTokensBody}      ],
     },
   },`;
+}
+
+/**
+ * 0.7.0 (Y): codeTokens.parsers 의 본문을 자동 감지 결과로 생성.
+ *
+ * - 감지된 파일이 있으면 활성 entry 로 노출 (주석 X).
+ * - 감지 0건이면 흔한 옵션을 주석으로 노출해 사용자가 한 줄만 풀어 쓰면 되게 합니다.
+ */
+function renderCodeTokensBody(detected: DetectedPaths): string {
+  const lines: string[] = [];
+
+  // SCSS — 자동 감지된 tokens 파일이 있으면 활성, 없으면 주석 옵션.
+  if (detected.scssTokens) {
+    lines.push("        // SCSS 변수 + SCSS map + @each 동적 emit 추출 (자동 감지됨)");
+    lines.push(`        { type: "scss", files: ["${detected.scssTokens}"] },`);
+  } else {
+    lines.push("        // SCSS 변수 + SCSS map + @each 동적 emit 추출 (자동 감지 안 됨)");
+    lines.push('        // { type: "scss", files: ["styles/tokens.scss"] },');
+  }
+
+  lines.push("");
+
+  // cssVariables — 자동 감지된 globals.css 가 있으면 활성, 없으면 흔한 옵션 안내.
+  if (detected.cssGlobals) {
+    lines.push("        // 순수 CSS 의 --* 정의 추출 (Tailwind v4 의 @theme 포함, 자동 감지됨)");
+    lines.push(`        { type: "cssVariables", files: ["${detected.cssGlobals}"] },`);
+  } else {
+    lines.push("        // 순수 CSS 의 --* 정의 추출 (Tailwind v4 의 @theme 포함)");
+    lines.push("        // globals.css 가 자동 감지되지 않았습니다. 실제 경로로 정정:");
+    lines.push('        // { type: "cssVariables", files: ["src/app/globals.css"] },     // App Router');
+    lines.push('        // { type: "cssVariables", files: ["src/styles/globals.css"] },  // Pages Router / Vite');
+    lines.push('        // { type: "cssVariables", files: ["app/globals.css"] },          // App Router (no src/)');
+    lines.push('        // { type: "cssVariables", files: ["styles/globals.css"] },       // Pages Router (no src/)');
+  }
+
+  lines.push("");
+
+  // tailwind — 자동 감지된 config 가 있으면 활성, 없으면 4종 확장자 안내.
+  if (detected.tailwindConfig) {
+    lines.push("        // Tailwind v3 의 theme 토큰 추출 (colors / spacing / fontSize / borderRadius 기본, 자동 감지됨)");
+    lines.push(`        { type: "tailwind", config: "${detected.tailwindConfig}" },`);
+  } else {
+    lines.push("        // Tailwind v3 의 theme 토큰 추출 (colors / spacing / fontSize / borderRadius 기본)");
+    lines.push("        // tailwind.config 가 자동 감지되지 않았습니다. 실제 확장자로 정정:");
+    lines.push('        // { type: "tailwind", config: "tailwind.config.ts" },');
+    lines.push('        // { type: "tailwind", config: "tailwind.config.js" },');
+    lines.push('        // { type: "tailwind", config: "tailwind.config.mjs" },');
+    lines.push('        // { type: "tailwind", config: "tailwind.config.cjs" },');
+  }
+
+  return lines.map((l) => l + "\n").join("");
+}
+
+/**
+ * 0.7.0 (Y): globalStyleSources 의 default 를 자동 감지 결과로 생성.
+ *
+ * 단일 root 자체를 가리키는 단순 glob 만 emit 합니다 (모호한 경우 주석으로 흔한 옵션 안내).
+ */
+function renderGlobalStyleSources(detected: DetectedPaths): string {
+  // src/styles/ 가 있으면 그 안의 SCSS/CSS, 없고 styles/ 만 있으면 그 안.
+  if (detected.hasSrcStylesDir) {
+    return '["src/styles/**/*.{scss,css}"]';
+  }
+  if (detected.hasStylesDir) {
+    return '["styles/**/*.{scss,css}"]';
+  }
+  if (detected.cssGlobals) {
+    // styles 디렉토리는 없지만 globals.css 가 있으면 그 디렉토리 기준.
+    const dir = detected.cssGlobals.replace(/\/[^/]+$/, "");
+    return `["${dir}/**/*.{scss,css}"]`;
+  }
+  return '["styles/**/*.{scss,css}"]';
+}
+
+/**
+ * 0.7.0 (Y): scssVariableDefFiles 의 default. 감지된 globals.css 가 있으면
+ * hex / rgba noise 제외용으로 자동 등록해 둡니다.
+ */
+function renderScssVarDefFiles(detected: DetectedPaths): string {
+  const entries: string[] = [];
+  if (detected.cssGlobals) entries.push(`"${detected.cssGlobals}"`);
+  if (detected.scssTokens) entries.push(`"${detected.scssTokens}"`);
+  if (entries.length === 0) return "[]";
+  return `[${entries.join(", ")}]`;
 }
 
 function renderFigmaEnvBlock(): string {

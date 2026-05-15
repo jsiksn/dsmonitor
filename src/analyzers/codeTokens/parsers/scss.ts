@@ -6,10 +6,13 @@
  * 파서 추가 방법은 `analyzers/codeTokens/index.ts` 상단 주석 참조.
  */
 
+import { existsSync } from "node:fs";
+import path from "node:path";
 import type {
   CodeTokenEntry,
   CodeTokenParser,
   CodeTokenParserConfig,
+  CodeTokenParserWarning,
 } from "../../../types";
 import { parseScssTokens } from "../../scssTokens";
 
@@ -17,14 +20,25 @@ export const scssParser: CodeTokenParser = {
   type: "scss",
   async parse(
     config: CodeTokenParserConfig,
-    absRoot: string
+    absRoot: string,
+    warnings?: CodeTokenParserWarning[]
   ): Promise<CodeTokenEntry[]> {
-    // 현재 union 에 scss 만 있지만, 향후 확장 대비 방어적 narrow.
-    // 레지스트리가 type 매칭으로 호출하지만 타입 시스템상 union 전체를 받으므로 확인.
     if (config.type !== "scss") {
       throw new Error(
         `scssParser: expected config.type === "scss", got "${config.type}"`
       );
+    }
+    // 0.7.0 (Z): 지정된 SCSS 파일이 실제로 존재하는지 확인.
+    if (warnings) {
+      for (const rel of config.files) {
+        if (!existsSync(path.resolve(absRoot, rel))) {
+          warnings.push({
+            parser: "scss",
+            path: rel,
+            issue: "file_not_found",
+          });
+        }
+      }
     }
     return parseScssTokens(absRoot, config.files);
   },

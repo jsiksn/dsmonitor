@@ -23,12 +23,14 @@
  *     필요한 인자를 제공하지 못해 값이 안 잡힐 수 있습니다 (현재는 빈 인자로 호출).
  */
 
+import { existsSync } from "node:fs";
 import path from "node:path";
 import url from "node:url";
 import type {
   CodeTokenEntry,
   CodeTokenParser,
   CodeTokenParserConfig,
+  CodeTokenParserWarning,
 } from "../../../types";
 
 const DEFAULT_CATEGORIES = ["colors", "spacing", "fontSize", "borderRadius"];
@@ -37,30 +39,51 @@ export const tailwindParser: CodeTokenParser = {
   type: "tailwind",
   async parse(
     config: CodeTokenParserConfig,
-    absRoot: string
+    absRoot: string,
+    warnings?: CodeTokenParserWarning[]
   ): Promise<CodeTokenEntry[]> {
     if (config.type !== "tailwind") {
       throw new Error(
         `tailwindParser: expected config.type === "tailwind", got "${config.type}"`
       );
     }
-    return parseTailwindConfig(absRoot, config.config, config.categories);
+    // 0.7.0 (Z): config 파일 부재 / 로드 실패를 warning 으로 보고.
+    return parseTailwindConfig(absRoot, config.config, config.categories, warnings);
   },
 };
 
 export async function parseTailwindConfig(
   absRoot: string,
   configPath: string,
-  categories?: string[]
+  categories?: string[],
+  warnings?: CodeTokenParserWarning[]
 ): Promise<CodeTokenEntry[]> {
   const absPath = path.resolve(absRoot, configPath);
   const relPath = path.relative(absRoot, absPath) || configPath;
 
+  if (!existsSync(absPath)) {
+    if (warnings) {
+      warnings.push({
+        parser: "tailwind",
+        path: configPath,
+        issue: "file_not_found",
+      });
+    }
+    return [];
+  }
+
   let mod: any;
   try {
     mod = await loadConfigModule(absPath);
-  } catch {
-    // 동적 import 실패 — config 파일 부재 / syntax 오류 등. 조용히 스킵.
+  } catch (e) {
+    if (warnings) {
+      warnings.push({
+        parser: "tailwind",
+        path: configPath,
+        issue: "load_error",
+        message: e instanceof Error ? e.message : String(e),
+      });
+    }
     return [];
   }
 
