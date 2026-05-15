@@ -975,6 +975,10 @@ export type CodeTokenParserConfig =
  * 구현체는 `config.type` 으로 자신의 설정 shape 인지 확인 후 narrow 해야 함.
  * 잘못된 config 면 throw 권장 (레지스트리 키와 config.type 불일치는 로더 단계에서
  * 이미 걸러지지만, 방어 차원).
+ *
+ * 0.7.0 부터 path 부재 등 진단 가능한 결함을 발견하면 4번째 인자 `warnings`
+ * 배열에 entry 를 push 합니다. parse() 자체는 그대로 빈 배열을 반환하는 것이
+ * 자연스럽고, warning 은 dashboard / baseline JSON 으로 bubble up 됩니다.
  */
 export interface CodeTokenParser {
   /** 식별자 (config.type 과 매칭). 예: "scss", "css", "tailwind". */
@@ -982,11 +986,37 @@ export interface CodeTokenParser {
   /**
    * @param config 해당 파서 설정 (`config.type === this.type`).
    * @param absRoot projectRoot 절대 경로 (파일 경로 해석용).
+   * @param warnings (0.7.0+) 비치명적 진단을 push 할 배열. 옛 파서는 무시해도 됩니다.
    */
   parse(
     config: CodeTokenParserConfig,
-    absRoot: string
+    absRoot: string,
+    warnings?: CodeTokenParserWarning[]
   ): CodeTokenEntry[] | Promise<CodeTokenEntry[]>;
+}
+
+/**
+ * 코드 토큰 파서가 path 부재 / 로드 실패 등을 보고하는 구조화 경고 (0.7.0+).
+ *
+ * 표시 위치:
+ *   - audit 실행 시 stderr 에 "⚠" 한 줄로 emit.
+ *   - baseline JSON 안 `figma.tokenMatrix.warnings` 배열에 누적.
+ *   - dashboard 의 Figma 탭 토큰 매트릭스 sub-section 헤더에 badge 로 노출.
+ */
+export interface CodeTokenParserWarning {
+  /** 파서 type — "scss" / "cssVariables" / "tailwind" 등. */
+  parser: string;
+  /** 해당 파서 설정 안 path (단일 파일 또는 single config path). 진단 메시지에 그대로 표시. */
+  path: string;
+  /**
+   * 결함 종류:
+   *   - "file_not_found"  — 지정된 path 가 파일시스템에 없음.
+   *   - "load_error"      — 파일은 있지만 동적 import / 파싱 실패.
+   *   - "empty_result"    — 파서가 정상 실행됐지만 추출된 토큰 0건 (옵션).
+   */
+  issue: "file_not_found" | "load_error" | "empty_result";
+  /** 추가 안내 (선택). 예: 에러 메시지 / 정정 힌트. */
+  message?: string;
 }
 
 /**
@@ -1160,4 +1190,12 @@ export type TokenMatrix = {
     /** key = DS label. */
     dsStats: Record<string, TokenMatrixDsStats>;
   };
+  /**
+   * 0.7.0 (Z): 코드 토큰 파서가 보고한 진단. path 부재 / 로드 실패 등.
+   *
+   * dashboard 의 토큰 매트릭스 sub-section 헤더에 "⚠ N warning" badge 로 노출되고,
+   * audit 실행 시점에는 stderr 에 한 줄씩 출력됩니다. 옛 baseline JSON 호환을 위해
+   * optional 로 두며, 미존재 / 빈 배열이면 옛 흐름과 동일합니다.
+   */
+  warnings?: CodeTokenParserWarning[];
 };

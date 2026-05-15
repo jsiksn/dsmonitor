@@ -24,7 +24,7 @@ import type {
 
 async function loadConfig(configPath: string): Promise<UIHealthConfig> {
   const abs = path.resolve(configPath);
-  // v0.1.0: 사용자 측 dsmonitor.config.ts (.ts) import 흐름 = tsx/esm/api 활용.
+  // v0.1.0: 사용자 환경 dsmonitor.config.ts (.ts) import 흐름 = tsx/esm/api 활용.
   // .js / .mjs 케이스는 native dynamic import 활용.
   // tsx 안 default export quirk — `{ default: { default: <config> } }` 형식 가능.
   const isTs = abs.endsWith(".ts") || abs.endsWith(".mts") || abs.endsWith(".cts");
@@ -45,7 +45,7 @@ async function loadConfig(configPath: string): Promise<UIHealthConfig> {
  *
  * 후보 (각 디렉토리에서 순서대로):
  *   1. <dir>/dsmonitor.config.ts          ← cd dsmonitor 안에서 직접 실행 케이스
- *   2. <dir>/dsmonitor/dsmonitor.config.ts ← 루트에서 호출 시 프로젝트 측 디렉토리 케이스
+ *   2. <dir>/dsmonitor/dsmonitor.config.ts ← 루트에서 호출 시 프로젝트 디렉토리 디렉토리 케이스
  *   3. <dir>/vitaui.config.ts             ← legacy (vitaui → dsmonitor rename, 0.2.0 부터 deprecation)
  *   4. <dir>/vitaui/vitaui.config.ts      ← legacy (vitaui → dsmonitor rename, 0.2.0 부터 deprecation)
  */
@@ -80,12 +80,17 @@ function parseArgs(argv: string[]): {
   envPath?: string;
   inputPath?: string;
   outputPath?: string;
+  doctorJson: boolean;
+  doctorStrict: boolean;
 } {
   const args = argv.slice(2);
   const cmd = args[0] || "audit";
   const baseline = args.includes("--baseline");
   const all = args.includes("--all");
   const skipLighthouse = args.includes("--skip-lighthouse");
+  // 0.7.0 (BB): doctor 명령 옵션.
+  const doctorJson = args.includes("--json");
+  const doctorStrict = args.includes("--strict");
   const readOpt = (flag: string): string | undefined => {
     const i = args.indexOf(flag);
     return i >= 0 && args[i + 1] ? args[i + 1] : undefined;
@@ -126,14 +131,27 @@ function parseArgs(argv: string[]): {
     envPath: readOpt("--env"),
     inputPath: readOpt("--input"),
     outputPath: readOpt("--output"),
+    doctorJson,
+    doctorStrict,
   };
 }
 
 async function main() {
-  const { cmd, baseline, configPath, only, all, skipLighthouse, envPath, inputPath, outputPath } =
-    parseArgs(process.argv);
+  const {
+    cmd,
+    baseline,
+    configPath,
+    only,
+    all,
+    skipLighthouse,
+    envPath,
+    inputPath,
+    outputPath,
+    doctorJson,
+    doctorStrict,
+  } = parseArgs(process.argv);
 
-  // v0.1.0: init subcommand — config 없어도 작동 (사용자 측 dsmonitor/ 부트스트랩).
+  // v0.1.0: init subcommand — config 없어도 작동 (사용자 환경 dsmonitor/ 부트스트랩).
   if (cmd === "init") {
     const { runInit } = await import("./cli/init");
     await runInit();
@@ -169,7 +187,7 @@ async function main() {
       const dotenv = await import("dotenv");
       dotenv.config({ path: envCandidate });
     } catch {
-      // dotenv 모듈 부재 (사용자 측 미설치 환경) — figmaAnalysis=true 일 때만 analyzer 친절 오류.
+      // dotenv 모듈 부재 (사용자 환경 미설치 환경) — figmaAnalysis=true 일 때만 analyzer 친절 오류.
     }
   }
 
@@ -178,9 +196,19 @@ async function main() {
   const cfg = attachAbsRoot(configPath, rawCfg);
   console.log(`[dsmonitor] projectRoot: ${cfg.__absRoot}`);
 
+  // 0.7.0 (BB): doctor 명령 — config / 환경변수 진단만 수행하고 종료.
+  if (cmd === "doctor") {
+    const { runDoctor, doctorExitCode } = await import("./cli/doctor");
+    const report = runDoctor(cfg, configPath, {
+      json: doctorJson,
+      strict: doctorStrict,
+    });
+    process.exit(doctorExitCode(report, { strict: doctorStrict }));
+  }
+
   if (cmd === "audit") {
     // v0.3.1 (2026-05-11): --only lighthouse — Lighthouse 단독 측정.
-    // code analyzer + figma analyzer 호출 X. 옛 `node node_modules/dsmonitor/lighthouse/run.js` 단독 호출 흐름 일관 + 사용자 측 직관 강화.
+    // code analyzer + figma analyzer 호출 X. 옛 `node node_modules/dsmonitor/lighthouse/run.js` 단독 호출 흐름 일관 + 사용자 환경 직관 강화.
     if (only === "lighthouse") {
       const configDir = path.dirname(configPath);
       console.log(`[dsmonitor] --only lighthouse — Lighthouse 단독 측정`);
@@ -283,7 +311,7 @@ async function main() {
 
     // v0.3.0 (2026-05-11): --all flag — 통합 측정 chain.
     // audit (code + figma) 완료 후 Lighthouse 호출 + report (markdown) + dashboard 자동 chain.
-    // 사용자 측 한 번 명령 호출로 모든 측정 + 출력 자동 흐름 진입.
+    // 사용자 환경 한 번 명령 호출로 모든 측정 + 출력 자동 흐름 진입.
     if (all) {
       console.log(``);
       console.log(`[dsmonitor] --all chain — Lighthouse + report + dashboard 진입`);
@@ -592,10 +620,10 @@ async function runLighthouse(
 /**
  * 0.5.0 — 임시 lighthouserc.js 자체 동적 생성. dsmonitor.config.ts 안
  * `lighthouse.{baseUrl, pages, runs, auth, advanced}` 자체 read → LHCI
- * config 자체 자세 build → `node_modules/.cache/dsmonitor/lighthouserc.js`
- * 자체 자세 write → path 자체 반환.
+ * config 자체 상세 build → `node_modules/.cache/dsmonitor/lighthouserc.js`
+ * 자체 상세 write → path 자체 반환.
  *
- * 외부 사용자 자체 본 파일 자체 직접 정정 X — 매 측정 시점 자세 재생성.
+ * 외부 사용자 자체 본 파일 자체 직접 정정 X — 매 측정 시점 상세 재생성.
  * dsmonitor 자체 default options 자체 + `lighthouse.advanced` 자체 deep-merge.
  */
 function writeLighthouseTempConfig(
@@ -640,7 +668,7 @@ function writeLighthouseTempConfig(
     : null;
 
   const body = `// dsmonitor 자체 동적 생성 — 0.5.0+ 임시 LHCI config.
-// 본 파일 자체 = dsmonitor 자체 runLighthouse() 안 매 측정 시점 자세 재생성.
+// 본 파일 자체 = dsmonitor 자체 runLighthouse() 안 매 측정 시점 상세 재생성.
 // 외부 사용자 자체 본 파일 자체 직접 정정 X — \`dsmonitor.config.ts\` 안 \`lighthouse\` 자체 정정.
 
 const baseUrl = (${baseUrlLiteral}).replace(/\\/$/, "");

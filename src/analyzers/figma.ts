@@ -16,6 +16,7 @@
 
 import type {
   ClassIndex,
+  CodeTokenParserWarning,
   UIHealthConfig,
   FigmaReport,
   FigmaDesignSystemCount,
@@ -212,13 +213,29 @@ export async function analyzeFigma(
 
   // ───── 5. 코드 토큰 파싱 + tokenMatrix 생성 (단계 3, 2026-04-24) ─────
   // 파서 플러그인 구조: config.figma.codeTokens.parsers 의 각 엔트리를 레지스트리
-  // 에서 찾아 실행. 현재 지원 파서: "scss" (향후 css / tailwind / styled-components 확장).
+  // 에서 찾아 실행. 현재 지원 파서: scss / cssVariables / tailwind.
+  // 0.7.0 (Z): 파서 진단을 구조화 warning 으로 수집해 tokenMatrix.warnings 로 bubble up.
+  const parserWarnings: CodeTokenParserWarning[] = [];
   const codeTokens = await loadCodeTokens(
     fc.codeTokens.parsers,
     cfg.__absRoot,
-    warnings
+    warnings,
+    parserWarnings
   );
   console.log(`[figma] 코드 토큰 ${codeTokens.length}개 추출`);
+
+  // 0.7.0 (Z): path 진단을 stderr 로 한 줄씩 emit. baseline JSON 에는 tokenMatrix.warnings
+  // 로 그대로 보존되어 dashboard 가 badge 로 표시합니다.
+  for (const w of parserWarnings) {
+    const detail = w.message ? ` (${w.message})` : "";
+    const hint =
+      w.issue === "file_not_found"
+        ? " 힌트: `npx dsmonitor doctor` 로 path 진단 가능."
+        : "";
+    console.warn(
+      `⚠ codeTokens.parsers (${w.parser}): "${w.path}" — ${w.issue}${detail}.${hint}`
+    );
+  }
 
   const dsInputs: TokenMatrixDsInput[] = fc.designSystemFiles.map((d) => ({
     label: d.label,
@@ -226,6 +243,9 @@ export async function analyzeFigma(
     variables: dsVariablesByLabel.get(d.label) ?? [],
   }));
   const tokenMatrix = buildTokenMatrix(codeTokens, dsInputs);
+  if (parserWarnings.length > 0) {
+    tokenMatrix.warnings = parserWarnings;
+  }
 
   const registeredLabels = fc.designSystemFiles.map((d) => d.label);
   const domainResultsTree = buildDomainResults(

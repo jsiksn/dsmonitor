@@ -204,6 +204,8 @@ function TokenMatrixSection({ d }) {
   // 0.2.0: ds-new/ds-legacy hardcoded 형태 → primary + non-primary 형태로 변경.
   // dn = primary 매칭 / dl = non-primary 매칭 합집합 (transformer enrichTokenMatrix 결과 사용).
   const dsLabels = [d.primaryLabel, ...(d.nonPrimaryLabels ?? [])].filter(Boolean);
+  // 0.7.0 (Z): 코드 토큰 파서가 보고한 진단. baseline JSON 안 tokenMatrix.warnings 그대로.
+  const warnings = Array.isArray(tm.warnings) ? tm.warnings : [];
 
   return (
     <FSection
@@ -213,6 +215,44 @@ function TokenMatrixSection({ d }) {
       status={{ kind: "note" }}
       direction={{ kind: "neutral" }}
     >
+      {warnings.length > 0 && (
+        <div
+          className="token-matrix-warnings"
+          style={{
+            padding: "10px 12px",
+            marginBottom: 12,
+            borderRadius: 6,
+            background: "var(--warn-bg, var(--bg-sunken))",
+            border: "1px solid var(--warn)",
+            color: "var(--ink)",
+            fontSize: 12.5,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>
+            ⚠ codeTokens.parsers — {warnings.length} warning
+            {warnings.length > 1 ? "s" : ""}
+          </div>
+          <div style={{ color: "var(--ink-2)", marginBottom: 6, fontSize: 12 }}>
+            지정한 path 가 발견되지 않거나 로드에 실패했습니다. 코드 측 토큰이 0 으로 잡힐 수 있습니다.
+            <code style={{ marginLeft: 4 }}>npx dsmonitor doctor</code> 로 일괄 진단 가능합니다.
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "var(--ink-2)" }}>
+            {warnings.map((w, i) => (
+              <li key={i}>
+                <span className="mono" style={{ color: "var(--warn-ink, var(--ink))" }}>
+                  {w.parser}
+                </span>
+                {" · "}
+                <span className="mono">{w.path}</span>
+                {" — "}
+                <span className="mono dim">{w.issue}</span>
+                {w.message ? <span className="dim"> ({w.message})</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* distribution summary */}
       <div className="kv-grid">
         <div className="kv-big">

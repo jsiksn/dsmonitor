@@ -10,6 +10,34 @@ dsmonitor 는 **측정 도구** 입니다 (개선 도구가 아닙니다). 분�
 
 ![dsmonitor dashboard](docs/images/dashboard.png)
 
+## 지원 기술 스택 / Supported Tech Stacks
+
+dsmonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 도입을 검토하는 단계에서 가장 먼저 이 표로 호환 여부를 확인하시면 됩니다.
+
+| 분야                | 지원                                                                  |
+|---------------------|----------------------------------------------------------------------|
+| Framework (frontend) | React (Vue / Svelte 등 미지원)                                       |
+| Meta-framework       | Next.js (App Router / Pages Router), Vite                            |
+| Language             | TypeScript, JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`)                 |
+| Styling              | Tailwind, Bootstrap, SCSS, CSS Modules (preset 4종 제공)              |
+| Design 통합          | Figma (선택)                                                          |
+| Performance 측정     | Lighthouse (선택)                                                     |
+
+위 조합에 해당하지 않는 환경 (예: Vue / Svelte 프로젝트) 은 본 시점 미지원이며, 호환성 검토는 별도로 진행이 필요합니다.
+
+dsmonitor supports the following technology stack combinations. When you are evaluating dsmonitor for a new project, this table is the first place to check compatibility.
+
+| Area                     | Support                                                              |
+|--------------------------|----------------------------------------------------------------------|
+| Framework (frontend)     | React (Vue / Svelte etc. not supported)                              |
+| Meta-framework           | Next.js (App Router / Pages Router), Vite                            |
+| Language                 | TypeScript, JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`)                 |
+| Styling                  | Tailwind, Bootstrap, SCSS, CSS Modules (4 presets included)          |
+| Design integration       | Figma (optional)                                                     |
+| Performance measurement  | Lighthouse (optional)                                                |
+
+Stacks not listed above (e.g. Vue / Svelte projects) are currently unsupported; a separate compatibility review is required before adoption.
+
 ---
 
 ## 1. 측정 항목
@@ -134,6 +162,7 @@ npx dsmonitor audit --baseline               # 정식 baseline 모드로 측정 
 npx dsmonitor report                         # markdown 리포트만 재생성
 npx dsmonitor dashboard                      # dashboard HTML 만 재빌드 (사이드카 plugin 자동 검색)
 npx dsmonitor baseline-lint                  # ESLint forbidden class baseline 생성
+npx dsmonitor doctor [--json] [--strict]     # 설정 / 환경변수 / path 진단 (0.7.0+)
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]  # Figma frame 안의 instance CSV 출력
 ```
 
@@ -246,19 +275,21 @@ globalStyleSources: ["styles/**/*.{scss,css}"],
 
 ### 6.6 `designSystem` (필수)
 
-DS 컴포넌트가 어디에 있는지 알려줍니다.
+DS 컴포넌트가 어디에 있는지, 그리고 코드에서 DS 를 어떻게 import 하는지 두 가지를 함께 알려줍니다. `officialPaths` 와 `officialAliases` 는 같은 DS 를 서로 다른 "언어" 로 가리키며 보통 값이 다릅니다.
 
 ```ts
 designSystem: {
   officialPaths: ["src/components/ds/**"],
-  officialAliases: ["@ds/*"],
+  officialAliases: ["@ds/", "@/components/ds/"],
   componentExts: [".tsx", ".jsx"],
 },
 ```
 
-- `officialPaths` — DS 파일이 들어 있는 디렉토리 glob.
-- `officialAliases` — TypeScript paths alias 로 DS 를 import 하는 경우의 alias prefix.
+- `officialPaths` — DS 소스가 실제로 위치하는 파일 경로 (projectRoot 기준 glob). 이 경로 안 파일은 마이그레이션 후보 검출 대상에서 제외됩니다. 영향 지표는 `totals.dsComponentFiles` (DS 본체 파일 수) 입니다.
+- `officialAliases` — 코드에서 DS 를 import 할 때 쓰는 alias prefix (tsconfig paths / webpack alias 등). 상대 경로 import 만 쓰는 환경이라면 빈 배열로 둬도 됩니다. 영향 지표는 `dsCoverage.filesUsingDs` / `dsCoverage.coverage` (DS 사용 비율) 입니다.
 - `componentExts` — 컴포넌트 파일로 인정할 확장자.
+
+두 필드의 값이 동일한 경우는 alias 가 없는 환경 (직접 경로 import 만 쓰는 경우) 입니다. 헷갈리지 않게 정리해 두면 `officialPaths` 는 "파일이 어디에 있나?", `officialAliases` 는 "import 가 어떻게 쓰이나?" 두 질문에 답한다고 생각하면 됩니다.
 
 ### 6.7 `hardcodedValues` (필수)
 
@@ -407,6 +438,19 @@ figma: {
   - `{ type: "tailwind", config: "...", categories?: [...] }` (0.6.0+) — Tailwind v3 의 `tailwind.config.{js,cjs,mjs,ts}` 를 동적 import 해 `theme` / `theme.extend` 의 nested 값을 dot-path 로 flatten 합니다 (예: `colors.primary.500`, `spacing.4`). `categories` 를 생략하면 `["colors", "spacing", "fontSize", "borderRadius"]` 가 기본값입니다. 빈 배열을 넘기면 `theme` 의 모든 top-level 키를 시도합니다.
 
 서로 다른 파서에서 동일한 이름이 나오면 등록 순서가 빠른 쪽이 우선이며, 이후 등장은 무시됩니다 (code 컬럼 카운트는 항상 0 또는 1).
+
+**자동 감지와 진단 (0.7.0+)**
+
+- `dsmonitor init` 은 cwd 기준으로 흔한 path 들을 탐색해 default 를 채워 줍니다. 감지된 경우 활성 entry, 감지 0건이면 4종 / 4위치를 주석으로 노출하므로 한 줄만 풀어 쓰면 됩니다.
+
+| 항목         | 후보 (순서대로 첫 발견되는 파일이 default) |
+|--------------|----------------------------------------------|
+| Tailwind config | `tailwind.config.ts` / `tailwind.config.js` / `tailwind.config.mjs` / `tailwind.config.cjs` |
+| globals.css     | `src/app/globals.css` / `src/styles/globals.css` / `app/globals.css` / `styles/globals.css` / `src/index.css` / `src/styles/main.css` |
+| SCSS tokens     | `styles/tokens.scss` / `src/styles/tokens.scss` / `styles/variables.scss` / `src/styles/variables.scss` |
+
+- audit 실행 시 지정한 path 가 파일시스템에 없으면 `⚠ codeTokens.parsers (...) — file_not_found` 한 줄이 stderr 로 emit 되고, baseline JSON 의 `figma.tokenMatrix.warnings` 에 누적되며, dashboard 의 토큰 매트릭스 sub-section 헤더에 노란 배너로 표시됩니다.
+- 일괄 진단은 `npx dsmonitor doctor` — config / 환경변수 / 모든 path 를 한 번에 점검합니다.
 
 #### 6.11.1 DS 파일 라벨과 primary
 
@@ -835,6 +879,40 @@ markdown 리포트 (`dsmonitor/docs/baseline.md`) 는 PR / 슬랙 / 사내 위�
 
 ## 13. 트러블슈팅 / FAQ
 
+**Q. Figma 토큰 매트릭스의 codeCount 가 0 입니다.**
+
+A. `codeTokens.parsers` 에 등록한 path 가 실제 파일과 다른 경우가 흔합니다. 0.7.0 부터 audit 실행 시 stderr 에 `⚠ codeTokens.parsers ...` 한 줄로 알리고, baseline JSON 의 `figma.tokenMatrix.warnings` 에도 누적되며, dashboard 의 "토큰 매트릭스" sub-section 헤더에 노란 배너로 표시됩니다. 빠르게 일괄 점검하려면 `npx dsmonitor doctor` 를 실행하세요. 그 다음 README §6.11 의 `codeTokens.parsers` 안내를 참고해 path 를 정정하면 됩니다.
+
+**Q. `tailwind.config` 파일이 자동 감지되지 않습니다 / 확장자가 다릅니다.**
+
+A. 0.7.0 의 `dsmonitor init` 은 cwd 기준으로 `tailwind.config.ts` → `tailwind.config.js` → `tailwind.config.mjs` → `tailwind.config.cjs` 순서로 첫 발견되는 파일을 default 로 채웁니다. 감지 0건이면 위 4종을 주석으로 노출하므로, 실제로 쓰는 확장자 한 줄만 풀어 쓰면 됩니다. 이미 만들어진 config 라면 `codeTokens.parsers` 의 `{ type: "tailwind", config: "..." }` 항목을 실제 경로로 정정하세요.
+
+**Q. `globals.css` 위치가 다릅니다.**
+
+A. Next.js App Router 는 `src/app/globals.css`, Pages Router 와 Vite 는 `src/styles/globals.css` 가 흔합니다. App Router 인데 `src/` 가 없다면 `app/globals.css` 입니다. 0.7.0 의 `dsmonitor init` 은 이 후보들을 자동으로 탐색합니다. 자동 감지에서 빠진 경로라면 `codeTokens.parsers` 의 `{ type: "cssVariables", files: [...] }` 와 `hardcodedValues.scssVariableDefFiles` 를 실제 path 로 정정하세요.
+
+**Q. 파서가 정상 작동하는지 어떻게 확인하나요?**
+
+A. 다음 세 가지 신호를 보면 됩니다.
+1. `npx dsmonitor doctor` — config / 환경변수 / 모든 path 를 한 번에 점검합니다. `--json` 으로 CI 통합도 가능합니다.
+2. dashboard 의 "Figma 토큰 매트릭스" sub-section — `code + DS 양쪽 매칭` / `code 만` 숫자가 0 이상이면 코드 토큰이 정상 추출되고 있는 것입니다.
+3. audit 실행 시 stderr 출력 — path 부재 / 로드 실패가 있으면 `⚠ codeTokens.parsers (...) — file_not_found` 형식으로 한 줄씩 표시됩니다.
+
+**Q. 버전 업그레이드 후 검출 결과가 갑자기 늘었습니다 / 줄었습니다.**
+
+A. 최근 두 minor 에서 검출 동작이 한 번씩 바뀌었습니다.
+- 0.6.0 (W): `nativeTags` 에 `{ tag, type? }` 객체 형식이 추가되어, Checkbox / Radio / Switch 처럼 type attribute 로 갈라지는 컴포넌트를 별도 검출할 수 있게 되었습니다. 옛 설정은 그대로 작동하지만 객체 형식을 새로 도입하면 검출 항목이 늘 수 있습니다.
+- 0.6.1 (X): `aliases` 매칭이 alias prefix + named import 명 조합으로 바뀌었습니다. 옛 흐름이 잘못 누락하던 후보 (alias 만 일치하고 실제로는 다른 컴포넌트만 import 된 케이스) 가 새로 잡혀 마이그레이션 후보 검출 항목이 늘 수 있습니다.
+- 버전 업그레이드 시 [CHANGELOG.md](./CHANGELOG.md) 의 해당 entry 를 함께 확인하세요.
+
+**Q. `officialPaths` 와 `officialAliases` 의 차이가 뭔가요?**
+
+A. 둘은 같은 DS 를 두 가지 "언어" 로 가리킵니다.
+- `officialPaths` = DS 소스가 실제로 위치하는 **파일시스템 경로** (예: `["src/components/ds/**"]`). 영향 지표는 `totals.dsComponentFiles` (DS 본체 파일 수) 이며, 이 경로 안 파일은 마이그레이션 후보 검출 대상에서 제외됩니다.
+- `officialAliases` = 코드에서 DS 를 import 할 때 쓰는 **alias prefix** (예: `["@ds/", "@/components/ds/"]`). 영향 지표는 `dsCoverage.filesUsingDs` / `dsCoverage.coverage` (DS 사용 비율) 입니다.
+- 두 값이 동일하다면 alias 가 없는 환경 (직접 경로 import 만 쓰는 경우) 입니다.
+- 헷갈리지 마세요: `officialPaths` 는 "파일이 어디에 있나?", `officialAliases` 는 "import 가 어떻게 쓰이나?" 입니다.
+
 **Q. `dsmonitor.config.ts` 를 찾지 못한다는 에러가 나옵니다.**
 
 A. 다음 흐름으로 검색합니다 (현재 디렉토리부터 위로 올라가며).
@@ -1048,6 +1126,7 @@ npx dsmonitor audit --baseline               # official baseline mode (baseline-
 npx dsmonitor report                         # regenerate the markdown report
 npx dsmonitor dashboard                      # rebuild the dashboard HTML (auto-discovers sidecar plugins)
 npx dsmonitor baseline-lint                  # generate the ESLint forbidden class baseline
+npx dsmonitor doctor [--json] [--strict]     # diagnose config / env / paths (0.7.0+)
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 ```
 
@@ -1154,19 +1233,21 @@ globalStyleSources: ["styles/**/*.{scss,css}"],
 
 ### 6.6 `designSystem` (required)
 
-Where the DS components live.
+Tells dsmonitor where the DS components live AND how they are imported. `officialPaths` and `officialAliases` describe the same DS in two different "languages" and usually carry different values.
 
 ```ts
 designSystem: {
   officialPaths: ["src/components/ds/**"],
-  officialAliases: ["@ds/*"],
+  officialAliases: ["@ds/", "@/components/ds/"],
   componentExts: [".tsx", ".jsx"],
 },
 ```
 
-- `officialPaths` — glob for directories that hold DS files.
-- `officialAliases` — TypeScript paths-alias prefixes used to import DS modules.
+- `officialPaths` — filesystem paths where the DS source files actually live (glob, relative to projectRoot). Files matched here are excluded from migration-candidate detection. Affects the `totals.dsComponentFiles` count.
+- `officialAliases` — import path prefixes used in code (tsconfig paths / webpack alias). Leave the array empty if your project uses relative imports only. Affects `dsCoverage.filesUsingDs` / `dsCoverage.coverage`.
 - `componentExts` — extensions recognized as component files.
+
+Equal values for the two fields imply an alias-free setup (only relative imports). Think of `officialPaths` as the answer to "where are the files?" and `officialAliases` as the answer to "how are they imported?".
 
 ### 6.7 `hardcodedValues` (required)
 
@@ -1315,6 +1396,19 @@ figma: {
   - `{ type: "tailwind", config: "...", categories?: [...] }` (0.6.0+) — dynamically imports the Tailwind v3 `tailwind.config.{js,cjs,mjs,ts}` and flattens `theme` / `theme.extend` into dot paths (e.g. `colors.primary.500`, `spacing.4`). The default `categories` are `["colors", "spacing", "fontSize", "borderRadius"]`; pass an empty array to attempt every top-level key in `theme`.
 
 When the same name is emitted by more than one parser, the earliest registration wins and subsequent emits are ignored (the code-side count is always 0 or 1).
+
+**Auto-detection and diagnostics (0.7.0+)**
+
+- `dsmonitor init` probes common paths from cwd and fills in defaults. If detection misses, four candidates are listed as commented options so you only need to uncomment the one that matches your repo.
+
+| Field          | Candidates (first found wins)                                                                                                                |
+|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| Tailwind config | `tailwind.config.ts` / `tailwind.config.js` / `tailwind.config.mjs` / `tailwind.config.cjs`                                                  |
+| globals.css     | `src/app/globals.css` / `src/styles/globals.css` / `app/globals.css` / `styles/globals.css` / `src/index.css` / `src/styles/main.css`        |
+| SCSS tokens     | `styles/tokens.scss` / `src/styles/tokens.scss` / `styles/variables.scss` / `src/styles/variables.scss`                                       |
+
+- During audit, any missing path emits a single `⚠ codeTokens.parsers (...) — file_not_found` line on stderr, is accumulated under `figma.tokenMatrix.warnings` in the baseline JSON, and is surfaced as a yellow banner at the top of the token matrix subsection on the dashboard.
+- For a one-shot check, run `npx dsmonitor doctor` — it verifies config, environment variables, and every path at once.
 
 #### 6.11.1 DS file labels and primary
 
@@ -1738,6 +1832,40 @@ The dashboard has five tabs (Figma / Lighthouse tabs hide themselves when disabl
 The markdown report (`dsmonitor/docs/baseline.md`) is ready to paste into a PR, Slack, or internal wiki. It is auto-generated, so don't edit it — the next measurement run overwrites it.
 
 ## 13. Troubleshooting / FAQ
+
+**Q. The Figma token matrix shows `codeCount = 0`.**
+
+A. Almost always a path mismatch in `codeTokens.parsers`. Since 0.7.0, audit prints a single `⚠ codeTokens.parsers ...` line on stderr, the baseline JSON accumulates them under `figma.tokenMatrix.warnings`, and the dashboard surfaces a yellow banner at the top of the "Token Matrix" subsection. Run `npx dsmonitor doctor` for a single-shot diagnostic, then adjust the paths per §6.11.
+
+**Q. `tailwind.config` is not auto-detected, or the extension is different.**
+
+A. 0.7.0's `dsmonitor init` looks for `tailwind.config.ts` → `.js` → `.mjs` → `.cjs` (in that order) and uses the first one it finds. If none match, the four candidates are listed as commented options so you can uncomment the one that matches your repo. For an existing config, just update the `{ type: "tailwind", config: "..." }` entry under `codeTokens.parsers`.
+
+**Q. My `globals.css` lives somewhere else.**
+
+A. Common places: `src/app/globals.css` (Next.js App Router), `src/styles/globals.css` (Pages Router and Vite), `app/globals.css` (App Router without `src/`). `dsmonitor init` in 0.7.0 probes all of these. If yours isn't on the list, point `codeTokens.parsers` (`type: "cssVariables"`) and `hardcodedValues.scssVariableDefFiles` at the real path.
+
+**Q. How do I know the parsers are actually working?**
+
+A. Three signals:
+1. `npx dsmonitor doctor` — verifies config, environment variables, and every path in one shot. `--json` is available for CI.
+2. The dashboard's "Figma Token Matrix" subsection — non-zero counts for `code + DS` and `code only` mean code tokens are being extracted.
+3. Audit's stderr — missing or unloadable paths produce a single `⚠ codeTokens.parsers (...) — file_not_found` line each.
+
+**Q. Detection numbers jumped after a version bump.**
+
+A. Two recent minor releases changed detection behavior.
+- 0.6.0 (W): `nativeTags` accepts the object form `{ tag, type? }`. Components that differ by `type` attribute (Checkbox / Radio / Switch) can now be detected separately. Existing string-only configs are unaffected, but introducing the object form may increase counts.
+- 0.6.1 (X): `aliases` matching now requires an alias-prefix match AND a named-import name match. Candidates that the old alias-only matcher used to miss (alias matched but a different component was actually imported) are now surfaced.
+- Check the relevant [CHANGELOG.md](./CHANGELOG.md) entry whenever you upgrade.
+
+**Q. What's the difference between `officialPaths` and `officialAliases`?**
+
+A. They describe the same DS in two different "languages".
+- `officialPaths` = **filesystem paths** where the DS source files actually live (e.g. `["src/components/ds/**"]`). Affects `totals.dsComponentFiles`; files under these paths are excluded from migration-candidate detection.
+- `officialAliases` = **import path prefixes** used in code (e.g. `["@ds/", "@/components/ds/"]`). Affects `dsCoverage.filesUsingDs` / `dsCoverage.coverage`.
+- Equal values mean an alias-free setup (relative imports only).
+- Mental model: `officialPaths` answers "where are the files?", `officialAliases` answers "how are they imported?".
 
 **Q. dsmonitor can't find `dsmonitor.config.ts`.**
 
