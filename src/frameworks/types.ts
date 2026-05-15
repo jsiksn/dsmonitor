@@ -31,6 +31,12 @@ export interface NativeElementHit {
   classString: string;
   /** 소스 라인 번호 (1-based). */
   line: number;
+  /**
+   * 0.6.0+: element 의 type attribute 값. 현재는 `<input type="checkbox">` 처럼
+   * type attribute 로 의미가 갈라지는 element 의 분류용. 정적 string literal 만
+   * 추출하며, expression / 변수 / undefined 인 경우 본 필드도 undefined.
+   */
+  type?: string;
 }
 
 export interface FrameworkAdapter {

@@ -51,7 +51,7 @@ export interface UIHealthConfig {
   };
   migrationTargets: Record<
     string,
-    { aliases: string[]; nativeTags: string[] }
+    { aliases: string[]; nativeTags: NativeTagSpec[] }
   >;
   migrationMinClassLength: number;
   report: {
@@ -162,6 +162,24 @@ export interface UIHealthConfig {
     upcomingPhases?: Array<{ name: string; note?: string }>;
   };
 }
+
+/**
+ * `migrationTargets.<name>.nativeTags` 의 한 항목.
+ *
+ * 0.6.0 부터 string 외에 `{ tag, type? }` 객체도 허용합니다 (W 항목).
+ *
+ *   - `"button"` — tag 이름만 비교. 옛 0.5.x 까지 형식.
+ *   - `{ tag: "input" }` — 모든 `<input>` 매칭. type attribute 무관.
+ *   - `{ tag: "input", type: "checkbox" }` — `<input type="checkbox">` 만 매칭.
+ *
+ * HTML `<input>` 처럼 type attribute 로 의미가 갈라지는 태그를 Checkbox / Radio /
+ * Switch 등 별도 DS 컴포넌트로 분리하고 싶을 때 활용합니다.
+ *
+ * 호환성: 옛 `nativeTags: ["input"]` 형식의 설정은 그대로 작동합니다.
+ */
+export type NativeTagSpec =
+  | string
+  | { tag: string; type?: string };
 
 export interface MeasurementHistoryEntry {
   version: string;
@@ -903,12 +921,52 @@ export type ScssParserConfig = {
 };
 
 /**
- * 파서별 설정의 discriminated union. 새 파서(css / tailwind / styled-components 등)
- * 가 추가되면 여기에 `| XxxParserConfig` 로 확장.
+ * CSS variables 파서 설정 (0.6.0+). `type: "cssVariables"` 로 식별.
  *
- * 현재는 SCSS 하나만 지원 — Phase 0.5 본 프로젝트 범위가 SCSS 에 한정됨.
+ * files: projectRoot 기준 상대 경로 배열. 각 파일에서 `--name: value;` 형식의
+ * CSS custom property 정의를 추출합니다. selector (`:root`, `.dark`,
+ * `[data-theme=*]` 등) 안에 있든 밖에 있든 동일하게 잡습니다.
+ *
+ * Tailwind v4 의 `@theme { --color-primary-500: ...; }` 도 본 파서로 커버됩니다.
+ * 동일한 이름이 여러 selector 에서 정의된 경우 처음 등장만 등록합니다 (예:
+ * light / dark 테마가 같은 `--point-color-*` 을 emit).
  */
-export type CodeTokenParserConfig = ScssParserConfig;
+export type CssVariablesParserConfig = {
+  type: "cssVariables";
+  files: string[];
+};
+
+/**
+ * Tailwind 파서 설정 (0.6.0+). `type: "tailwind"` 로 식별.
+ *
+ * config: `tailwind.config.{js,cjs,mjs,ts}` 파일의 projectRoot 기준 상대 경로.
+ * 동적 import 로 읽어 `theme` 과 `theme.extend` 의 nested object 를 dot-path 로
+ * flatten 합니다 (예: `colors.primary.500`, `spacing.4`, `fontSize.lg`).
+ *
+ * categories: flatten 대상 카테고리 (기본 `["colors", "spacing", "fontSize",
+ * "borderRadius"]`). 빈 배열이면 `theme` 전체를 시도합니다.
+ *
+ * Tailwind v4 의 CSS-only `@theme {...}` 정의는 `cssVariables` 파서로 처리합니다.
+ */
+export type TailwindParserConfig = {
+  type: "tailwind";
+  config: string;
+  categories?: string[];
+};
+
+/**
+ * 파서별 설정의 discriminated union. 새 파서(styled-components 등) 가 추가되면
+ * 여기에 `| XxxParserConfig` 로 확장합니다.
+ *
+ * 지원 파서 (0.6.0):
+ *   - scss          — SCSS / CSS 변수 + SCSS map + `@each` 동적 emit
+ *   - cssVariables  — 순수 CSS 의 `--*` 정의 (Tailwind v4 `@theme` 포함)
+ *   - tailwind      — Tailwind v3 의 `tailwind.config.{js,ts}` theme 토큰
+ */
+export type CodeTokenParserConfig =
+  | ScssParserConfig
+  | CssVariablesParserConfig
+  | TailwindParserConfig;
 
 /**
  * 코드 토큰 파서 인터페이스. 레지스트리에 `type` 키로 등록 후

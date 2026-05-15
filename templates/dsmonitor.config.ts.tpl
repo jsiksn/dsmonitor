@@ -73,17 +73,21 @@ const config: UIHealthConfig = {
   //   dsmonitor 는 이 표를 활용해 "native 태그가 그대로 쓰이는 자리" 가운데
   //   DS 컴포넌트로 마이그레이션할 후보를 추출합니다.
   //
-  // 형식: Record<ComponentName, { aliases: string[]; nativeTags: string[] }>
+  // 형식: Record<ComponentName, { aliases: string[]; nativeTags: NativeTagSpec[] }>
   //   - key (ComponentName)
   //       리포트와 대시보드에 표시되는 컴포넌트 이름입니다.
   //       보통 DS 컴포넌트 파일명 또는 named import 이름과 동일하게 적습니다.
   //   - aliases: string[]
   //       해당 컴포넌트의 import 경로 또는 그 prefix 입니다.
-  //       옛 prefix 매칭 흐름이므로 barrel import 안의 named import 는
-  //       정확히 검출되지 않을 수 있습니다 (0.6.0 에서 named import 분석 예정).
-  //   - nativeTags: string[]
-  //       같은 컴포넌트로 대체 가능한 native HTML 태그 이름입니다.
-  //       JSX/TSX 안에서 발견된 native 태그가 마이그레이션 후보로 잡힙니다.
+  //       현재 (0.6.0) 는 prefix 매칭 흐름이므로 barrel import 안의 named import 는
+  //       정확히 검출되지 않을 수 있습니다 (named import 분석은 0.6.1 의 X 항목 예정).
+  //   - nativeTags: NativeTagSpec[]
+  //       같은 컴포넌트로 대체 가능한 native HTML 태그입니다.
+  //       두 가지 형식을 함께 쓸 수 있습니다:
+  //         · "button"                              — tag 만 비교 (type 무관 매칭)
+  //         · { tag: "input" }                      — 모든 <input> 매칭 (type 무관)
+  //         · { tag: "input", type: "checkbox" }    — <input type="checkbox"> 만 매칭
+  //       옛 0.5.x 의 `nativeTags: ["input"]` 형식 그대로 사용해도 됩니다.
   //
   // 예시 (필요한 항목만 골라 작성하면 됩니다):
   migrationTargets: {
@@ -93,7 +97,15 @@ const config: UIHealthConfig = {
     // },
     // Input: {
     //   aliases: ["@/components/ds/Input"],
-    //   nativeTags: ["input"],
+    //   nativeTags: ["input", "textarea"],
+    // },
+    // Checkbox: {
+    //   aliases: ["@/components/ds/Checkbox"],
+    //   nativeTags: [{ tag: "input", type: "checkbox" }],
+    // },
+    // Radio: {
+    //   aliases: ["@/components/ds/Radio"],
+    //   nativeTags: [{ tag: "input", type: "radio" }],
     // },
   },
 

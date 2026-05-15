@@ -461,11 +461,21 @@ function analyzeMigrationCandidates(
   cfg: Cfg,
   adapter: FrameworkAdapter
 ): CodebaseReport["migrationCandidates"] {
-  const tagToDs = new Map<string, Array<{ ds: string; aliases: string[] }>>();
+  // 0.6.0 (W): nativeTags 가 string | { tag, type? } union 으로 확장됨.
+  // 매칭 시점에는 모두 { tag, type? } 정규형으로 다룹니다.
+  type TagCandidate = {
+    ds: string;
+    aliases: string[];
+    /** undefined = type attribute 무관 매칭 (모든 태그). */
+    type?: string;
+  };
+  const tagToDs = new Map<string, TagCandidate[]>();
   for (const [dsName, spec] of Object.entries(cfg.migrationTargets)) {
-    for (const tag of spec.nativeTags) {
+    for (const raw of spec.nativeTags) {
+      const tag = typeof raw === "string" ? raw : raw.tag;
+      const type = typeof raw === "string" ? undefined : raw.type;
       const list = tagToDs.get(tag) ?? [];
-      list.push({ ds: dsName, aliases: spec.aliases });
+      list.push({ ds: dsName, aliases: spec.aliases, type });
       tagToDs.set(tag, list);
     }
   }
@@ -497,8 +507,14 @@ function analyzeMigrationCandidates(
 
     for (const hit of hits) {
       if (hit.classString.length < cfg.migrationMinClassLength) continue;
-      const candidates = tagToDs.get(hit.tag);
-      if (!candidates) continue;
+      const all = tagToDs.get(hit.tag);
+      if (!all) continue;
+      // 0.6.0 (W): type 제약이 있는 candidate 는 hit.type 과 정확 일치할 때만
+      // 매칭. type 무관 candidate (type === undefined) 는 type 과 무관하게 매칭.
+      const candidates = all.filter(
+        (c) => c.type === undefined || c.type === hit.type
+      );
+      if (candidates.length === 0) continue;
       const unusedDs = candidates.filter((c) => !isImported(c.aliases));
       if (unusedDs.length === 0) continue;
 
