@@ -295,16 +295,34 @@ migrationTargets: {
   },
   Input: {
     aliases: ["@/components/ds/Input"],
-    nativeTags: ["input"],
+    // 일반 텍스트 / 숫자 input 은 type 무관 매칭 (모든 <input>).
+    nativeTags: ["input", "textarea"],
+  },
+  // 0.6.0 (W): input[type=...] 같은 attribute 매칭을 위해 객체 형식도 허용합니다.
+  Checkbox: {
+    aliases: ["@/components/ds/Checkbox"],
+    nativeTags: [{ tag: "input", type: "checkbox" }],
+  },
+  Radio: {
+    aliases: ["@/components/ds/Radio"],
+    nativeTags: [{ tag: "input", type: "radio" }],
+  },
+  Switch: {
+    aliases: ["@/components/ds/Switch"],
+    nativeTags: [{ tag: "input", type: "checkbox" }],
   },
 },
 migrationMinClassLength: 3,
 ```
 
 - key (예: `Button`) — 리포트와 대시보드에 표시되는 이름. 보통 컴포넌트 파일명이나 named import 이름과 같게 적습니다.
-- `aliases` — 해당 컴포넌트의 import 경로 (또는 그 prefix). 현재 (0.5.x) 는 prefix 매칭이라 barrel import 안의 named import 는 정확히 잡히지 않을 수 있습니다 (0.6.0 에서 named import 분석 예정).
-- `nativeTags` — 이 컴포넌트로 대체 가능한 native HTML 태그 이름. JSX / TSX 안에서 발견된 native 태그가 마이그레이션 후보로 잡힙니다.
+- `aliases` — 해당 컴포넌트의 import 경로 (또는 그 prefix). 현재는 prefix 매칭이라 barrel import 안의 named import 는 정확히 잡히지 않을 수 있습니다 (named import 분석은 0.6.1 patch 의 X 항목에서 처리 예정).
+- `nativeTags` — 이 컴포넌트로 대체 가능한 native HTML 태그 목록입니다. 두 가지 형식을 함께 쓸 수 있습니다.
+  - **string 형식** (예: `"button"`) — tag 이름만 비교합니다. type attribute 와 무관하게 매칭됩니다.
+  - **객체 형식** (예: `{ tag: "input", type: "checkbox" }`, 0.6.0+) — tag 이름이 같고 `type` 도 정확히 일치할 때만 매칭됩니다. `<input type="checkbox">` 만 잡고 일반 `<input type="text">` 는 잡지 않으려는 경우에 사용합니다. `type` 을 생략하면 string 형식과 동일하게 동작합니다.
 - `migrationMinClassLength` — 이 길이 미만의 className 은 후보에서 제외됩니다. 기본값 3 이면 `btn`, `nav` 같은 짧은 클래스는 포함되고, 4 로 올리면 더 보수적으로 줄어듭니다.
+
+> 옛 `nativeTags: ["input"]` 형식 (0.5.x 까지) 의 설정은 0.6.0 에서도 그대로 작동합니다. 검출 결과의 의미를 바꾸지 않은 호환 변경입니다.
 
 ### 6.9 `framework` (필수)
 
@@ -367,6 +385,12 @@ figma: {
   codeTokens: {
     parsers: [
       { type: "scss", files: ["styles/tokens.scss"] },
+      // 0.6.0 (R): 신규 파서 2종.
+      // Tailwind v3 (config 기반) — tailwind.config.{js,ts} 의 theme 토큰 추출.
+      { type: "tailwind", config: "tailwind.config.ts" },
+      // CSS variables — `--*` 정의가 들어 있는 CSS 파일. Tailwind v4 의
+      // `@theme { --color-primary-500: ...; }` 도 본 파서로 커버됩니다.
+      { type: "cssVariables", files: ["src/app/globals.css"] },
     ],
   },
 },
@@ -377,7 +401,12 @@ figma: {
 - `domainFiles` — 실제 UI 시안 파일 목록. 패턴 A / B / C 세 가지로 작성할 수 있습니다 (6.11.2 참고).
 - `unknownInstances.topN` — "출처 미상 Instance" 상위 몇 개까지 노출할지.
 - `unknownInstances.allowUnknownSource` — 외주 옛 DS 등 미등록 출처도 결과에 포함할지.
-- `codeTokens.parsers` — 코드 토큰 파서 설정 배열. 현재는 `type: "scss"` 만 지원합니다. 빈 배열로 두면 토큰 매트릭스의 code 컬럼 카운트가 0 으로 잡힙니다.
+- `codeTokens.parsers` — 코드 토큰 파서 설정 배열입니다. 빈 배열로 두면 토큰 매트릭스의 code 컬럼 카운트가 0 으로 잡힙니다. 지원 파서는 다음 세 가지입니다 (필요한 만큼 함께 등록할 수 있습니다).
+  - `{ type: "scss", files: [...] }` — SCSS / CSS 변수 + SCSS map + `@each` 동적 emit. `:root { --name: value; }` 형식과 SCSS map (`$light-theme: (...)` + `@each ... in $map`) 두 가지 모두 처리합니다.
+  - `{ type: "cssVariables", files: [...] }` (0.6.0+) — 순수 CSS 파일의 `--*` 정의만 추출합니다. selector (`:root`, `.dark`, `[data-theme=...]`) 안에 있든 밖에 있든 동일하게 잡습니다. Tailwind v4 의 `@theme {...}` 디렉티브도 본 파서로 커버됩니다.
+  - `{ type: "tailwind", config: "...", categories?: [...] }` (0.6.0+) — Tailwind v3 의 `tailwind.config.{js,cjs,mjs,ts}` 를 동적 import 해 `theme` / `theme.extend` 의 nested 값을 dot-path 로 flatten 합니다 (예: `colors.primary.500`, `spacing.4`). `categories` 를 생략하면 `["colors", "spacing", "fontSize", "borderRadius"]` 가 기본값입니다. 빈 배열을 넘기면 `theme` 의 모든 top-level 키를 시도합니다.
+
+서로 다른 파서에서 동일한 이름이 나오면 등록 순서가 빠른 쪽이 우선이며, 이후 등장은 무시됩니다 (code 컬럼 카운트는 항상 0 또는 1).
 
 #### 6.11.1 DS 파일 라벨과 primary
 
@@ -1174,16 +1203,34 @@ migrationTargets: {
   },
   Input: {
     aliases: ["@/components/ds/Input"],
-    nativeTags: ["input"],
+    // Plain text / number inputs — match any <input> regardless of type.
+    nativeTags: ["input", "textarea"],
+  },
+  // 0.6.0 (W): an object form lets you target a specific input[type=...].
+  Checkbox: {
+    aliases: ["@/components/ds/Checkbox"],
+    nativeTags: [{ tag: "input", type: "checkbox" }],
+  },
+  Radio: {
+    aliases: ["@/components/ds/Radio"],
+    nativeTags: [{ tag: "input", type: "radio" }],
+  },
+  Switch: {
+    aliases: ["@/components/ds/Switch"],
+    nativeTags: [{ tag: "input", type: "checkbox" }],
   },
 },
 migrationMinClassLength: 3,
 ```
 
 - key (e.g. `Button`) — the name shown in reports and the dashboard. Usually matches the DS component file name or named import.
-- `aliases` — import paths (or their prefixes) for the component. The 0.5.x matcher uses prefix matching, so named imports from barrels may not be detected precisely (named-import analysis is planned for 0.6.0).
-- `nativeTags` — native HTML tags that this DS component can replace.
+- `aliases` — import paths (or their prefixes) for the component. The current matcher uses prefix matching, so named imports from barrels may not be detected precisely (named-import analysis lands in the 0.6.1 patch — item X).
+- `nativeTags` — native HTML tags that this DS component can replace. Two forms are accepted in the same array:
+  - **String form** (e.g. `"button"`) — compares the tag name only, regardless of the `type` attribute.
+  - **Object form** (e.g. `{ tag: "input", type: "checkbox" }`, 0.6.0+) — matches only when the tag name is equal AND the `type` attribute matches exactly. Use this when you want to catch `<input type="checkbox">` but leave `<input type="text">` alone. Omitting `type` behaves the same as the string form.
 - `migrationMinClassLength` — minimum className length to consider as a candidate. With the default 3, `btn` / `nav` are included; bump to 4 to be more conservative.
+
+> Configurations using the legacy `nativeTags: ["input"]` form (0.5.x and earlier) continue to work in 0.6.0. The change is compatibility-preserving and does not alter what is detected for an existing config.
 
 ### 6.9 `framework` (required)
 
@@ -1246,6 +1293,12 @@ figma: {
   codeTokens: {
     parsers: [
       { type: "scss", files: ["styles/tokens.scss"] },
+      // 0.6.0 (R): two new parsers.
+      // Tailwind v3 (config-based) — reads theme tokens from tailwind.config.{js,ts}.
+      { type: "tailwind", config: "tailwind.config.ts" },
+      // CSS variables — any file containing `--*` definitions. Tailwind v4's
+      // `@theme { --color-primary-500: ...; }` is covered by this parser.
+      { type: "cssVariables", files: ["src/app/globals.css"] },
     ],
   },
 },
@@ -1256,7 +1309,12 @@ figma: {
 - `domainFiles` — actual UI mockup files. Three patterns: A / B / C (see 6.11.2).
 - `unknownInstances.topN` — how many top "unknown-source instances" to surface.
 - `unknownInstances.allowUnknownSource` — include unregistered sources (e.g. legacy outsourced DS) in the result.
-- `codeTokens.parsers` — array of code-token parser configs. Only `type: "scss"` is supported today. Leave empty and the token matrix `code` count is 0.
+- `codeTokens.parsers` — array of code-token parser configs. Leave it empty and the token matrix `code` column count is 0. Three parsers are supported (register as many as you need):
+  - `{ type: "scss", files: [...] }` — SCSS / CSS variables + SCSS maps + `@each` dynamic emit. Handles both `:root { --name: value; }` and SCSS map (`$light-theme: (...)` + `@each ... in $map`).
+  - `{ type: "cssVariables", files: [...] }` (0.6.0+) — extracts `--*` definitions from CSS files, regardless of the surrounding selector (`:root`, `.dark`, `[data-theme=...]`, etc.). Tailwind v4's `@theme {...}` directives are covered here too.
+  - `{ type: "tailwind", config: "...", categories?: [...] }` (0.6.0+) — dynamically imports the Tailwind v3 `tailwind.config.{js,cjs,mjs,ts}` and flattens `theme` / `theme.extend` into dot paths (e.g. `colors.primary.500`, `spacing.4`). The default `categories` are `["colors", "spacing", "fontSize", "borderRadius"]`; pass an empty array to attempt every top-level key in `theme`.
+
+When the same name is emitted by more than one parser, the earliest registration wins and subsequent emits are ignored (the code-side count is always 0 or 1).
 
 #### 6.11.1 DS file labels and primary
 

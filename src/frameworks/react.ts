@@ -126,10 +126,33 @@ export const reactAdapter: FrameworkAdapter = {
       );
       const classString = extractClassString(classAttr);
       if (!classString) return;
+      // 0.6.0: type attribute 정적 추출 (Checkbox / Radio / Switch 분류용).
+      // Literal string 만. expression / 변수 / 미지정은 undefined 로 둡니다.
+      let typeAttrValue: string | undefined;
+      for (const a of n.attributes || []) {
+        if (
+          a.type === "JSXAttribute" &&
+          a.name?.type === "JSXIdentifier" &&
+          a.name.name === "type"
+        ) {
+          const v = a.value;
+          if (v?.type === "Literal" && typeof v.value === "string") {
+            typeAttrValue = v.value;
+          } else if (
+            v?.type === "JSXExpressionContainer" &&
+            v.expression?.type === "Literal" &&
+            typeof v.expression.value === "string"
+          ) {
+            typeAttrValue = v.expression.value;
+          }
+          break;
+        }
+      }
       hits.push({
         tag,
         classString,
         line: n.loc?.start?.line ?? 0,
+        type: typeAttrValue,
       });
     });
     return hits;

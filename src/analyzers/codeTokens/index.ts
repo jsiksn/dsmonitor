@@ -45,6 +45,8 @@ import type {
   CodeTokenParserConfig,
 } from "../../types";
 import { scssParser } from "./parsers/scss";
+import { cssVariablesParser } from "./parsers/cssVariables";
+import { tailwindParser } from "./parsers/tailwind";
 
 // ───── 레지스트리 ─────────────────────────────────────────────────
 
@@ -61,6 +63,8 @@ function register(parser: CodeTokenParser): void {
 
 // 등록된 파서 (알파벳순 / 우선순위순 아님 — type 매칭이라 순서 무관).
 register(scssParser);
+register(cssVariablesParser);
+register(tailwindParser);
 
 /** 테스트/디버깅용. 등록된 파서 타입 목록. */
 export function listRegisteredParserTypes(): string[] {

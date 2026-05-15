@@ -237,7 +237,7 @@ export async function runInit(): Promise<void> {
     console.log("    OS별 install: macOS  → brew install --cask google-chrome");
     console.log("                  Linux  → apt-get install google-chrome-stable");
     console.log("                  Win    → choco install googlechrome");
-    console.log("    자세 안내: node_modules/dsmonitor/docs/lighthouse-ci-integration.md");
+    console.log("    상세 안내: node_modules/dsmonitor/docs/lighthouse-ci-integration.md");
   }
   console.log("");
   console.log("참고 안내:");
@@ -267,7 +267,7 @@ function renderLighthouseBlock(authType: LighthouseAuthType): string {
     //   3. 커스텀 어댑터: { type: 'custom', adapter: './lighthouse/auth/<name>.js' }
     //
     // type !== 'none' 자체 = disableStorageReset: true 자동 inject (어댑터 세션 보존).
-    // 자세한 안내: node_modules/dsmonitor/README.md 안 "Lighthouse 인증 흐름" sub-section.
+    // 상세한 안내: node_modules/dsmonitor/README.md 안 "Lighthouse 인증 흐름" sub-section.
     auth: ${renderAuthLiteral(authType)},
 
     // ── LHCI advanced 옵션 (0.5.0+, 선택) ──
@@ -279,7 +279,7 @@ function renderLighthouseBlock(authType: LighthouseAuthType): string {
     //   - screenEmulation: { mobile: true }     // mobile 측정
     //   - formFactor: "mobile"
     //
-    // 자세 안내: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
+    // 상세 안내: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
     //
     // advanced: {
     //   settings: { skipAudits: ["uses-http2"] },
@@ -347,7 +347,7 @@ function renderFigmaBlock(): string {
     //
     // node-id 정규화: URL 안 \`node-id=2-2\` ↔ REST API \`2:2\` 자동 변환 (도구 자체 처리).
     //
-    // 자세한 안내 = README 안 "Figma 입력 흐름 / Figma Input Flow" sub-section.
+    // 상세한 안내 = README 안 "Figma 입력 흐름 / Figma Input Flow" sub-section.
     //
     // (EN —)
     // Domain files = actual UI mockup / prototype files. Measured = unknown-source
@@ -394,11 +394,20 @@ function renderFigmaBlock(): string {
     },
 
     // ═══ 코드 측 토큰 파서 / Code Token Parsers ═══════════════════
-    // 단계 3 (2026-04-24) 리팩토링. 빈 배열이어도 에러 X (codeCount=0 으로 tokenMatrix 생성).
-    // EN — empty array is allowed; tokenMatrix is still generated with codeCount=0.
+    // 빈 배열이어도 에러 X (codeCount=0 으로 tokenMatrix 생성).
+    // 0.6.0 부터 SCSS 외에 cssVariables / tailwind 파서를 지원합니다.
+    // EN — empty array is allowed (tokenMatrix is still generated with codeCount=0).
+    //      Since 0.6.0, cssVariables and tailwind parsers are available in addition to scss.
     codeTokens: {
       parsers: [
-        // TODO: { type: "scss", patterns: ["styles/**/*.scss"] }
+        // SCSS 변수 + SCSS map + @each 동적 emit 추출
+        // { type: "scss", files: ["styles/tokens.scss"] },
+        //
+        // 순수 CSS 의 --* 정의 추출 (Tailwind v4 의 @theme 포함)
+        // { type: "cssVariables", files: ["src/app/globals.css"] },
+        //
+        // Tailwind v3 의 theme 토큰 추출 (colors / spacing / fontSize / borderRadius 기본)
+        // { type: "tailwind", config: "tailwind.config.ts" },
       ],
     },
   },`;
