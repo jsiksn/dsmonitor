@@ -8,6 +8,28 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.7.1] — 2026-05-15
+
+### 추가 / Added
+
+- **한 —** (E) `LighthouseAuthAdapter<TBrowser>` 와 `LighthouseAuthContext` 타입을 export 합니다. `dsmonitor.config.ts` 의 `lighthouse.auth = { type: "custom", adapter: "./..." }` 가 가리키는 어댑터를 TypeScript 로 작성할 때 IDE 자동 완성과 컴파일 검증을 받을 수 있습니다. puppeteer 는 dsmonitor 가 직접 의존하지 않으므로 `Browser` 타입은 사용자가 generic 인자로 직접 전달합니다 (`LighthouseAuthAdapter<Browser>`). 런타임 동작은 그대로이고 옛 `.js` 어댑터는 변경 없이 작동합니다.
+- **EN —** (E) The `LighthouseAuthAdapter<TBrowser>` and `LighthouseAuthContext` types are now exported. Use them when authoring the adapter referenced by `lighthouse.auth = { type: "custom", adapter: "./..." }` in TypeScript — you get IDE autocomplete and compile-time checks. Since dsmonitor does not depend on puppeteer directly, the `Browser` type is supplied by the user via a generic argument (`LighthouseAuthAdapter<Browser>`). Runtime behavior is unchanged and existing `.js` adapters continue to work as-is.
+- **한 —** (D) `docs/auth-adapter-examples/` 디렉토리에 Lighthouse custom 인증 어댑터 예제 5종이 추가되었습니다 — `01-basic-auth.ts` (HTTP Basic), `02-form-login.ts` (ID/PW form), `03-sso.ts` (외부 IdP redirect), `04-jwt-persistence.ts` (JWT 주입), `05-oauth.ts` (OAuth 2.0 code flow). 각 예제는 E 의 타입을 그대로 활용한 50~100 줄짜리 작동 가능한 어댑터이며, 디렉토리 README 에 작성 흐름 / 환경변수 패턴 / TypeScript → JavaScript 변환 / `dsmonitor doctor` 로 검증하는 방법을 한국어 / 영어 둘 다 담았습니다.
+- **EN —** (D) Five Lighthouse custom-auth adapter examples landed under `docs/auth-adapter-examples/` — `01-basic-auth.ts` (HTTP Basic), `02-form-login.ts` (ID/PW form), `03-sso.ts` (external IdP redirect), `04-jwt-persistence.ts` (JWT injection), `05-oauth.ts` (OAuth 2.0 code flow). Each example is a 50–100 line working adapter that uses the E type directly. The directory's README documents the writing workflow, env-var conventions, TS → JS conversion, and how to verify the setup with `dsmonitor doctor` — in both Korean and English.
+
+### 변경 / Changed
+
+- **한 —** README §6.12.1 (Lighthouse 인증 방식) 에 `LighthouseAuthAdapter` 활용 가이드와 예제 디렉토리 link, 다섯 시나리오 비교표를 추가했습니다. §13 트러블슈팅에 "로그인 필요한 페이지 측정" Q 를 신규 추가했고, §15 더 읽기 link 목록에도 어댑터 예제 디렉토리가 등록됩니다. 한국어 / 영어 두 정본 모두 1:1 대응.
+- **EN —** README §6.12.1 (Lighthouse auth) gains a `LighthouseAuthAdapter` usage guide, a link to the examples directory, and a comparison table covering the five scenarios. §13 (Troubleshooting) adds a new "How do I run Lighthouse against a page that requires login?" Q, and the §15 reading list links the examples directory too. Mirrored across Korean and English.
+
+### 참고 / Notes
+
+- 본 release 는 BREAKING 변경이 없습니다. E 는 type-only export 이며 런타임 변경이 없고, D 는 문서 추가입니다. 옛 `.js` 어댑터와 옛 config 모두 그대로 작동합니다.
+- This release has no BREAKING changes. E is a type-only export with zero runtime impact; D is documentation. Existing `.js` adapters and existing configs continue to work without modification.
+- pre-1.0 (0.x.x) 페이스 정상화를 위해 patch bump 로 처리했습니다 — runtime 동작 변경 없음.
+- Released as a patch bump given the pre-1.0 cadence — there is no runtime behavior change.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.7.0] — 2026-05-15
 
 ### 추가 / Added
