@@ -327,7 +327,7 @@ export async function generateMarkdown(
       lines.push("");
     }
     if (mc.samples.length > 0) {
-      lines.push(`### 샘플 (실제 JSX 사용 예)`);
+      lines.push(`### 샘플 (실제 JSX/TSX 사용 예)`);
       lines.push("");
       lines.push(`| 파일:라인 | native | className | → DS |`);
       lines.push(`|---|---|---|---|`);
@@ -685,7 +685,7 @@ function appendComponentMatchSection(
   lines.push("");
   lines.push(
     `> Figma DS 컴포넌트 (variantGroup + standalone) 이름과 코드 className ` +
-      `(글로벌 인덱스 + jsx 사용) 의 **이름 완전 일치 매칭** 결과.`
+      `(글로벌 인덱스 + JSX/TSX 사용) 의 **이름 완전 일치 매칭** 결과.`
   );
   lines.push(
     `> 본 프로젝트는 Figma 이름 = CSS class 동기화 정책이라 같은 kebab-case 직접 비교. ` +
@@ -712,7 +712,7 @@ function appendComponentMatchSection(
   lines.push("");
   // 보정 2 (2026-04-29 후속): figmaOnly + 합계 컬럼 추가 + 명칭 통일 (css 만).
   lines.push(
-    `| DS | both | jsx만 | css만 | Figma만 | 합계 | 매칭률 |`
+    `| DS | both | JSX/TSX만 | CSS만 | Figma만 | 합계 | 매칭률 |`
   );
   lines.push(`|---|---:|---:|---:|---:|---:|---:|`);
   for (const [label, s] of sortedSummaryEntries) {
@@ -726,13 +726,13 @@ function appendComponentMatchSection(
   // 보정 5 (2026-04-29 후속): 분류 4종 안내 보강.
   lines.push(`> 분류 의미:`);
   lines.push(
-    `> - **both**: jsx + css 둘 다 매칭 (정상 사용)`
+    `> - **both**: JSX/TSX + CSS 둘 다 매칭 (정상 사용)`
   );
   lines.push(
-    `> - **jsx만**: jsx 에서 className 으로 쓰는데 css 정의 없음 (orphan 가능성)`
+    `> - **JSX/TSX만**: JSX/TSX 에서 className 으로 쓰는데 CSS 정의 없음 (orphan 가능성)`
   );
   lines.push(
-    `> - **css만**: css 에 정의됐는데 jsx 에서 미사용 (dead 가능성)`
+    `> - **CSS만**: CSS 에 정의됐는데 JSX/TSX 에서 미사용 (dead 가능성)`
   );
   lines.push(
     `> - **Figma만**: Figma 컴포넌트 정의 있는데 코드에서 className 으로 안 씀 (작업 우선순위)`
@@ -782,7 +782,7 @@ function appendComponentMatchSection(
     lines.push("");
   }
 
-  // ─── codeOnly 리스트 — γ (보정 3, 2026-04-29 후속): jsx 사용 필수 + appearsIn 제거 ───
+  // ─── codeOnly 리스트 — γ (보정 3, 2026-04-29 후속): JSX/TSX 사용 필수 + appearsIn 제거 ───
   if (cm.codeOnly.length > 0) {
     lines.push(`<details>`);
     lines.push(
