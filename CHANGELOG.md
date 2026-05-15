@@ -8,6 +8,20 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.5.2] — 2026-05-15
+
+### 변경 / Changed
+
+- **한 —** README 를 단일 파일로 통합하고 한국어 정본을 마무리했습니다. 옛 `README.ko.md` 는 삭제했고, `README.md` 상단에 한국어 정본, 하단에 영어 정본을 두어 두 정본이 같은 sub-section 순서로 1:1 대응되도록 구성했습니다. CLI 명령, 설정 schema, preset, Lighthouse 인증, Figma 매칭, ESLint 규칙, 사이드카 plugin, 환경변수 등 사용자가 dsmonitor 를 도입할 때 필요한 모든 항목을 한 문서에서 확인할 수 있습니다. 한국어 표기는 원어민 수준의 자연스러운 문장으로 작성했고, 조사 "안" 의 오용과 명사 나열식 단문은 제거했습니다.
+- **EN —** Consolidated the README into a single file and finalized the Korean reference version. The previous `README.ko.md` has been deleted; `README.md` now hosts the Korean reference at the top and the English reference at the bottom, with every sub-section mirrored 1:1. Every dimension a new adopter needs — CLI commands, configuration schema, presets, Lighthouse auth, Figma matching, ESLint rules, sidecar plugins, environment variables — is now documented in one place. The Korean half is rewritten in natural prose, dropping the AI-style phrasing and noun-stacking from earlier revisions.
+
+### 참고 / Notes
+
+- **한 —** 본 patch 는 BREAKING 변경이 없습니다. 코드 변경도 없습니다 (`README.md`, `README.ko.md` 삭제, `CHANGELOG.md`, `package.json` 의 version bump 만).
+- **한 —** `npm run typecheck` + `npm run build` 통과.
+- **EN —** This patch has no BREAKING changes. No code changes either — only `README.md`, the deletion of `README.ko.md`, `CHANGELOG.md`, and the `package.json` version bump.
+- **EN —** Verified with `npm run typecheck` + `npm run build`.
+
 ## [0.5.1] — 2026-05-15
 
 ### 정정 / Fixed
