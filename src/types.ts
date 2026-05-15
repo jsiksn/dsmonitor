@@ -580,6 +580,56 @@ export type LighthouseAuthConfig =
     };
 
 /**
+ * Lighthouse custom 인증 어댑터 인터페이스 (0.7.1+, E 항목).
+ *
+ * `dsmonitor.config.ts` 의 `lighthouse.auth = { type: "custom", adapter: "./path.js" }`
+ * 가 가리키는 파일의 default export 가 본 인터페이스를 만족해야 합니다. LHCI 의
+ * `puppeteerScript` 와 호환되는 함수 시그니처 + dsmonitor 의 metadata 확장으로
+ * 구성됩니다.
+ *
+ * 동작:
+ *   - LHCI 가 각 측정 URL 진입 전에 default export 함수를 호출합니다.
+ *   - `browser` 인자는 Puppeteer Browser 인스턴스입니다. dsmonitor 는 puppeteer 를
+ *     직접 의존하지 않으므로 type 인자 `TBrowser` 로 풀어 두었습니다. 어댑터를
+ *     TypeScript 로 작성한다면 `import type { Browser } from "puppeteer"` 후
+ *     `LighthouseAuthAdapter<Browser>` 로 명시하면 됩니다.
+ *   - `context` 는 LHCI 가 전달하는 정보 묶음입니다. 흔히 측정 URL / Lighthouse
+ *     결과 등이 들어가며, 어댑터가 사용하지 않으면 무시해도 됩니다.
+ *   - `getMetadata()` 는 선택입니다. 어댑터가 export 하면 `dsmonitor/lighthouse/run.js`
+ *     가 호출해 결과를 `summary.json` 에 metadata 로 누적합니다.
+ *
+ * 호환성:
+ *   - 옛 0.4.x ~ 0.7.x 어댑터 (`module.exports = async (browser, context) => {}` 형식의
+ *     CommonJS / JS) 그대로 작동합니다. 본 type 은 작성 시점 IDE 도움을 위한 opt-in
+ *     이며 런타임 검증을 추가하지 않습니다.
+ */
+export interface LighthouseAuthAdapter<TBrowser = unknown> {
+  /** LHCI 호환 진입점. 각 측정 URL 마다 호출됩니다. */
+  (browser: TBrowser, context?: LighthouseAuthContext): Promise<void> | void;
+  /** `summary.json` 에 누적될 메타데이터 (선택). */
+  getMetadata?: () => Record<string, unknown>;
+}
+
+/**
+ * 어댑터의 두 번째 인자 — LHCI 가 전달하는 컨텍스트 (0.7.1+).
+ *
+ * LHCI 버전에 따라 필드 구성이 달라질 수 있어 모두 선택입니다. 가장 흔한
+ * 필드만 명시하고, 알려지지 않은 추가 필드는 그대로 들어 옵니다.
+ */
+export interface LighthouseAuthContext {
+  /** 측정 대상 URL (LHCI 가 호출 시점에 채워 줍니다). */
+  url?: string;
+  /** 측정 결과 객체 (after-run 어댑터 케이스). */
+  lhr?: unknown;
+  /** Lighthouse 결과 HTML 경로. */
+  lhrPath?: string;
+  /** LHCI 옵션 묶음 (passthrough). */
+  options?: Record<string, unknown>;
+  /** 미지정 필드 — LHCI 가 추가하는 임의 키. */
+  [key: string]: unknown;
+}
+
+/**
  * Figma 측정 설정 — `UIHealthConfig.figma`.
  */
 export type FigmaConfig = {

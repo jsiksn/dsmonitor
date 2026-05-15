@@ -592,6 +592,35 @@ module.exports.getMetadata = () => ({
 
 `auth.type !== "none"` 이면 dsmonitor 가 자동으로 `disableStorageReset: true` 를 넣어 주므로 어댑터가 심은 세션은 페이지 사이에 보존됩니다.
 
+**TypeScript 어댑터 작성 (0.7.1+)** — dsmonitor 가 export 하는 `LighthouseAuthAdapter` 타입을 활용하면 IDE 자동 완성과 컴파일 타임 검증을 함께 받을 수 있습니다. puppeteer 의 `Browser` 타입은 사용자 쪽에서 직접 import 합니다 (dsmonitor 는 puppeteer 를 직접 의존하지 않습니다).
+
+```ts
+import type { LighthouseAuthAdapter } from "dsmonitor";
+import type { Browser } from "puppeteer";
+
+const adapter: LighthouseAuthAdapter<Browser> = async (browser, context) => {
+  const pages = await browser.pages();
+  const page = pages.length > 0 ? pages[0] : await browser.newPage();
+  // 로그인 / 토큰 주입 등 자유 본문.
+};
+
+adapter.getMetadata = () => ({ authType: "custom" });
+
+export default adapter;
+```
+
+**흔한 인증 시나리오와 예제 (0.7.1+)** — `docs/auth-adapter-examples/` 에 그대로 복사해서 쓸 수 있는 어댑터 예제가 5종 들어 있습니다.
+
+| 시나리오                  | 예제 파일                                                                      | 핵심                                              |
+| ------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
+| HTTP Basic Authentication | [`01-basic-auth.ts`](./docs/auth-adapter-examples/01-basic-auth.ts)             | `page.authenticate()` 한 줄로 끝.                  |
+| Form login (ID / PW)      | [`02-form-login.ts`](./docs/auth-adapter-examples/02-form-login.ts)             | 가장 흔한 패턴 — selector 만 정정하면 작동.        |
+| SSO (외부 IdP redirect)   | [`03-sso.ts`](./docs/auth-adapter-examples/03-sso.ts)                           | IdP 도메인 redirect chain 추적.                    |
+| JWT 토큰 주입              | [`04-jwt-persistence.ts`](./docs/auth-adapter-examples/04-jwt-persistence.ts)   | 로그인 페이지 건너뛰고 localStorage / cookie 주입. |
+| OAuth 2.0 code flow       | [`05-oauth.ts`](./docs/auth-adapter-examples/05-oauth.ts)                       | authorize → 자격 증명 → consent → redirect_uri.    |
+
+전체 안내 (작성 흐름 / 환경변수 패턴 / TypeScript → JavaScript 변환 / `dsmonitor doctor` 로 검증) 는 [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) 에 있습니다.
+
 ### 6.13 `thresholds` (필수)
 
 각 지표의 good / warn 임계값입니다. `direction` 이 `"higher"` 면 값이 높을수록 좋고, `"lower"` 면 낮을수록 좋습니다.
@@ -913,6 +942,10 @@ A. 둘은 같은 DS 를 두 가지 "언어" 로 가리킵니다.
 - 두 값이 동일하다면 alias 가 없는 환경 (직접 경로 import 만 쓰는 경우) 입니다.
 - 헷갈리지 마세요: `officialPaths` 는 "파일이 어디에 있나?", `officialAliases` 는 "import 가 어떻게 쓰이나?" 입니다.
 
+**Q. 로그인이 필요한 페이지를 Lighthouse 로 측정하려면 어떻게 하나요?**
+
+A. `dsmonitor.config.ts` 의 `lighthouse.auth` 를 `{ type: "custom", adapter: "./..." }` 로 두고 어댑터 파일을 작성합니다. 흔한 다섯 시나리오 (HTTP Basic / Form login / SSO / JWT 주입 / OAuth 2.0) 는 `docs/auth-adapter-examples/` 에 복사해서 쓸 수 있는 예제가 들어 있습니다. 0.7.1 부터는 `import type { LighthouseAuthAdapter } from "dsmonitor"` 로 TypeScript 시그니처도 받을 수 있어 IDE 자동 완성과 컴파일 검증이 가능합니다. 상세 작성 흐름은 §6.12.1 과 [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) 를 참고하세요.
+
 **Q. `dsmonitor.config.ts` 를 찾지 못한다는 에러가 나옵니다.**
 
 A. 다음 흐름으로 검색합니다 (현재 디렉토리부터 위로 올라가며).
@@ -979,6 +1012,7 @@ A. `dsmonitor` 와 `eslint-plugin-dsmonitor` 두 패키지를 모두 설치했�
 - [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) — CI 통합 패턴.
 - [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) — Lighthouse CI 통합.
 - [docs/plugin-development.md](./docs/plugin-development.md) — 사이드카 plugin 개발 참고 문서.
+- [docs/auth-adapter-examples/README.md](./docs/auth-adapter-examples/README.md) — Lighthouse custom 인증 어댑터 예제 5종 (HTTP Basic / Form login / SSO / JWT 주입 / OAuth 2.0, 0.7.1+).
 - [docs/measurement-flow.md](./docs/measurement-flow.md) — 측정 흐름 다이어그램.
 - [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (현재 placeholder).
 
@@ -1546,6 +1580,35 @@ module.exports.getMetadata = () => ({
 
 When `auth.type !== "none"`, dsmonitor auto-sets `disableStorageReset: true`, so adapter-installed sessions are preserved across pages.
 
+**Writing the adapter in TypeScript (0.7.1+)** — dsmonitor exports a `LighthouseAuthAdapter` type you can pull in for IDE autocomplete and compile-time checks. Puppeteer's `Browser` type is imported on your side (dsmonitor itself does not depend on puppeteer).
+
+```ts
+import type { LighthouseAuthAdapter } from "dsmonitor";
+import type { Browser } from "puppeteer";
+
+const adapter: LighthouseAuthAdapter<Browser> = async (browser, context) => {
+  const pages = await browser.pages();
+  const page = pages.length > 0 ? pages[0] : await browser.newPage();
+  // login / token injection / etc.
+};
+
+adapter.getMetadata = () => ({ authType: "custom" });
+
+export default adapter;
+```
+
+**Common auth scenarios and examples (0.7.1+)** — `docs/auth-adapter-examples/` ships five ready-to-copy adapters.
+
+| Scenario                  | File                                                                         | Highlight                                                  |
+| ------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| HTTP Basic Authentication | [`01-basic-auth.ts`](./docs/auth-adapter-examples/01-basic-auth.ts)            | A single `page.authenticate()` call.                        |
+| Form login (ID / PW)      | [`02-form-login.ts`](./docs/auth-adapter-examples/02-form-login.ts)            | The most common pattern — adjust selectors and go.          |
+| SSO (external IdP)        | [`03-sso.ts`](./docs/auth-adapter-examples/03-sso.ts)                          | Follows the IdP redirect chain back to your origin.         |
+| JWT injection             | [`04-jwt-persistence.ts`](./docs/auth-adapter-examples/04-jwt-persistence.ts)  | Skips the login page; drops a token into localStorage / cookies. |
+| OAuth 2.0 code flow       | [`05-oauth.ts`](./docs/auth-adapter-examples/05-oauth.ts)                      | authorize → credentials → consent → redirect_uri.            |
+
+The full guide (writing flow, env-var conventions, TypeScript → JavaScript conversion, validating with `dsmonitor doctor`) lives at [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md).
+
 ### 6.13 `thresholds` (required)
 
 Per-metric good / warn thresholds. `direction: "higher"` means higher is better, `"lower"` means lower is better.
@@ -1867,6 +1930,10 @@ A. They describe the same DS in two different "languages".
 - Equal values mean an alias-free setup (relative imports only).
 - Mental model: `officialPaths` answers "where are the files?", `officialAliases` answers "how are they imported?".
 
+**Q. How do I run Lighthouse against a page that requires login?**
+
+A. Set `dsmonitor.config.ts`'s `lighthouse.auth` to `{ type: "custom", adapter: "./..." }` and write an adapter file. Five common scenarios (HTTP Basic, Form login, SSO, JWT injection, OAuth 2.0) come with ready-to-copy examples under `docs/auth-adapter-examples/`. Since 0.7.1 you can also `import type { LighthouseAuthAdapter } from "dsmonitor"` for IDE autocomplete and compile-time checks. See §6.12.1 and [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) for the full walkthrough.
+
 **Q. dsmonitor can't find `dsmonitor.config.ts`.**
 
 A. It walks up from the current directory looking for, in order:
@@ -1933,6 +2000,7 @@ A. Make sure you installed both `dsmonitor` and `eslint-plugin-dsmonitor`. ESLin
 - [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) — CI integration patterns.
 - [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) — Lighthouse CI integration.
 - [docs/plugin-development.md](./docs/plugin-development.md) — Sidecar plugin development reference.
+- [docs/auth-adapter-examples/README.md](./docs/auth-adapter-examples/README.md) — Five Lighthouse custom-auth adapter examples (HTTP Basic / Form login / SSO / JWT injection / OAuth 2.0, since 0.7.1).
 - [docs/measurement-flow.md](./docs/measurement-flow.md) — Measurement flow diagram.
 - [docs/methodology.md](./docs/methodology.md) — Measurement methodology (currently a placeholder).
 
