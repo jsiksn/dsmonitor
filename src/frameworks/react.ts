@@ -79,13 +79,44 @@ export const reactAdapter: FrameworkAdapter = {
   extractSignals(parsed: ParsedCode): FileSignals {
     const signals: FileSignals = {
       imports: [],
+      importEntries: [],
       hasInlineStyle: false,
       classNames: [],
     };
     if (!parsed.ast) return signals;
     walk(parsed.ast, (node: any) => {
       if (node.type === "ImportDeclaration" && node.source?.type === "Literal") {
-        signals.imports.push(String(node.source.value));
+        const source = String(node.source.value);
+        signals.imports.push(source);
+        // 0.6.1 (X): named / default / namespace specifier 분리해 구조화 저장.
+        // ImportSpecifier             — { Foo, Bar as Baz } 의 각 항목. imported.name 이 원본 명.
+        // ImportDefaultSpecifier      — default 의 local 명.
+        // ImportNamespaceSpecifier    — * as X 의 local 명.
+        const entry = {
+          source,
+          named: [] as string[],
+          hasDefault: false,
+          hasNamespace: false,
+        };
+        for (const spec of (node.specifiers as any[]) || []) {
+          if (spec?.type === "ImportSpecifier") {
+            const imported = spec.imported;
+            // imported 는 Identifier 또는 (TS) Literal 가능. 원본 명만 수집.
+            if (imported?.type === "Identifier" && typeof imported.name === "string") {
+              entry.named.push(imported.name);
+            } else if (
+              imported?.type === "Literal" &&
+              typeof imported.value === "string"
+            ) {
+              entry.named.push(imported.value);
+            }
+          } else if (spec?.type === "ImportDefaultSpecifier") {
+            entry.hasDefault = true;
+          } else if (spec?.type === "ImportNamespaceSpecifier") {
+            entry.hasNamespace = true;
+          }
+        }
+        (signals.importEntries ??= []).push(entry);
       }
       if (node.type === "JSXAttribute" && node.name?.type === "JSXIdentifier") {
         const attr = node.name.name;

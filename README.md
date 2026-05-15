@@ -316,7 +316,7 @@ migrationMinClassLength: 3,
 ```
 
 - key (예: `Button`) — 리포트와 대시보드에 표시되는 이름. 보통 컴포넌트 파일명이나 named import 이름과 같게 적습니다.
-- `aliases` — 해당 컴포넌트의 import 경로 (또는 그 prefix). 현재는 prefix 매칭이라 barrel import 안의 named import 는 정확히 잡히지 않을 수 있습니다 (named import 분석은 0.6.1 patch 의 X 항목에서 처리 예정).
+- `aliases` — 해당 컴포넌트의 import 경로 (또는 그 prefix). 0.6.1 부터는 alias 가 일치하는 import 중에서도 **named import 이름이 key 와 정확히 같을 때만** 해당 컴포넌트를 "이미 사용 중" 으로 인정합니다. 예를 들어 `import { Button } from "@/laon-web-ui"` 만 있는 파일에서 `<input>` 을 발견하면, Button 은 후보에서 제외되지만 Input 은 마이그레이션 후보로 잡힙니다. namespace import (`import * as Ui from "..."`) 와 default import 는 어느 컴포넌트인지 정확히 알 수 없어 옛 동작 (alias 매칭만으로 후보 제외) 을 그대로 유지합니다.
 - `nativeTags` — 이 컴포넌트로 대체 가능한 native HTML 태그 목록입니다. 두 가지 형식을 함께 쓸 수 있습니다.
   - **string 형식** (예: `"button"`) — tag 이름만 비교합니다. type attribute 와 무관하게 매칭됩니다.
   - **객체 형식** (예: `{ tag: "input", type: "checkbox" }`, 0.6.0+) — tag 이름이 같고 `type` 도 정확히 일치할 때만 매칭됩니다. `<input type="checkbox">` 만 잡고 일반 `<input type="text">` 는 잡지 않으려는 경우에 사용합니다. `type` 을 생략하면 string 형식과 동일하게 동작합니다.
@@ -1224,7 +1224,7 @@ migrationMinClassLength: 3,
 ```
 
 - key (e.g. `Button`) — the name shown in reports and the dashboard. Usually matches the DS component file name or named import.
-- `aliases` — import paths (or their prefixes) for the component. The current matcher uses prefix matching, so named imports from barrels may not be detected precisely (named-import analysis lands in the 0.6.1 patch — item X).
+- `aliases` — import paths (or their prefixes) for the component. Starting with 0.6.1, an alias match counts the component as "already in use" **only when the named-import identifier equals the key**. So in a file that has `import { Button } from "@/laon-web-ui"` and a stray `<input>`, Button is excluded from the migration list but Input is still flagged as a migration candidate. Namespace imports (`import * as Ui from "..."`) and default imports remain on the legacy behavior (alias match alone excludes them), because there is no way to tell which component they refer to.
 - `nativeTags` — native HTML tags that this DS component can replace. Two forms are accepted in the same array:
   - **String form** (e.g. `"button"`) — compares the tag name only, regardless of the `type` attribute.
   - **Object form** (e.g. `{ tag: "input", type: "checkbox" }`, 0.6.0+) — matches only when the tag name is equal AND the `type` attribute matches exactly. Use this when you want to catch `<input type="checkbox">` but leave `<input type="text">` alone. Omitting `type` behaves the same as the string form.
