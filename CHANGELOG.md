@@ -8,6 +8,29 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.5.1] — 2026-05-15
+
+### 정정 / Fixed
+
+- **한 —** (S) Figma DS 파일이 1개일 때 토큰 매트릭스에 남아 있던 빈 컬럼을 제거했습니다. 옛 portal-gateway 시절 `ds-new` / `ds-legacy` 두 라벨을 하드코딩하던 잔재로 인해 DS 1개 환경에서 thead 와 tbody 의 컬럼 개수가 어긋나 있었습니다. transformer 의 `enrichTokenMatrix` 에 `rows[i].ds: Array<0|1>` 동적 배열을 추가하고, `figma-tab.jsx` 의 `TokenMatrixSection` tbody 를 dsLabels 길이에 맞춰 동적으로 출력하도록 정정했습니다. 옛 `dn` / `dl` 필드는 호환을 위해 보존합니다.
+- **EN —** (S) Removed the dead column that appeared in the token matrix when there was only one Figma DS file. The transformer's `enrichTokenMatrix` now emits a dynamic `rows[i].ds: Array<0|1>` aligned with `dsLabels`, and `TokenMatrixSection`'s tbody iterates that array instead of hard-coding two columns. Legacy `dn` / `dl` fields are preserved for compatibility.
+
+### 변경 / Changed
+
+- **한 —** (U) "JSX 매칭" / "jsx만" 같은 옛 UI 표시 명칭을 "JSX/TSX 매칭" / "JSX/TSX만" 으로 정정했습니다. 실제 매칭 로직은 JSX 와 TSX 양쪽에서 모두 작동했지만 표시 명칭이 한쪽만 가리키고 있어 혼동을 줄 수 있었습니다. 대시보드 (`figma-tab.jsx`), markdown 리포트 (`src/reporters/markdown.ts`), 의미 설명 주석 (`types.ts`, `componentMatch.ts`) 의 표시 단어를 일괄 정정했습니다. 변수명 (`jsxOnly` 등) 과 데이터 source 값 (`"jsx"`) 은 호환을 위해 그대로 둡니다.
+- **EN —** (U) Renamed user-facing labels from "JSX matching" / "jsx-only" to "JSX/TSX matching" / "JSX/TSX-only". The underlying logic always covered both JSX and TSX; only the display wording was misleading. Touched the dashboard (`figma-tab.jsx`), the markdown reporter (`src/reporters/markdown.ts`), and the explanatory comments in `types.ts` and `componentMatch.ts`. Variable names (`jsxOnly` etc.) and source values (`"jsx"`) are kept for compatibility.
+- **한 —** (V) `dsmonitor init` 으로 생성되는 `dsmonitor.config.ts` 템플릿의 `migrationTargets` 필드에 의미 / 형식 / 예시 주석을 보충했습니다. 옛 `// TODO` 한 줄로는 사용자가 직접 채워야 하는 필드라는 점과 작성 방법을 알기 어려웠습니다. 더불어 `migrationMinClassLength` 필드에도 짧은 예시를 덧붙였습니다. 현재 (0.5.x) schema 기준으로 작성되었으며, `nativeTags` 의 type attribute 옵션은 0.6.0 의 (W) 작업 범위입니다.
+- **EN —** (V) Beefed up the `migrationTargets` comments in the `dsmonitor init` template (`templates/dsmonitor.config.ts.tpl`): meaning, shape (`aliases` / `nativeTags`), and two concrete examples (Button / Input). Also clarified `migrationMinClassLength`. Written against the 0.5.x schema; the `nativeTags` type-attribute option is part of the 0.6.0 (W) work.
+- **한 —** (M) README 한 / 영 분리를 시작했습니다. `README.md` 는 영어 정본으로 정리하고, 한국어 정본은 `README.ko.md` 로 분리해 신규 작성했습니다. 두 파일 상단에 언어 전환 링크를 추가했고, 본 패치에서는 핵심 sub-section (Installation / Quick Start / Configuration 핵심 필드) 만 1:1 로 분리했습니다. 나머지 sub-section 은 후속 패치에서 점진적으로 분리할 계획입니다. 한국어 정본은 조사 "안" 의 오용 등 부자연스러운 표기를 정리한 원어민 표기로 작성했습니다.
+- **EN —** (M) Started the README KO / EN split. `README.md` is now the English source of truth; the Korean source of truth lives in the new `README.ko.md`. Each file links to the other at the top. This patch separates only the core sub-sections (Installation, Quick Start, Configuration key fields); the rest will be migrated in follow-up patches. The Korean version was rewritten in natural prose, dropping the awkward AI-style phrasing from earlier revisions.
+
+### 참고 / Notes
+
+- **한 —** 본 patch 는 BREAKING 변경이 없습니다. 0.5.0 의 동작과 동일하며, API 와 설정 schema 변경도 없습니다.
+- **한 —** `npm run typecheck` + `npm run build` 통과 확인.
+- **EN —** This patch has no BREAKING changes. Behavior is identical to 0.5.0; no API or schema changes.
+- **EN —** Verified with `npm run typecheck` + `npm run build`.
+
 ## [0.5.0] — 2026-05-14
 
 ### 변경 (BREAKING) / Changed (BREAKING)

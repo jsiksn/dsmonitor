@@ -1,12 +1,12 @@
+**English** | [한국어](./README.ko.md)
+
 # dsmonitor
 
-> UI Health Monitoring Framework — 코드베이스 / 스타일 / 디자인 일관성을 정량 측정하는 도구.
->
-> **EN —** UI Health Monitoring Framework — a tool that quantifies codebase / style / design consistency.
+> UI Health Monitoring Framework — a tool that quantifies codebase / style / design consistency.
 
-**측정 도구**입니다 (개선 도구 아님). 분석 결과를 baseline JSON + markdown 리포트로 출력합니다.
+This is a **measurement tool** (not an improvement tool). It emits analysis as baseline JSON + markdown reports.
 
-**EN —** This is a **measurement tool** (not an improvement tool). Outputs analysis as baseline JSON + markdown reports.
+> 한국어 정본은 [README.ko.md](./README.ko.md) 에 있습니다 (Installation / Quick Start / 핵심 설정 필드).
 
 ![dsmonitor dashboard](docs/images/dashboard.png)
 
@@ -26,7 +26,7 @@
 
 ## 사이드카 plugin 시스템 / Sidecar Plugin System (v0.15, 2026-04-30)
 
-dsmonitor 자체 측정 외 외부 측정 결과 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard에 자동 표시. plugin 측 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 없음.
+dsmonitor 자체 측정 외 외부 측정 결과 (단위 테스트 / 번들 크기 / 접근성 검사 등)가 dashboard 에 자동 표시. plugin 이 자체 도구 실행 + JSON 파일 출력만 — dsmonitor ↔ plugin 직접 코드 의존 없음.
 
 **EN —** Beyond dsmonitor's own measurements, external measurement data (unit tests / bundle size / accessibility audit / etc.) is auto-displayed in the dashboard. Plugins run their own tools and emit a JSON file — no direct code dependency between dsmonitor and plugin.
 
@@ -34,7 +34,7 @@ dsmonitor 자체 측정 외 외부 측정 결과 (단위 테스트 / 번들 크�
 - 자동 표시: `npx dsmonitor dashboard` (별도 명령 없음 — dashboard 빌드 시점에 자동 검색)
 - Summary 탭 안 plugin 1개당 Layer 04+ 자동 추가 + plugin 탭 동적 생성
 - 검증 실패 (필수 필드 / id 불일치 / JSON 형식) 빨간 알림 + 오래된 정보 (7일+) 회색 배지
-- 자세한 내용: [docs/plugin-development.md](./docs/plugin-development.md)
+- 상세한 내용: [docs/plugin-development.md](./docs/plugin-development.md)
 
 **EN —**
 
@@ -44,126 +44,86 @@ dsmonitor 자체 측정 외 외부 측정 결과 (단위 테스트 / 번들 크�
 - Validation (required fields / id mismatch / JSON format) → red alert. Stale (7+ days) → gray badge
 - Details: [docs/plugin-development.md](./docs/plugin-development.md)
 
-## 빠른 시작 / Quick Start
+## Quick Start
 
-### 1. 설치 / Installation
+> 한국어 정본은 [README.ko.md](./README.ko.md#%EB%B9%A0%EB%A5%B8-%EC%8B%9C%EC%9E%91) 의 "빠른 시작" 항목을 참고해 주세요.
+
+### 1. Installation
 
 ```bash
 npm install --save-dev dsmonitor
 ```
 
-ESLint plugin 활용 시점 = wrapper 패키지 (`eslint-plugin-dsmonitor`) 도 추가 install. ESLint legacy config(`.eslintrc.js`) 안 plugin 자동 검색 흐름 호환 위해 별도 패키지 형태로 publish.
-
-**EN —** When using the ESLint plugin, also install the wrapper package (`eslint-plugin-dsmonitor`). It is published separately to satisfy ESLint legacy config's automatic `eslint-plugin-{name}` resolution.
+When using the ESLint plugin, also install the wrapper package (`eslint-plugin-dsmonitor`). It is published separately to satisfy ESLint legacy config's automatic `eslint-plugin-{name}` resolution.
 
 ```bash
 npm install --save-dev dsmonitor eslint-plugin-dsmonitor
 ```
 
-선택 의존 (peer optional — 활용 시점에만 install):
+Optional peer dependencies (install only when used):
 
-**EN —** Optional peer dependencies (install only when used):
+| Package                         | When                                                          | Command                                              |
+| ------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------- |
+| `eslint` >=8                    | Using the dsmonitor ESLint plugin                             | `npm install --save-dev eslint`                      |
+| `eslint-plugin-dsmonitor`       | Using the dsmonitor ESLint plugin                             | `npm install --save-dev eslint-plugin-dsmonitor`     |
+| `@lhci/cli` >=0.13              | Using Lighthouse measurement                                  | Auto-installed by `dsmonitor init`                   |
+| `typescript` >=5.0              | Authoring `dsmonitor.config.ts`                               | Usually already installed                            |
 
-| 부분 / Area                     | 시점 / When                                                  | 명령 / Command                                       |
-| ------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| `eslint` >=8                    | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint`                      |
-| `eslint-plugin-dsmonitor`       | dsmonitor ESLint plugin 활용 / Using dsmonitor ESLint plugin | `npm install --save-dev eslint-plugin-dsmonitor`     |
-| `@lhci/cli` >=0.13              | Lighthouse 측정 활용 / Lighthouse measurement                | `dsmonitor init` 안 자동 / auto via `dsmonitor init` |
-| `typescript` >=5.0              | dsmonitor.config.ts 작성 시점 / Writing dsmonitor.config.ts  | 보통 이미 install됨 / usually already installed      |
-
-### 2. 부트스트랩 / Bootstrap (`dsmonitor init`)
+### 2. Bootstrap (`dsmonitor init`)
 
 ```bash
 npx dsmonitor init
 ```
 
-→ 인터랙티브 prompt:
-
-- Lighthouse 측정 사용? (Y → @lhci/cli 자동 install)
-- Figma 측정 사용? (Y → 정보 형식만 토큰 치환)
-
-→ 자동 생성:
-
-- `dsmonitor/dsmonitor.config.ts` (선택에 맞춰 토큰 치환)
-- `dsmonitor/.env.local.example`
-- `dsmonitor/reports/.gitkeep`
-
-**EN —**
-
-→ Interactive prompts:
+Interactive prompts:
 
 - Use Lighthouse measurement? (Y → auto-install `@lhci/cli`)
 - Use Figma measurement? (Y → token-substitute only)
 
-→ Auto-generated files:
+Auto-generated files:
 
 - `dsmonitor/dsmonitor.config.ts` (token-aligned with the choices)
 - `dsmonitor/.env.local.example`
 - `dsmonitor/reports/.gitkeep`
 
-수동 부트스트랩 (init 없이) / Manual bootstrap (without init):
+Manual bootstrap (without init):
 
 ```
 my-project/
 └── dsmonitor/
-    ├── dsmonitor.config.ts        ← presets / config 사용자 작성 / user-authored
+    ├── dsmonitor.config.ts        ← presets / config authored by you
     ├── .env.local                 ← gitignored. LIGHTHOUSE_* / FIGMA_API_TOKEN
     ├── .env.local.example
-    ├── reports/                   ← 측정 결과 JSON 자동 출력 / measurement JSON output
-    └── lighthouse/                ← Lighthouse=Y 케이스만
-        ├── config.js              ← LHCI config (init 안 자동 생성)
-        └── auth/custom.js         ← (커스텀 어댑터 케이스만)
+    ├── reports/                   ← measurement JSON output
+    └── lighthouse/                ← only when Lighthouse = Y
+        ├── config.js              ← LHCI config (auto-generated by init)
+        └── auth/custom.js         ← only when using a custom adapter
 ```
 
-#### init 이후 `.env.local` 작성 / Filling `.env.local` After Init
+#### Filling `.env.local` After Init
 
-`.env.local.example` 안 안내 키를 실제 값으로 채워 `dsmonitor/.env.local` 로 cp:
+Fill `.env.local.example` with real values, then copy it to `dsmonitor/.env.local`:
 
 ```bash
 cp dsmonitor/.env.local.example dsmonitor/.env.local
-# 편집기로 열어 실제 값 입력
+# Open in your editor and enter the real values.
 ```
 
-| 변수 / Variable | 인증 방식 / Auth Type | 용도 / Purpose |
-|---|---|---|
-| `FIGMA_API_TOKEN` | — | Figma 측정 활용 시 (`figmaAnalysis = true`). Figma → Settings → Personal access tokens 발급 |
-| `LIGHTHOUSE_BASE_URL` | none / basic / custom | Lighthouse 측정 대상 base URL. 환경 전환 시 본 값만 정정 |
-| `LIGHTHOUSE_LOGIN_URL` | basic | 로그인 페이지 path (예: `/login`) 또는 절대 URL |
-| `LIGHTHOUSE_TEST_ID` | basic | 테스트 계정 ID (basic 어댑터 read) |
-| `LIGHTHOUSE_TEST_PW` | basic | 테스트 계정 PW (basic 어댑터 read) |
-| `LIGHTHOUSE_BASIC_SELECTOR_*` | basic (선택) | basic 어댑터 selector override — `ID_INPUT` / `PW_INPUT` / `SUBMIT` 3종 |
-
-- `.env.local` 자체 = `.gitignore` 권고 (민감 정보).
-- 커스텀 어댑터 케이스 = 자유 변수 정의. 어댑터 본문 안 read 흐름과 `.env.local.example` 안 안내 한 줄 일관 유지.
-
-**EN —** Fill `.env.local.example` with real values, then `cp` to `dsmonitor/.env.local`:
-
-| Variable | Auth Type | Purpose |
-|---|---|---|
-| `FIGMA_API_TOKEN` | — | Required when `figmaAnalysis = true`. Generate at Figma → Settings → Personal access tokens. |
-| `LIGHTHOUSE_BASE_URL` | none / basic / custom | Lighthouse target base URL. Change this single value when switching dev/it/prod. |
-| `LIGHTHOUSE_LOGIN_URL` | basic | Login page path (e.g. `/login`) or absolute URL. |
-| `LIGHTHOUSE_TEST_ID` | basic | Test account ID (read by the basic adapter). |
-| `LIGHTHOUSE_TEST_PW` | basic | Test account password (read by the basic adapter). |
-| `LIGHTHOUSE_BASIC_SELECTOR_*` | basic (optional) | Override default selectors — `ID_INPUT` / `PW_INPUT` / `SUBMIT`. |
+| Variable                      | Auth Type             | Purpose                                                                                                          |
+| ----------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `FIGMA_API_TOKEN`             | —                     | Required when `figmaAnalysis = true`. Generate at Figma → Settings → Personal access tokens.                     |
+| `LIGHTHOUSE_BASE_URL`         | none / basic / custom | Lighthouse target base URL. Change this single value when switching dev / it / prod.                             |
+| `LIGHTHOUSE_LOGIN_URL`        | basic                 | Login page path (e.g. `/login`) or absolute URL.                                                                 |
+| `LIGHTHOUSE_TEST_ID`          | basic                 | Test account ID (read by the basic adapter).                                                                     |
+| `LIGHTHOUSE_TEST_PW`          | basic                 | Test account password (read by the basic adapter).                                                               |
+| `LIGHTHOUSE_BASIC_SELECTOR_*` | basic (optional)      | Override default selectors — `ID_INPUT` / `PW_INPUT` / `SUBMIT`.                                                 |
 
 - Keep `.env.local` in `.gitignore` (sensitive material).
 - For custom adapters, define your own variables. Keep the body of the adapter and the comment line in `.env.local.example` in sync.
 
-#### init 이후 `dsmonitor.config.ts` 작성 / Filling `dsmonitor.config.ts` After Init
+#### Filling `dsmonitor.config.ts` After Init
 
-`dsmonitor init` 안 생성된 `dsmonitor/dsmonitor.config.ts` 안 다음 항목 외부 사용자 환경에 맞게 입력:
-
-- **`projectRoot`** — 보통 `..` 그대로 (`dsmonitor/` 폴더 한 단계 위).
-- **`scan.include` / `scan.exclude`** — 분석 대상 / 제외 경로 (외부 사용자 환경 폴더 구조에 맞게 정정).
-- **`figma.designSystemFiles` + `figma.domainFiles`** — Figma file key 입력 (Figma 측정 활용 시). Figma URL 안 `https://www.figma.com/design/<fileKey>/...` 자세 추출.
-- **`lighthouse.baseUrl`** — Lighthouse 측정 대상 URL. init 안 기본 작성 = `.env.local` 안 `LIGHTHOUSE_BASE_URL` 자동 read 형태 (직접 hard-code 가능).
-- **`lighthouse.pages`** — 측정 대상 페이지 목록 (path + name).
-- **`lighthouse.auth`** — 인증 방식 (다음 sub-section 자세 안내).
-
-자세한 안내: [docs/figma-config-guide.md](./docs/figma-config-guide.md).
-
-**EN —** After `dsmonitor init` writes `dsmonitor/dsmonitor.config.ts`, fill the entries below to match your environment:
+After `dsmonitor init` writes `dsmonitor/dsmonitor.config.ts`, fill the entries below to match your environment:
 
 - **`projectRoot`** — usually `..` (the parent of `dsmonitor/`).
 - **`scan.include` / `scan.exclude`** — analysis targets / exclusions (adjust to your folder layout).
@@ -282,7 +242,7 @@ Details: [docs/figma-config-guide.md](./docs/figma-config-guide.md).
 
 **[English version below ↓](#en-adopting-dsmonitor-to-your-stack)**
 
-dsmonitor codebase 측정 흐름 안 5종 환경 처리 자세:
+dsmonitor codebase 측정 흐름 안 5종 환경 처리 상세:
 
 **1. TypeScript vs JavaScript** — `scan.codeExts` 명시 설정. default = `[".ts", ".tsx", ".js", ".jsx"]` 양쪽 자연 처리. 순수 TS 프로젝트 환경 = `metrics.tsMigration: false` 권고 (마이그레이션 측정 의미 X).
 
@@ -315,7 +275,7 @@ styled-components / 다른 흐름 = preset 부재. 사용자 custom `StylingPoli
 **측정 노이즈 사항 안내**:
 - Tailwind 환경 안 `scssVariableCompliance: true` 그대로 유지 = SCSS 변수 사용 0 → compliance 0% → 의미 X 결과. 본 환경 = `false` 정정 권고.
 - `hardcodedValues.colorPatterns` 안 hex 색상 패턴 = `app/globals.css` 안 Tailwind `@theme` 정의 안 색상 hex 자체 매치 가능 = noise. `scssVariableDefFiles` 안 본 파일 명시 = noise 제외.
-- 환경에 맞지 않는 metrics 토글 그대로 유지 시점 = 이상한 수치 (compliance 0% / 5% 등) 결과. 의미 X 결과와 본 환경 안 자연 0% 결과 분리 안 자세 진입.
+- 환경에 맞지 않는 metrics 토글 그대로 유지 시점 = 이상한 수치 (compliance 0% / 5% 등) 결과. 의미 X 결과와 본 환경 안 자연 0% 결과 분리 안 상세 진입.
 
 #### environment-specific config sketch (0.4.2)
 
@@ -423,9 +383,9 @@ See the four sketches in the Korean section above. Inline summary:
 
 #### Lighthouse 측정 흐름 / Lighthouse Measurement Flow (0.5.0 BREAKING)
 
-**0.5.0 BREAKING 안내** — 옛 `dsmonitor/lighthouse/config.js` 안 PAGES hard-code 흐름 자체 폐기. 측정 대상 자세 명시 = `dsmonitor.config.ts` 안 `lighthouse` 자체 단일 source. dsmonitor 자체 안 LHCI config 자체 동적 생성 → `node_modules/.cache/dsmonitor/lighthouserc.js` 자체 임시 파일 자체 자세 inject.
+**0.5.0 BREAKING 안내** — 옛 `dsmonitor/lighthouse/config.js` 안 PAGES hard-code 흐름 자체 폐기. 측정 대상 상세 명시 = `dsmonitor.config.ts` 안 `lighthouse` 자체 단일 source. dsmonitor 자체 안 LHCI config 자체 동적 생성 → `node_modules/.cache/dsmonitor/lighthouserc.js` 자체 임시 파일 자체 상세 inject.
 
-자세 자세 명시 필드:
+상세 상세 명시 필드:
 
 ```ts
 lighthouse: {
@@ -435,7 +395,7 @@ lighthouse: {
     { path: "/dashboard", name: "Dashboard" },
   ],
   runs: 3,
-  auth: { type: "none" },              // 인증 방식 — 아래 자세 자세 안내
+  auth: { type: "none" },              // 인증 방식 — 아래 상세 상세 안내
   advanced: {                          // (선택) LHCI advanced 옵션 자체 deep-merge
     settings: { skipAudits: ["uses-http2"] },
   },
@@ -448,7 +408,7 @@ dsmonitor 자체 안 default LHCI options:
 - `disableStorageReset` 자체 = `auth.type !== "none"` 자체 자동 결정
 - `puppeteerLaunchOptions: { headless: true }` (auth 자체 활용 시점만)
 
-외부 사용자 자체 LHCI 자세 옵션 자체 정정 흐름 = `lighthouse.advanced` 자체 명시 → dsmonitor 자체 안 deep-merge.
+외부 사용자 자체 LHCI 상세 옵션 자체 정정 흐름 = `lighthouse.advanced` 자체 명시 → dsmonitor 자체 안 deep-merge.
 
 **migration 안내 (0.4.x → 0.5.0)**:
 
@@ -456,7 +416,7 @@ dsmonitor 자체 안 default LHCI options:
 |---|---|
 | `dsmonitor/lighthouse/config.js` 안 `const PAGES = [...]` | `dsmonitor.config.ts` 안 `lighthouse.pages: [{ path, name }, ...]` |
 | `dsmonitor/lighthouse/config.js` 안 `numberOfRuns: 3` | `lighthouse.runs: 3` |
-| `dsmonitor/lighthouse/config.js` 안 `settings: { ... }` 자세 | `lighthouse.advanced: { settings: { ... } }` |
+| `dsmonitor/lighthouse/config.js` 안 `settings: { ... }` 상세 | `lighthouse.advanced: { settings: { ... } }` |
 | `dsmonitor/lighthouse/config.js` 안 `puppeteerScript: "..."` | `lighthouse.auth: { type: "custom", adapter: "..." }` |
 | `dsmonitor/lighthouse/config.js` 안 `disableStorageReset: true` | 자동 (auth.type !== "none" 자체) — override 필요 시 `advanced.settings.disableStorageReset` |
 
@@ -529,7 +489,7 @@ module.exports.getMetadata = () => ({
   - **Linux** — `apt-get install google-chrome-stable` (Ubuntu / Debian) / `dnf install google-chrome-stable` (Fedora)
   - **Windows** — `choco install googlechrome` (Chocolatey) / 또는 직접 download
   - **Docker** — `node:20-bookworm-slim` base 안 `apt-get install chromium` 자체 추가
-  - **CI** — GitHub Actions = `ubuntu-latest` 안 Chrome 자연 install 끝. Jenkins = `apt-get install google-chrome-stable` 사전 진입. 자세 안내: [`docs/lighthouse-ci-integration.md`](./docs/lighthouse-ci-integration.md).
+  - **CI** — GitHub Actions = `ubuntu-latest` 안 Chrome 자연 install 끝. Jenkins = `apt-get install google-chrome-stable` 사전 진입. 상세 안내: [`docs/lighthouse-ci-integration.md`](./docs/lighthouse-ci-integration.md).
 - chrome-launcher 자체 검증: `node -e "console.log(require('chrome-launcher').Launcher.getInstallations())"` 호출 결과 안 1개 이상 path 반환 = OK. 빈 배열 = Chrome 자체 미감지 = install 필요.
 
 **EN — Chrome must be installed (0.4.2 fix)**:
@@ -561,7 +521,7 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 
 #### 측정 명령 차이 / Measurement Command Differences
 
-사용자 측 `package.json` 안 npm scripts 권고 패턴 / Recommended npm scripts in user-side `package.json`:
+사용자 환경 `package.json` 안 npm scripts 권고 패턴 / Recommended npm scripts in user-side `package.json`:
 
 | 명령 / Command | baseline-{date}.json 생성 / Creates baseline JSON | dashboard 반영 / Reflected in dashboard | 사용 시점 / When to use |
 |---|---|---|---|
@@ -571,14 +531,14 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 | `npx dsmonitor audit --baseline && report && dashboard` | ✓ | ✓ | baseline 갱신 + dashboard (옛 방식) / Update baseline + dashboard (legacy) |
 | `npx dsmonitor audit --only code` | ✗ | ✗ | code만 빠르게 / code only |
 | `npx dsmonitor audit --only figma` | ✗ | ✗ | figma raw (`figma-instances-{date}.json`) / figma raw only |
-| `npx dsmonitor audit --only lighthouse` | ✗ | ✓ | Lighthouse만 측정 (~25분 소요, dashboard 측 lighthouse 부분 갱신, v0.3.1) / Lighthouse only (~25 min, refreshes lighthouse section in dashboard, v0.3.1) |
+| `npx dsmonitor audit --only lighthouse` | ✗ | ✓ | Lighthouse만 측정 (~25분 소요, dashboard 의 lighthouse 부분 갱신, v0.3.1) / Lighthouse only (~25 min, refreshes lighthouse section in dashboard, v0.3.1) |
 | `node node_modules/dsmonitor/lighthouse/run.js` | — | ✓ (별도 input / separate input) | lighthouse 측정 단독 — 옛 호출 방식 (~25분 / ~25 min, legacy invocation) |
 
 **짚어드릴 점 / Notes**:
 - `audit --all` 권고 (v0.3.0) / `audit --all` is recommended (v0.3.0) — 한 번 명령으로 code + figma + Lighthouse + report + dashboard 자동 chain. 사전 준비 = `dsmonitor/lighthouse/config.js` + auth 어댑터 + `.env.local` 안 `LIGHTHOUSE_*` 환경변수 (Lighthouse 사용 시점만 필수). / Single command runs the full chain. Lighthouse setup required only when using it.
 - `--only figma` 단독 = `figma-instances-{date}.json` (raw) 만 생성. dashboard input 누락 / standalone `--only figma` only writes `figma-instances-{date}.json` (raw); not picked up by dashboard.
 - dashboard 흐름 = 가장 최근 `baseline-*.json` (prefix 매칭) read / dashboard reads the latest `baseline-*.json` (prefixed file).
-- 자세한 안내 / Details: [docs/measurement-flow.md](./docs/measurement-flow.md).
+- 상세한 안내 / Details: [docs/measurement-flow.md](./docs/measurement-flow.md).
 
 #### Lighthouse 단독 실행 / Lighthouse Direct Invocation
 
@@ -590,16 +550,16 @@ npx dsmonitor baseline-lint       # ESLint forbidden class baseline 생성 / gen
 node node_modules/dsmonitor/lighthouse/run.js
 ```
 
-| 항목 / Item | 자세 / Detail |
+| 항목 / Item | 상세 / Detail |
 |---|---|
 | 시간 소요 / Duration | ~25분 (10 URL × 3 run = 30 LHR) / ~25 minutes (10 URLs × 3 runs = 30 LHRs) |
 | 사전 준비 / Prerequisites | `dsmonitor/lighthouse/config.js` (LHCI config) + `dsmonitor/lighthouse/auth/<project>.js` (Puppeteer 자동 로그인 어댑터) + `dsmonitor/.env.local` 안 `LIGHTHOUSE_BASE_URL` / `LIGHTHOUSE_TEST_ID` / `LIGHTHOUSE_TEST_PW` / `LIGHTHOUSE_ZONE_ACCOUNT_UUID` / `LIGHTHOUSE_ZONE_ACCOUNT_LABEL` 환경변수 |
 | 출력 / Output | `dsmonitor/lighthouse/reports/{date}/` (LHR raw + `summary.json` + `manifest.json`) |
-| 자세 안내 / Details | [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) |
+| 상세 안내 / Details | [docs/lighthouse-ci-integration.md](./docs/lighthouse-ci-integration.md) |
 
-#### export-migration 자세 / export-migration Details (v0.3.2 추가)
+#### export-migration 상세 / export-migration Details (v0.3.2 추가)
 
-Figma 안 특정 frame 측 instance 측 마이그레이션 CSV 출력 — 새 DS / 옛 DS 마이그레이션 작업 진입 시점 source 정보. 디자이너 / 퍼블리셔 측 활용 흐름.
+Figma 안 특정 frame 의 instance 단위 마이그레이션 CSV 출력 — 새 DS / 옛 DS 마이그레이션 작업 진입 시점 source 정보. 디자이너 / 퍼블리셔 활용 흐름.
 
 **EN —** Exports a CSV of instances inside a specific Figma frame — useful as source data for new-DS / legacy-DS migration work. Used by designers / publishers.
 
@@ -607,17 +567,17 @@ Figma 안 특정 frame 측 instance 측 마이그레이션 CSV 출력 — 새 DS
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 ```
 
-| 항목 / Item | 자세 / Detail |
+| 항목 / Item | 상세 / Detail |
 |---|---|
-| **동작 / Behavior** | `figma-instances-{date}.json` (v0.14 출력) 측 read + frame 필터링 + ds 필터링 + figmaUrl 자동 조립 → CSV 출력 |
-| **`--frame=<comment>`** | Figma 안 frame 측 comment 또는 name 측 필터링 (예: `--frame=Test-Perform`). 정확 일치 — 부분 일치 X |
-| **`--ds=<label>` (옵션)** | DS label 측 필터링. 기본값 = `ds-legacy`. 다른 값 = `ds-new` / `unmatched` / `all` |
-| **사전 준비 / Prerequisites** | `npx dsmonitor audit --baseline` 측 figma 측정 끝 → `dsmonitor/reports/figma-instances-{date}.json` 자동 생성 끝난 상태 |
-| **출력 / Output** | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` (frame name + ds label 측 안전 처리 — 영문/숫자/하이픈/언더스코어 외 문자 = 언더스코어 정정) |
+| **동작 / Behavior** | `figma-instances-{date}.json` (v0.14 출력) 을 read + frame 필터링 + ds 필터링 + figmaUrl 자동 조립 → CSV 출력 |
+| **`--frame=<comment>`** | Figma 안 frame 의 comment 또는 name 으로 필터링 (예: `--frame=Test-Perform`). 정확 일치 — 부분 일치 X |
+| **`--ds=<label>` (옵션)** | DS label 로 필터링. 기본값 = `ds-legacy`. 다른 값 = `ds-new` / `unmatched` / `all` |
+| **사전 준비 / Prerequisites** | `npx dsmonitor audit --baseline` 로 figma 측정 끝 → `dsmonitor/reports/figma-instances-{date}.json` 자동 생성 끝난 상태 |
+| **출력 / Output** | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` (frame name + ds label 을 안전 처리 — 영문/숫자/하이픈/언더스코어 외 문자 = 언더스코어 정정) |
 | **CSV 컬럼 / CSV Columns** | `nodeId` / `componentName` / `instanceName` / `dsLabel` / `contextPath` / `figmaUrl` (자동 조립 — 직접 클릭 진입 가능) |
 | **figmaUrl 자동 조립** | `https://www.figma.com/design/{fileKey}/{fileName}?node-id={nodeId 콜론 → 하이픈}` 형태 |
-| **활용 시점 / When to use** | 새 DS / 옛 DS 마이그레이션 작업 진입 시점 — frame 측 자세 instance 목록 + Figma 직접 진입 link 측 작업 정보 |
-| **frame name 측 가져오기 / Frame discovery** | Figma 측 frame 직접 확인 또는 `dsmonitor/reports/figma-instances-{date}.json` 측 자세 검토 |
+| **활용 시점 / When to use** | 새 DS / 옛 DS 마이그레이션 작업 진입 시점 — frame 의 상세 instance 목록 + Figma 직접 진입 link 로 작업 정보 |
+| **frame name 가져오기 / Frame discovery** | Figma 에서 frame 직접 확인 또는 `dsmonitor/reports/figma-instances-{date}.json` 에서 상세 검토 |
 
 ### DS 파일 라벨 / DS File Labels
 
@@ -649,7 +609,7 @@ DS 1개뿐 = 자동 primary (`primary` 필드 생략 가능) / Single DS = auto-
 
 ### Migration from 0.1.x
 
-0.1.x 흐름 = `ds-new` 라벨이 자동 primary 처리. 0.2.0 부터 = 명시 필수. 옛 사용자 측 `dsmonitor.config.local.ts` 안 `ds-new` 항목에 `primary: true` 1줄 추가:
+0.1.x 흐름 = `ds-new` 라벨이 자동 primary 처리. 0.2.0 부터 = 명시 필수. 옛 사용자 환경 `dsmonitor.config.local.ts` 안 `ds-new` 항목에 `primary: true` 1줄 추가:
 
 ```diff
 - { url: "...", label: "ds-new" },
@@ -672,29 +632,29 @@ DS 1개뿐 = 자동 primary (`primary` 필드 생략 가능) / Single DS = auto-
 
 ### Lighthouse / 인증 어댑터 / Authentication Adapter
 
-Lighthouse 측정 흐름 자세 = 위 **빠른 시작 §2 안 "Lighthouse 측정 흐름" + "Lighthouse 인증 흐름" sub-section** 참조. 0.5.0 BREAKING 안 측정 대상 자체 단일 source (`dsmonitor.config.ts` 안 `lighthouse.pages` 자체) + dsmonitor 자체 안 LHCI config 자체 동적 생성. `dsmonitor init` 안 인증 방식 select (none / basic / custom) → (custom 케이스) `dsmonitor/lighthouse/auth/custom.js` 스켈레톤 자동 생성.
+Lighthouse 측정 흐름 상세 = 위 **빠른 시작 §2 안 "Lighthouse 측정 흐름" + "Lighthouse 인증 흐름" sub-section** 참조. 0.5.0 BREAKING 안 측정 대상 자체 단일 source (`dsmonitor.config.ts` 안 `lighthouse.pages` 자체) + dsmonitor 자체 안 LHCI config 자체 동적 생성. `dsmonitor init` 안 인증 방식 select (none / basic / custom) → (custom 케이스) `dsmonitor/lighthouse/auth/custom.js` 스켈레톤 자동 생성.
 
 **EN —** See **"Lighthouse Measurement Flow" + "Lighthouse Auth Flow" under Quick Start §2** for the full guide. 0.5.0 introduces a single-source flow: `dsmonitor.config.ts` `lighthouse.pages` is now the only place to declare measurement URLs, and dsmonitor auto-generates the LHCI config. `dsmonitor init` prompts for an auth type (none / basic / custom); the custom branch scaffolds `dsmonitor/lighthouse/auth/custom.js`.
 
-## config 작성법 / Writing the Config
+## Writing the Config
 
-자세한 가이드: [docs/figma-config-guide.md](./docs/figma-config-guide.md)
+> 한국어 정본은 [README.ko.md](./README.ko.md#%EC%84%A4%EC%A0%95--%ED%95%B5%EC%8B%AC-%ED%95%84%EB%93%9C-%EC%95%88%EB%82%B4) 의 "설정 — 핵심 필드 안내" 항목을 참고해 주세요.
 
-**EN —** Detailed guide: [docs/figma-config-guide.md](./docs/figma-config-guide.md)
+Detailed guide: [docs/figma-config-guide.md](./docs/figma-config-guide.md)
 
-핵심 필드 / Key fields (`dsmonitor/dsmonitor.config.ts`):
+Key fields (`dsmonitor/dsmonitor.config.ts`):
 
-- `projectRoot` — 프로젝트 루트 상대경로 (`dsmonitor/` 기준 보통 `..`) / Project root relative path (usually `..` from `dsmonitor/`)
-- `scan` — 분석 대상 / 제외 경로 / Targets / excludes for analysis
-- `designSystem.officialPaths` / `officialAliases` — DS 디렉토리 / import alias / DS directories / import aliases
-- `hardcodedValues` — 색상 정규식 + SCSS 변수 사용 / 정의 패턴 / Color regex + SCSS variable usage / definition patterns
-- `migrationTargets` — native HTML → DS 컴포넌트 매핑 / native HTML → DS component mapping
-- `stylingPolicy` — `presets/` 4종 중 선택 후 require / Choose one of 4 presets and require
-- `metrics` — 측정 항목별 ON/OFF / Per-area ON/OFF
-- `figma` / `lighthouse` — 선택 / Optional. Figma 는 `FIGMA_API_TOKEN` 필요 / Figma needs `FIGMA_API_TOKEN`
-- `thresholds` — good/warn 임계값 / good/warn thresholds
-- `reportStatus` — Phase 진척 배지 / Phase progress badge
-- `measurementHistory` — 측정 도구 자체의 변경 이력 (역순 정렬) / Change history of the measurement tool itself (reverse-chronological)
+- `projectRoot` — project root relative path (usually `..` from `dsmonitor/`)
+- `scan` — targets and exclusions for analysis
+- `designSystem.officialPaths` / `officialAliases` — DS directories and import aliases
+- `hardcodedValues` — color regex + SCSS variable usage / definition patterns
+- `migrationTargets` — native HTML tag → DS component mapping
+- `stylingPolicy` — choose one of the four `presets/` and `require()` it
+- `metrics` — per-area ON / OFF toggles
+- `figma` / `lighthouse` — optional. Figma requires `FIGMA_API_TOKEN`.
+- `thresholds` — good / warn thresholds
+- `reportStatus` — Phase progress badge
+- `measurementHistory` — change history of the measurement tool itself (reverse-chronological)
 
 ## ESLint plugin 사용법 / ESLint Plugin Usage
 
@@ -741,7 +701,7 @@ ratchet 동작 / Ratchet behavior:
 | `tailwind-project.js`    | Tailwind utility                | Bootstrap / inline                   | Tailwind 우선 / Tailwind-first                                                                               |
 | `css-modules-project.js` | CSS Modules import              | global utility                       | 모듈화 우선 / Modularity-first                                                                               |
 
-자세한 차이: 각 파일 상단 docstring + [docs/eslint-rules.md](./docs/eslint-rules.md).
+상세한 차이: 각 파일 상단 docstring + [docs/eslint-rules.md](./docs/eslint-rules.md).
 
 **EN —** Details: each preset's top-level docstring + [docs/eslint-rules.md](./docs/eslint-rules.md).
 

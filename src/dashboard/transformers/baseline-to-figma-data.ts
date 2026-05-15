@@ -34,7 +34,7 @@ const PRIMARY_RATIO_STRONG_BELOW_THRESHOLD = 0.1;
  *   - DS 0개 = null
  *
  * 0.1.x 흐름 (`ds-new` 라벨 자동 primary) = 0.2.0 부터 변경.
- * 사용자 측 정정 = `dsmonitor.config.local.ts` 안 ds-new 항목에 `primary: true` 1줄 추가.
+ * 사용자가 직접 정정하는 흐름 = `dsmonitor.config.local.ts` 안 ds-new 항목에 `primary: true` 1줄 추가.
  */
 function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
   const files = cfg.designSystemFiles;
@@ -53,7 +53,7 @@ function resolvePrimaryDsLabel(cfg: FigmaConfig): string | null {
     throw new Error(
       "[dsmonitor] DS 파일이 2개 이상이면 figmaDesignSystemFiles 안 정확히 1개에 `primary: true`를 명시해야 합니다. " +
       `등록된 DS 라벨: ${files.map((f) => f.label).join(", ")}. ` +
-      "자세한 안내: https://github.com/jsiksn/dsmonitor#ds-file-labels"
+      "상세 안내: https://github.com/jsiksn/dsmonitor#ds-file-labels"
     );
   }
 
@@ -157,6 +157,7 @@ function enrichTokenMatrix(
     c: 0 | 1;
     dn: 0 | 1;
     dl: 0 | 1;
+    ds: Array<0 | 1>;
   }>;
   summary: TokenMatrix["summary"] & {
     both: number;
@@ -168,8 +169,13 @@ function enrichTokenMatrix(
   let codeOnly = 0;
   let dsOnly = 0;
 
-  // 0.2.0: ds-new/ds-legacy hardcoded 형태 → primary / non-primary 형태로 변경.
-  // dn = primary 매칭 / dl = non-primary 매칭 합집합.
+  // 0.5.1: rows[i].ds = dsLabels 순서대로 매칭 여부 배열.
+  // DS 1개일 때 길이 1, DS 2개일 때 길이 2, ... 동적.
+  // 옛 dn/dl (primary / non-primary 합집합) 은 호환을 위해 보존.
+  const dsLabels = [primaryLabel, ...nonPrimaryLabels].filter(
+    (l): l is string => Boolean(l)
+  );
+
   const enrichedRows = tm.rows.map((r) => {
     const inCode = r.inCode.exists;
     const inPrimary = primaryLabel ? r.inDs[primaryLabel]?.exists ?? false : false;
@@ -177,6 +183,10 @@ function enrichTokenMatrix(
       (l) => r.inDs[l]?.exists ?? false
     );
     const inAnyDs = inPrimary || inNonPrimary;
+
+    const ds = dsLabels.map(
+      (label) => (r.inDs[label]?.exists ? 1 : 0) as 0 | 1
+    );
 
     if (inCode && inAnyDs) both += 1;
     else if (inCode && !inAnyDs) codeOnly += 1;
@@ -188,6 +198,7 @@ function enrichTokenMatrix(
       c: (inCode ? 1 : 0) as 0 | 1,
       dn: (inPrimary ? 1 : 0) as 0 | 1,
       dl: (inNonPrimary ? 1 : 0) as 0 | 1,
+      ds,
     };
   });
 

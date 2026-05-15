@@ -1,7 +1,7 @@
 /**
  * dsmonitor 설정 — 본 파일은 `dsmonitor init` 안 자동 생성됨 (v0.1.0).
  *
- * 자세한 안내:
+ * 상세 안내:
  *   - 패키지 안내 — node_modules/dsmonitor/README.md
  *   - figma config 가이드 — node_modules/dsmonitor/docs/figma-config-guide.md
  *   - 사이드카 plugin 가이드 — node_modules/dsmonitor/docs/plugin-development.md
@@ -67,14 +67,40 @@ const config: UIHealthConfig = {
   },
 
   // ────── 마이그레이션 대상 ──────
-  // 형식 핵심: Record<string, { aliases: string[]; nativeTags: string[] }>
-  // 예) Button: { aliases: ["@atoms/Button"], nativeTags: ["button"] }
+  //
+  // 의미:
+  //   프로젝트의 사용자 정의 컴포넌트와 native HTML 태그를 매칭해 두는 표입니다.
+  //   dsmonitor 는 이 표를 활용해 "native 태그가 그대로 쓰이는 자리" 가운데
+  //   DS 컴포넌트로 마이그레이션할 후보를 추출합니다.
+  //
+  // 형식: Record<ComponentName, { aliases: string[]; nativeTags: string[] }>
+  //   - key (ComponentName)
+  //       리포트와 대시보드에 표시되는 컴포넌트 이름입니다.
+  //       보통 DS 컴포넌트 파일명 또는 named import 이름과 동일하게 적습니다.
+  //   - aliases: string[]
+  //       해당 컴포넌트의 import 경로 또는 그 prefix 입니다.
+  //       옛 prefix 매칭 흐름이므로 barrel import 안의 named import 는
+  //       정확히 검출되지 않을 수 있습니다 (0.6.0 에서 named import 분석 예정).
+  //   - nativeTags: string[]
+  //       같은 컴포넌트로 대체 가능한 native HTML 태그 이름입니다.
+  //       JSX/TSX 안에서 발견된 native 태그가 마이그레이션 후보로 잡힙니다.
+  //
+  // 예시 (필요한 항목만 골라 작성하면 됩니다):
   migrationTargets: {
-    // TODO: 본 프로젝트 안 마이그레이션 대상 컴포넌트 추가
+    // Button: {
+    //   aliases: ["@/components/ds/Button"],
+    //   nativeTags: ["button"],
+    // },
+    // Input: {
+    //   aliases: ["@/components/ds/Input"],
+    //   nativeTags: ["input"],
+    // },
   },
 
-  // ────── 마이그레이션 후보 안 최소 className 길이 ──────
-  // 본 길이 미만 className = 후보 식별 안 됨 (noise 감소).
+  // ────── 마이그레이션 후보의 최소 className 길이 ──────
+  // 이 길이 미만의 className 은 후보에서 제외됩니다 (noise 감소).
+  // 예) 3 으로 두면 `btn`, `nav` 같은 짧은 클래스는 후보에 포함되고,
+  //     4 로 올리면 더 보수적으로 줄어듭니다.
   migrationMinClassLength: 3,
 
   // ────── 프레임워크 ──────
@@ -137,7 +163,7 @@ const config: UIHealthConfig = {
   //       date: "2026-05-11",
   //       summary: "README export-migration sub-section 신규 추가 (docs only patch).",
   //       notes: [
-  //         "동작 / --frame / --ds flag 사양 / 사전 준비 / 출력 CSV 자세 / figmaUrl 자동 조립 / 활용 시점 안내.",
+  //         "동작 / --frame / --ds flag 사양 / 사전 준비 / 출력 CSV 상세 / figmaUrl 자동 조립 / 활용 시점 안내.",
   //         "코드 변경 0건 (cli.ts / analyzers / reporters / templates 모두 옛 동작 일관 유지).",
   //       ],
   //     },
@@ -147,7 +173,7 @@ const config: UIHealthConfig = {
   //       summary: "--only lighthouse flag 추가 (옛 --only code / --only figma 일관 확장).",
   //       notes: [
   //         "Lighthouse 측정 단독 호출 — npx dsmonitor audit --only lighthouse.",
-  //         "옛 node node_modules/dsmonitor/lighthouse/run.js 단독 호출 흐름 일관 (사용자 측 직관 강화).",
+  //         "옛 node node_modules/dsmonitor/lighthouse/run.js 단독 호출 흐름 일관 (사용자 환경 직관 강화).",
   //       ],
   //     },
   //     {

@@ -264,9 +264,11 @@ function TokenMatrixSection({ d }) {
             <tbody>
               {rows.map((r, i) => {
                 const inCode = r.c === 1;
-                const inNew = r.dn === 1;
-                const inLegacy = r.dl === 1;
-                const both = inCode && (inNew || inLegacy);
+                // 0.5.1: r.ds = dsLabels 순서대로 매칭 여부 배열 (DS 1개 = 길이 1).
+                // 옛 빌드 (0.5.0 이하) 호환 — r.ds 없으면 dn/dl 흐름으로 폴백.
+                const dsFlags = r.ds ?? [r.dn ?? 0, r.dl ?? 0].slice(0, dsLabels.length);
+                const inAnyDs = dsFlags.some((f) => f === 1);
+                const both = inCode && inAnyDs;
                 return (
                   <tr key={r.n}>
                     <td className="mono dim">{i + 1}</td>
@@ -274,12 +276,11 @@ function TokenMatrixSection({ d }) {
                     <td style={{ textAlign: "center", color: inCode ? "var(--good-ink)" : "var(--ink-4)" }}>
                       {inCode ? "✓" : "−"}
                     </td>
-                    <td style={{ textAlign: "center", color: inNew ? "var(--good-ink)" : "var(--ink-4)" }}>
-                      {inNew ? "✓" : "−"}
-                    </td>
-                    <td style={{ textAlign: "center", color: inLegacy ? "var(--good-ink)" : "var(--ink-4)" }}>
-                      {inLegacy ? "✓" : "−"}
-                    </td>
+                    {dsFlags.map((flag, idx) => (
+                      <td key={dsLabels[idx] ?? idx} style={{ textAlign: "center", color: flag === 1 ? "var(--good-ink)" : "var(--ink-4)" }}>
+                        {flag === 1 ? "✓" : "−"}
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
@@ -510,7 +511,7 @@ function MigrationPrioritySection({ d }) {
 }
 
 // ---------- component match (B 그룹 단계 3, 2026-04-29) ----------
-// Figma DS variantGroup 이름 ↔ 코드 className (글로벌 인덱스 + jsx 사용) 매칭.
+// Figma DS variantGroup 이름 ↔ 코드 className (글로벌 인덱스 + JSX/TSX 사용) 매칭.
 // 본 프로젝트 정책 (Figma 이름 = CSS class 동기화) 활용한 정확 일치 (B1).
 function ComponentMatchSection({ d }) {
   const cm = d.componentMatch;
@@ -630,7 +631,7 @@ function ComponentMatchSection({ d }) {
               <div className="bar-track" style={{ margin: 0, display: "flex", overflow: "hidden" }}>
                 <div title={`both: ${s.matchedBreakdown.both}`}
                   style={{ width: `${bothW}%`, background: "var(--good)", height: "100%" }} />
-                <div title={`jsx만 (orphan 가능성): ${s.matchedBreakdown.jsxOnly}`}
+                <div title={`JSX/TSX만 (orphan 가능성): ${s.matchedBreakdown.jsxOnly}`}
                   style={{ width: `${jsxOnlyW}%`, background: "var(--warn)", height: "100%" }} />
                 <div title={`css만 (dead 가능성): ${s.matchedBreakdown.globalCssOnly}`}
                   style={{ width: `${cssOnlyW}%`, background: "var(--ink-3)", height: "100%" }} />
@@ -649,14 +650,14 @@ function ComponentMatchSection({ d }) {
       {/* legend — matched 3종 (figmaOnly 는 빈 막대 자동 시각). */}
       <div className="bar-track-legend" style={{ marginTop: 8 }}>
         <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--good)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />both (정상)</span>
-        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--warn)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />jsx만 (orphan 가능성)</span>
+        <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--warn)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />JSX/TSX만 (orphan 가능성)</span>
         <span className="mono dim"><span style={{display:"inline-block",width:8,height:8,background:"var(--ink-3)",borderRadius:2,marginRight:5,verticalAlign:"middle"}} />css만 (dead 가능성)</span>
       </div>
 
       {/* 분류 4종 한 줄 안내 (3차 시각 검증 후 보정 1, 2026-04-29 후속).
-          카드 본문 시각 부담 감소 — 자세 의미는 Disclosure 안 첫 줄 안내로 위계 분리. */}
+          카드 본문 시각 부담 감소 — 상세 의미는 Disclosure 안 첫 줄 안내로 위계 분리. */}
       <FNote>
-        <strong>both</strong> (정상 사용) / <strong>jsx만</strong> (orphan 가능성) /
+        <strong>both</strong> (정상 사용) / <strong>JSX/TSX만</strong> (orphan 가능성) /
         {" "}<strong>css만</strong> (dead 가능성) / <strong>Figma만</strong> (작업 우선순위)
       </FNote>
 
@@ -667,7 +668,7 @@ function ComponentMatchSection({ d }) {
             <tr>
               <th style={{ textAlign: "left" }}>DS</th>
               <th style={{ textAlign: "right" }}>both</th>
-              <th style={{ textAlign: "right" }}>jsx만</th>
+              <th style={{ textAlign: "right" }}>JSX/TSX만</th>
               <th style={{ textAlign: "right" }}>css만</th>
               <th style={{ textAlign: "right" }}>Figma만</th>
               <th style={{ textAlign: "right" }}>합계</th>

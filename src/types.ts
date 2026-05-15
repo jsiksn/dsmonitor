@@ -133,7 +133,7 @@ export interface UIHealthConfig {
     forbiddenFileRatio: Threshold;
     /**
      * 컴포넌트 매칭률 (B 그룹 단계 3, 2026-04-29).
-     * Figma DS variantGroup 이름 ↔ 코드 className (글로벌 인덱스 + jsx 사용 합집합) 매칭.
+     * Figma DS variantGroup 이름 ↔ 코드 className (글로벌 인덱스 + JSX/TSX 사용 합집합) 매칭.
      * 본 프로젝트는 Figma 이름 ↔ CSS class 동기화 정책이라 같은 kebab-case 로 정확 일치.
      */
     componentMatch?: Threshold;
@@ -227,7 +227,7 @@ export interface CodebaseReport {
      * 제외: orphanClass / noClass (정상 분포 측정 대상 아님)
      *
      * v0.6 이전 정의 (preferred / (preferred + forbidden)) 와 시계열 단절.
-     * 자세한 내용: measurementHistory v0.7 entry.
+     * 상세한 내용: measurementHistory v0.7 entry.
      */
     preferredCompliance: PreferredComplianceMeta;
     /** forbidden 방식을 쓰는 파일 수 (bootstrap/tailwind 등 union, 파일 단위) */
@@ -339,7 +339,7 @@ export interface SourceFile {
 /**
  * 코드 className 인덱스 (B 그룹 단계 3, 2026-04-29).
  *
- * `analyzeCodebase` 가 산출하는 부산물 — globalCss 정의 + jsx 사용. baseline JSON
+ * `analyzeCodebase` 가 산출하는 부산물 — globalCss 정의 + JSX/TSX 사용. baseline JSON
  * 직렬화 대상은 아니며, in-process 로 figma analyzer 의 컴포넌트 매칭에 전달.
  *
  * 두 부분 모두 token 단위 (className 속성 1개 안 여러 토큰을 split 한 결과) Set.
@@ -480,15 +480,15 @@ export type LighthouseConfig = {
    *
    * 0.4.x 이하 안 본 필드 자체 = dead. 옛 외부 사용자 환경 안
    * `dsmonitor/lighthouse/config.js` 안 `const PAGES = [...]` 자체 hard-code
-   * 흐름 활용 → 0.5.0 안 본 필드 자체 활용 흐름 자세.
+   * 흐름 활용 → 0.5.0 안 본 필드 자체 활용 흐름 상세.
    */
   pages?: LighthousePageRef[];
 
   /**
    * URL 1개당 측정 반복 수. default = 3.
    *
-   * LHCI 안 `ci.collect.numberOfRuns` 자체 inject. 자세 = 3 자체 (대표 median
-   * 값 자체 추출 자체 자세). 1 자체 = 빠른 자세 (대표값 의미 자세 약함).
+   * LHCI 안 `ci.collect.numberOfRuns` 자체 inject. 상세 = 3 자체 (대표 median
+   * 값 자체 추출 자체 상세). 1 자체 = 빠른 상세 (대표값 의미 상세 약함).
    */
   runs?: number;
 
@@ -514,27 +514,27 @@ export type LighthouseConfig = {
   auth?: LighthouseAuthConfig;
 
   /**
-   * LHCI `ci.collect.settings` 안 deep-merge 자세 (0.5.0+, untyped passthrough).
+   * LHCI `ci.collect.settings` 안 deep-merge 상세 (0.5.0+, untyped passthrough).
    *
-   * dsmonitor default options 자체 위에 외부 사용자 옵션 자체 우선. 흔한 자세 활용:
+   * dsmonitor default options 자체 위에 외부 사용자 옵션 자체 우선. 흔한 상세 활용:
    * - `skipAudits: ["uses-http2"]` (사내망 자체 등)
    * - `chromeFlags: ["--no-sandbox"]` (Docker / CI 자체)
-   * - `throttlingMethod: "provided"` 자체 자세 측정 자세 정정
-   * - `screenEmulation: { ... }` (mobile / 자세 viewport)
+   * - `throttlingMethod: "provided"` 자체 상세 측정 상세 정정
+   * - `screenEmulation: { ... }` (mobile / 상세 viewport)
    * - `formFactor: "mobile"` (default desktop 자체 정정)
    *
-   * 자세 안내: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
+   * 상세 안내: https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/configuration.md
    *
-   * 흔치 않은 활용 흐름 (assertions / upload 자세 등) = 자세 자세 release 진입 예정.
+   * 흔치 않은 활용 흐름 (assertions / upload 상세 등) = 상세 상세 release 진입 예정.
    */
   advanced?: Record<string, unknown>;
 };
 
 /**
- * Lighthouse 측정 대상 페이지 1개 자세 (0.5.0+).
+ * Lighthouse 측정 대상 페이지 1개 상세 (0.5.0+).
  *
  * `path` = `baseUrl` 자체 기준 path 자체 (예: `/dashboard`). `name` = 리포트
- * 안 표시용 자세 (예: "Dashboard").
+ * 안 표시용 상세 (예: "Dashboard").
  */
 export type LighthousePageRef = {
   path: string;
@@ -1006,9 +1006,9 @@ export interface FigmaComponentMatchEntry {
 /**
  * 코드에만 있는 className (Figma DS 정의 없음) — 단순 항목.
  *
- * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족하는
+ * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + JSX/TSX 사용 둘 다 만족하는
  * "DS 외부 정상 사용" className 만. appearsIn 필드 제거 (모두 동일 값이라 자명).
- * dead 가능성 (globalCss 만 정의되고 jsx 미사용) 부분은 별도 트랙 검토 (v0.12 이후).
+ * dead 가능성 (globalCss 만 정의되고 JSX/TSX 미사용) 부분은 별도 트랙 검토 (v0.12 이후).
  */
 export interface FigmaComponentCodeOnlyEntry {
   /** 코드 className 이름. */
@@ -1031,7 +1031,7 @@ export interface FigmaComponentMatchSummary {
     both: number;
     /** matchedIn 에 jsx 만. */
     jsxOnly: number;
-    /** matchedIn 에 globalCss 만 (코드 jsx 사용 없음 — dead style 가능성). */
+    /** matchedIn 에 globalCss 만 (코드 JSX/TSX 사용 없음 — dead style 가능성). */
     globalCssOnly: number;
   };
 }
@@ -1063,8 +1063,8 @@ export interface FigmaComponentMatch {
   /**
    * 코드에만 있는 className — Figma DS 정의 없음 (DS 외부 정상 사용).
    *
-   * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + jsx 사용 둘 다 만족 +
-   * Figma 미매칭. 옛 β 의 "globalCss 만 정의 + jsx 미사용" (dead 가능성) 부분은
+   * γ (B 그룹 단계 3 보정 3, 2026-04-29): globalCss 정의 + JSX/TSX 사용 둘 다 만족 +
+   * Figma 미매칭. 옛 β 의 "globalCss 만 정의 + JSX/TSX 미사용" (dead 가능성) 부분은
    * 별도 트랙 검토 — codeOnly 의미 명확화 ("DS 외부 부분").
    */
   codeOnly: FigmaComponentCodeOnlyEntry[];
