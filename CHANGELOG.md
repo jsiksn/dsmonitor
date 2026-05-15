@@ -8,6 +8,26 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.6.1] — 2026-05-15
+
+### 변경 / Changed
+
+- **한 —** (X) `migrationTargets.<Component>.aliases` 의 매칭 흐름을 AST 기반 named import 분석으로 전환했습니다. 옛 흐름은 alias prefix 가 일치하기만 하면 해당 컴포넌트를 "이미 import 됨" 으로 보고 후보에서 제외했기 때문에, barrel import 환경 (`import { Button } from "@/laon-web-ui"`) 에서 `<input>` / `<progress>` 같은 다른 native 태그 사용이 마이그레이션 후보에서 잘못 제외되곤 했습니다. 0.6.1 은 React 어댑터의 `extractSignals` 가 import 문을 `{ source, named, hasDefault, hasNamespace }` 구조로 emit 하도록 확장하고, `analyzeMigrationCandidates` 가 alias 가 일치한 import 중 **named import 이름이 컴포넌트 key 와 정확히 같을 때만** "이미 사용 중" 으로 인정하도록 매칭 로직을 갱신했습니다. namespace import (`import * as Ui from "..."`) 와 default import 는 어느 컴포넌트인지 단정할 수 없어 옛 동작 (alias 매칭만으로 후보 제외) 을 보수적으로 유지합니다. aliased named import (`import { Button as MyButton } from "..."`) 는 원본 명 `Button` 으로 매칭합니다.
+- **EN —** (X) `migrationTargets.<Component>.aliases` matching is now AST-driven through named-import analysis. The legacy logic considered the component "already imported" whenever the alias prefix matched, which caused barrel-style imports (`import { Button } from "@/laon-web-ui"`) to wrongly exclude stray `<input>` / `<progress>` etc. from the migration candidate list. In 0.6.1 the React adapter's `extractSignals` now emits each import as a structured `{ source, named, hasDefault, hasNamespace }` entry, and `analyzeMigrationCandidates` flags a component as "already in use" **only when the named-import identifier exactly matches the component key**. Namespace imports (`import * as Ui from "..."`) and default imports keep the legacy behavior (alias match alone is treated as imported) because their target component cannot be determined. Aliased named imports (`import { Button as MyButton } from "..."`) match on the original name `Button`.
+
+### 검출 결과 변동 안내 / Detection delta
+
+- **한 —** 0.6.1 부터 마이그레이션 후보 검출 항목이 0.6.0 대비 **증가할 수 있습니다**. 옛 흐름이 잘못 제외하던 후보 (alias 만 일치하고 실제로는 다른 컴포넌트만 import 된 케이스) 가 새로 잡히기 때문입니다. 검출 항목 자체의 정확도가 향상된 결과이므로 설정 변경 없이 의도된 동작입니다. namespace / default import 만 쓰는 부분은 옛 동작이 유지되므로 변동이 없습니다.
+- **EN —** Migration candidate counts may **increase** in 0.6.1 vs 0.6.0. Candidates that the legacy alias-only matcher used to exclude — when the alias matched but the file actually imported a different component — are now correctly surfaced. No configuration change is required; this is the intended outcome of the accuracy improvement. Files using only namespace or default imports remain unaffected because their behavior is preserved.
+
+### 참고 / Notes
+
+- 본 release 는 설정 schema 변경이 없습니다 (BREAKING 없음). 모든 옛 `migrationTargets` 설정이 그대로 작동합니다.
+- This release has no schema changes (no BREAKING). All existing `migrationTargets` configurations keep working.
+- `FileSignals` 에 `importEntries?: ImportEntry[]` 필드가 추가되었습니다. React 외 어댑터 (Vue / Svelte) 에서는 채우지 않아도 매칭 로직이 옛 alias-only 흐름으로 폴백합니다.
+- A new optional `importEntries?: ImportEntry[]` field was added to `FileSignals`. Adapters other than React (Vue / Svelte) may leave it empty; the matcher falls back to the legacy alias-only flow.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.6.0] — 2026-05-15
 
 ### 추가 / Added

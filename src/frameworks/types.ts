@@ -18,10 +18,40 @@ export interface ParsedCode {
 export interface FileSignals {
   /** 모든 import source 문자열 (예: "@atoms/Button", "./foo.scss"). */
   imports: string[];
+  /**
+   * 파일의 import 문을 구조화한 목록 (0.6.1+, X 항목).
+   *
+   * `imports` 가 source 문자열만 가지고 있는 반면, 이쪽은 named / default /
+   * namespace specifier 를 구분해서 컴포넌트 단위 매칭에 활용할 수 있게 합니다.
+   * 옛 흐름과의 호환을 위해 `imports` 도 그대로 유지합니다.
+   *
+   * 어댑터는 가능한 한 본 필드를 채워주는 것이 권장됩니다. 미채움 / 미지원 어댑터인
+   * 경우 매칭 로직이 옛 alias-only 흐름으로 폴백합니다.
+   */
+  importEntries?: ImportEntry[];
   /** inline 스타일 사용 여부 (React: style={{}}, Vue: :style="..."). */
   hasInlineStyle: boolean;
   /** className/class attribute의 문자열 토큰 수집본. 여러 attribute가 있으면 모두 포함. */
   classNames: string[];
+}
+
+/**
+ * import 문 1개의 구조화된 표현 (0.6.1+).
+ *
+ * `source` 는 import 가 가리키는 모듈 경로 (예: `"@/laon-web-ui"`).
+ *
+ * `named` 는 named import 의 **원본 명** 목록입니다. aliased import
+ * (`import { Button as MyButton } ...`) 의 경우 원본 명인 `"Button"` 이 들어갑니다.
+ * 사용 위치 추적은 별개로 처리하지만, 매칭 키는 원본 명을 기준으로 합니다.
+ *
+ * `hasDefault` / `hasNamespace` 는 정확한 컴포넌트 분류가 불가능한 케이스이므로,
+ * 매칭 로직이 보수적으로 옛 동작 (alias 매칭만으로 후보 제외) 을 유지하기 위해 둡니다.
+ */
+export interface ImportEntry {
+  source: string;
+  named: string[];
+  hasDefault: boolean;
+  hasNamespace: boolean;
 }
 
 export interface NativeElementHit {

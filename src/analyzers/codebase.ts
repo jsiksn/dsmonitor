@@ -499,11 +499,49 @@ function analyzeMigrationCandidates(
 
     if (hits.length === 0) continue;
 
-    const imported = new Set(signals.imports);
-    const isImported = (aliases: string[]): boolean =>
-      aliases.some((a) =>
-        Array.from(imported).some((s) => s === a || s.startsWith(a + "/"))
-      );
+    // 0.6.1 (X): named import 까지 보고 컴포넌트 단위로 정확 분류합니다.
+    // 옛 흐름 (`isImported(aliases)`) 은 alias prefix 매칭만 했기 때문에,
+    // barrel import (`import { Button } from "@/laon-web-ui"`) 환경에서는
+    // Button 만 import 한 파일이 Input / Select 등 다른 컴포넌트 후보에서도
+    // 잘못 제외되곤 했습니다. 본 흐름은 named import 의 원본 명을 컴포넌트 키
+    // (migrationTargets key) 와 정확 비교합니다.
+    //
+    // 보수적 fallback:
+    //   - default import (`import X from "..."`)        → 옛 동작 유지 (alias 매칭만으로 제외)
+    //   - namespace import (`import * as X from "..."`) → 옛 동작 유지
+    //   - importEntries 가 비어 있는 (옛 어댑터 호환) 환경 → 옛 동작 유지
+    //
+    // hit.type 제약과의 관계: W 단계에서 후보 좁히기, X 단계에서 import 검사.
+    const importEntries = signals.importEntries ?? [];
+    const importSources = new Set(signals.imports);
+    const aliasMatchesSource = (alias: string, source: string): boolean =>
+      source === alias || source.startsWith(alias + "/");
+    const isImportedComponent = (
+      componentName: string,
+      aliases: string[]
+    ): boolean => {
+      // 옛 호환 — importEntries 미지원 어댑터인 경우 옛 alias-only 검사로 폴백.
+      if (importEntries.length === 0) {
+        return aliases.some((a) =>
+          Array.from(importSources).some((s) => aliasMatchesSource(a, s))
+        );
+      }
+      for (const entry of importEntries) {
+        const aliasMatched = aliases.some((a) =>
+          aliasMatchesSource(a, entry.source)
+        );
+        if (!aliasMatched) continue;
+        // named import 가 컴포넌트 명과 정확 일치 → 정확하게 "이미 import 됨".
+        if (entry.named.includes(componentName)) return true;
+        // namespace / default 는 어떤 컴포넌트를 가리키는지 정확히 알 수 없어
+        // 보수적으로 옛 동작 (alias 매칭만으로 import 인정) 을 유지합니다.
+        if (entry.hasNamespace || entry.hasDefault) return true;
+        // alias 는 일치하지만 named 에 componentName 이 없고 default /
+        // namespace 도 아닌 import 라면 — 다른 컴포넌트만 가져온 것이므로 이 import
+        // 만으로는 componentName 이 import 됐다고 볼 수 없습니다 (다른 entry 계속 확인).
+      }
+      return false;
+    };
 
     for (const hit of hits) {
       if (hit.classString.length < cfg.migrationMinClassLength) continue;
@@ -515,7 +553,9 @@ function analyzeMigrationCandidates(
         (c) => c.type === undefined || c.type === hit.type
       );
       if (candidates.length === 0) continue;
-      const unusedDs = candidates.filter((c) => !isImported(c.aliases));
+      const unusedDs = candidates.filter(
+        (c) => !isImportedComponent(c.ds, c.aliases)
+      );
       if (unusedDs.length === 0) continue;
 
       const suggestedDs = unusedDs.map((c) => c.ds).join("|");
