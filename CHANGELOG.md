@@ -8,6 +8,40 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.7.2] — 2026-05-26
+
+### 추가 / Added
+
+- **한 —** `migrationCandidates.excludeOfficialPaths` 옵션이 신규 추가되었습니다 (default `true`). `designSystem.officialPaths` 에 매치되는 파일을 마이그레이션 후보 검출에서 자동으로 제외해, DS 본체 안에서 자연스럽게 쓰이는 native HTML (예: `Button.tsx` 가 내부에서 `<button>` 사용) 이 false positive 로 잡히지 않습니다. 본 옵션은 마이그레이션 후보 검출 흐름만 정정하며, `totals.dsComponentFiles` 같은 다른 지표는 옛 그대로 officialPaths 안 파일을 DS 본체로 계속 인식합니다. 옛 (~ 0.7.1) 동작을 그대로 두고 싶으면 `migrationCandidates: { excludeOfficialPaths: false }` 로 명시하세요.
+- **EN —** New `migrationCandidates.excludeOfficialPaths` option (default `true`). Files matched by `designSystem.officialPaths` are now skipped during migration-candidate detection, so DS source files that naturally use native HTML (e.g. `Button.tsx` rendering a `<button>` internally) are no longer flagged as false positives. The option scopes only the migration-candidate flow — `totals.dsComponentFiles` and other DS-side metrics keep counting `officialPaths` files. To opt back into the old behavior set `migrationCandidates: { excludeOfficialPaths: false }`.
+
+### 정정 / Fixed
+
+- **한 —** `designSystem.officialPaths` 매칭이 glob-aware 로 정정되었습니다. 0.7.1 까지는 단순 prefix 매칭 (`relPath.startsWith(p + "/")`) 만 사용해서 사용자가 `["src/laon-web-ui/**"]` 처럼 glob 표기를 그대로 적은 환경에서는 매칭이 항상 실패하고, 결과적으로 DS 본체 파일이 마이그레이션 후보에 그대로 들어가는 함정이 있었습니다. 0.7.2 는 glob 의 첫 wildcard 직전까지를 literal root 로 잘라 prefix 매칭이 의도대로 작동하게 합니다. wildcard 없이 적힌 옛 표기 (`["src/components/ds"]`) 의 동작은 변하지 않습니다.
+- **EN —** `designSystem.officialPaths` matching is now glob-aware. Through 0.7.1 the matcher was a literal `relPath.startsWith(p + "/")`, which silently failed whenever users wrote glob entries like `["src/laon-web-ui/**"]`, causing DS source files to leak into the migration-candidate list. 0.7.2 normalizes each entry's literal root (the prefix before the first wildcard) so the match behaves as written. Entries without wildcards (e.g. `["src/components/ds"]`) keep their existing behavior.
+
+### 변경 / Changed
+
+- **한 —** `dsmonitor init` 으로 생성되는 template (`templates/dsmonitor.config.ts.tpl`) 에 `migrationCandidates: { excludeOfficialPaths: true }` 블록이 기본 안내 주석과 함께 추가됩니다. README §6.8 에 신규 sub-subsection (6.8.1) 과 §13 트러블슈팅에 "DS 본체 파일이 마이그레이션 후보로 잡힙니다" Q 가 한국어 / 영어 1:1 로 추가되었습니다.
+- **EN —** The `dsmonitor init` template now renders a `migrationCandidates: { excludeOfficialPaths: true }` block with explanatory comments. README §6.8 gains a new §6.8.1 subsection, and §13 picks up a "DS source files appear as migration candidates" Q — mirrored across Korean and English.
+
+### 옛 사용자 영향 / Migration notes
+
+- **한 —** `designSystem.officialPaths` 가 설정된 환경에서는 0.7.2 업그레이드 후 마이그레이션 후보 검출 숫자가 **줄어들 수 있습니다**.
+  - glob 표기 (`["src/laon-web-ui/**"]`) 를 쓰던 환경 — 옛 매칭 실패로 DS 본체가 후보에 잡히던 false positive 가 정리됩니다.
+  - 옛 동작이 그대로 필요하면 `migrationCandidates: { excludeOfficialPaths: false }` 명시.
+  - `officialPaths` 가 빈 배열이거나 설정되어 있지 않으면 본 옵션은 영향이 없습니다.
+- **EN —** Setups with `designSystem.officialPaths` populated may see migration-candidate counts **decrease** after upgrading to 0.7.2.
+  - Setups using glob entries (`["src/laon-web-ui/**"]`) get the matching-failure false positives cleared up.
+  - To preserve the legacy behavior, set `migrationCandidates: { excludeOfficialPaths: false }`.
+  - When `officialPaths` is empty or unset, this option has no effect.
+
+### 참고 / Notes
+
+- 본 release 는 pre-1.0 (0.x.x) 유연성을 활용한 patch 입니다. 옵션 신규 + default true 가 행동에 영향을 주지만 BREAKING 으로 분류하지 않았습니다.
+- Released as a patch under the pre-1.0 cadence — the new option and its `true` default change behavior, but the change is not classified as BREAKING.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.7.1] — 2026-05-15
 
 ### 추가 / Added

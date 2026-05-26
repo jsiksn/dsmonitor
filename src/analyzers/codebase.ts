@@ -17,16 +17,44 @@ import { getFrameworkAdapter } from "../frameworks";
 
 type Cfg = UIHealthConfig & { __absRoot: string };
 
+/**
+ * 0.7.2 (excludeOfficialPaths 정정): officialPaths glob 의 끝에 붙은 `**` /
+ * `/*` 같은 wildcard 를 단순 prefix 매칭용 root 로 정규화합니다.
+ *
+ *   "src/laon-web-ui/**"      → "src/laon-web-ui"
+ *   "src/components/ds/**"    → "src/components/ds"
+ *   "src/components/ds"       → "src/components/ds"
+ *   "src/foo/**\/*.tsx"       → "src/foo"  (마지막 wildcard 직전까지)
+ *
+ * 옛 (~ 0.7.1) 흐름은 `relPath.startsWith(p + "/")` 만 적용해서 사용자가 glob 표기를
+ * 그대로 적은 경우 매칭이 항상 실패했습니다. 본 함수는 wildcard 시작 직전까지를
+ * literal root 로 잘라 prefix 매칭이 의도대로 동작하도록 만듭니다.
+ */
+function officialPathRoot(p: string): string {
+  // 첫 wildcard 가 등장하는 위치를 찾고, 그 직전 슬래시까지만 보존.
+  const wildcardIdx = p.search(/[*?[]/);
+  let root = wildcardIdx === -1 ? p : p.slice(0, wildcardIdx);
+  // 끝의 슬래시 정리 — 결과는 항상 슬래시 없이 둡니다.
+  root = root.replace(/\/+$/, "");
+  return root;
+}
+
 function isDsPath(relPath: string, cfg: Cfg): boolean {
-  return cfg.designSystem.officialPaths.some((p) =>
-    relPath.startsWith(p + "/")
-  );
+  return cfg.designSystem.officialPaths.some((p) => {
+    const root = officialPathRoot(p);
+    if (!root) return false;
+    return relPath === root || relPath.startsWith(root + "/");
+  });
 }
 
 function isDsImport(source: string, cfg: Cfg): boolean {
   if (cfg.designSystem.officialAliases.some((a) => source.startsWith(a))) return true;
   if (source.startsWith(".") || source.startsWith("/")) return false;
-  return cfg.designSystem.officialPaths.some((p) => source.includes(p + "/"));
+  return cfg.designSystem.officialPaths.some((p) => {
+    const root = officialPathRoot(p);
+    if (!root) return false;
+    return source.includes(root + "/");
+  });
 }
 
 function isComponentFile(f: SourceFile, cfg: Cfg): boolean {
@@ -489,9 +517,15 @@ function analyzeMigrationCandidates(
   const samples: CodebaseReport["migrationCandidates"]["samples"] = [];
   const SAMPLE_LIMIT = 50;
 
+  // 0.7.2 (excludeOfficialPaths): default true — DS 본체 파일을 마이그레이션 후보
+  // 검출에서 자동 제외합니다. 옛 동작 (DS 본체 패턴까지 검출) 을 원하면 사용자가
+  // `migrationCandidates: { excludeOfficialPaths: false }` 로 명시할 수 있습니다.
+  const excludeOfficialPaths =
+    cfg.migrationCandidates?.excludeOfficialPaths ?? true;
+
   for (const f of codeFiles) {
     if (!isComponentFile(f, cfg)) continue;
-    if (isDsPath(f.relPath, cfg)) continue;
+    if (excludeOfficialPaths && isDsPath(f.relPath, cfg)) continue;
 
     const parsed = adapter.parse(f.content, f.relPath);
     const signals = adapter.extractSignals(parsed);
