@@ -355,6 +355,28 @@ migrationMinClassLength: 3,
 
 > 옛 `nativeTags: ["input"]` 형식 (0.5.x 까지) 의 설정은 0.6.0 에서도 그대로 작동합니다. 검출 결과의 의미를 바꾸지 않은 호환 변경입니다.
 
+#### 6.8.1 `migrationCandidates.excludeOfficialPaths` (0.7.2+)
+
+DS 본체 안에서 자연스럽게 쓰이는 native HTML (예: `Button.tsx` 가 내부에서 `<button>` 을 사용하는 케이스) 이 마이그레이션 후보로 잘못 잡히는 false positive 를 정정하는 옵션입니다.
+
+```ts
+migrationCandidates: {
+  excludeOfficialPaths: true, // default (0.7.2+)
+},
+```
+
+- **`true` (default)** — `designSystem.officialPaths` 에 매치되는 파일을 마이그레이션 후보 검출에서 자동 제외합니다. `scan.ignore` 에 DS 폴더를 따로 추가하지 않아도 됩니다. 0.7.2 부터 옛 prefix 매칭이 glob-aware 매칭으로 정정되어 `["src/laon-web-ui/**"]` 같은 glob 표기도 의도대로 동작합니다.
+- **`false`** — 0.7.1 까지의 옛 동작입니다. `officialPaths` 안 파일도 후보 검출 대상에 들어갑니다. DS 본체 자체의 native HTML 패턴을 그대로 보고 싶을 때만 사용하세요.
+
+`scan.ignore` 와의 차이:
+
+| 옵션                                                  | 영향 범위                                   |
+| ----------------------------------------------------- | ------------------------------------------ |
+| `scan.ignore`                                         | 모든 측정에서 제외 — 파일 walk 자체에서 건너뜀. |
+| `migrationCandidates.excludeOfficialPaths`            | 마이그레이션 후보 검출에서만 제외. `totals.dsComponentFiles` 같은 DS 본체 지표는 계속 잡힙니다. |
+
+> 0.7.1 까지 `officialPaths: ["src/laon-web-ui/**"]` 처럼 glob 표기를 적은 환경에서는 매칭이 항상 실패해서 DS 본체 파일이 후보로 잡혔습니다. 0.7.2 부터 본 글로브 표기도 자연스럽게 인식되며 default `true` 가 함께 적용됩니다 — 따라서 옛 후보 숫자가 줄어들 수 있습니다 (의도된 정정). 옛 동작이 필요하면 `excludeOfficialPaths: false` 로 명시하세요.
+
 ### 6.9 `framework` (필수)
 
 코드 분석에 사용할 framework 어댑터를 고릅니다. 현재는 `"react"` 만 지원합니다 (Vue / Svelte 어댑터는 향후 추가 예정).
@@ -942,6 +964,10 @@ A. 둘은 같은 DS 를 두 가지 "언어" 로 가리킵니다.
 - 두 값이 동일하다면 alias 가 없는 환경 (직접 경로 import 만 쓰는 경우) 입니다.
 - 헷갈리지 마세요: `officialPaths` 는 "파일이 어디에 있나?", `officialAliases` 는 "import 가 어떻게 쓰이나?" 입니다.
 
+**Q. DS 본체 파일이 마이그레이션 후보로 잡힙니다.**
+
+A. 0.7.2 부터는 `migrationCandidates.excludeOfficialPaths` 의 default 가 `true` 라서 `designSystem.officialPaths` 안 파일이 후보 검출에서 자동 제외됩니다. 0.7.1 까지의 환경이라면 두 가지 선택이 있습니다 — (1) `dsmonitor` 를 0.7.2 이상으로 업그레이드, (2) 옛 흐름을 유지하고 싶다면 `scan.ignore` 에 DS 폴더를 추가. 0.7.1 까지는 `officialPaths` 에 `["src/laon-web-ui/**"]` 같은 glob 표기를 적으면 매칭이 항상 실패해서 DS 본체가 후보로 잡혔습니다 — 0.7.2 의 glob-aware 매칭과 default `true` 조합으로 본 함정이 정정됩니다. 옛 동작을 그대로 두고 싶으면 `migrationCandidates: { excludeOfficialPaths: false }` 로 명시하세요.
+
 **Q. 로그인이 필요한 페이지를 Lighthouse 로 측정하려면 어떻게 하나요?**
 
 A. `dsmonitor.config.ts` 의 `lighthouse.auth` 를 `{ type: "custom", adapter: "./..." }` 로 두고 어댑터 파일을 작성합니다. 흔한 다섯 시나리오 (HTTP Basic / Form login / SSO / JWT 주입 / OAuth 2.0) 는 `docs/auth-adapter-examples/` 에 복사해서 쓸 수 있는 예제가 들어 있습니다. 0.7.1 부터는 `import type { LighthouseAuthAdapter } from "dsmonitor"` 로 TypeScript 시그니처도 받을 수 있어 IDE 자동 완성과 컴파일 검증이 가능합니다. 상세 작성 흐름은 §6.12.1 과 [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) 를 참고하세요.
@@ -1346,6 +1372,28 @@ migrationMinClassLength: 3,
 - `migrationMinClassLength` — minimum className length to consider as a candidate. With the default 3, `btn` / `nav` are included; bump to 4 to be more conservative.
 
 > Configurations using the legacy `nativeTags: ["input"]` form (0.5.x and earlier) continue to work in 0.6.0. The change is compatibility-preserving and does not alter what is detected for an existing config.
+
+#### 6.8.1 `migrationCandidates.excludeOfficialPaths` (0.7.2+)
+
+Fixes the false-positive where a DS source file (e.g. `Button.tsx` using a `<button>` internally) is wrongly flagged as a migration candidate.
+
+```ts
+migrationCandidates: {
+  excludeOfficialPaths: true, // default since 0.7.2
+},
+```
+
+- **`true` (default)** — files matching `designSystem.officialPaths` are skipped during migration-candidate detection. You no longer need to add the DS folder to `scan.ignore`. Since 0.7.2 the matcher is glob-aware, so entries like `["src/laon-web-ui/**"]` work as written.
+- **`false`** — restores the pre-0.7.2 behavior. Files under `officialPaths` are still considered for migration candidates. Use this only when you want to surface native-HTML patterns inside the DS itself.
+
+How this compares to `scan.ignore`:
+
+| Option                                       | Scope                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| `scan.ignore`                                | Excludes from every metric — the walker never visits the file.      |
+| `migrationCandidates.excludeOfficialPaths`   | Excludes only from migration-candidate detection. DS-side metrics such as `totals.dsComponentFiles` still count the file. |
+
+> Setups that used a glob (`officialPaths: ["src/laon-web-ui/**"]`) before 0.7.2 silently misbehaved — the prefix matcher could never hit the glob, so DS files leaked into the candidate list. 0.7.2 normalizes the glob root AND applies the new default `true`, so candidate counts may go down for those setups (intended). Set `excludeOfficialPaths: false` to keep the legacy behavior.
 
 ### 6.9 `framework` (required)
 
@@ -1929,6 +1977,10 @@ A. They describe the same DS in two different "languages".
 - `officialAliases` = **import path prefixes** used in code (e.g. `["@ds/", "@/components/ds/"]`). Affects `dsCoverage.filesUsingDs` / `dsCoverage.coverage`.
 - Equal values mean an alias-free setup (relative imports only).
 - Mental model: `officialPaths` answers "where are the files?", `officialAliases` answers "how are they imported?".
+
+**Q. DS source files appear as migration candidates.**
+
+A. Since 0.7.2, `migrationCandidates.excludeOfficialPaths` defaults to `true`, so files matched by `designSystem.officialPaths` are excluded from the candidate list automatically. On 0.7.1 and earlier you have two options — (1) upgrade `dsmonitor` to 0.7.2+, or (2) keep the legacy behavior and add the DS folder to `scan.ignore`. In 0.7.1 and earlier, glob entries such as `officialPaths: ["src/laon-web-ui/**"]` never matched (the prefix matcher could not see past the `**`), so DS files leaked into the candidate list. 0.7.2's glob-aware matcher plus the new default `true` fixes this trap. To opt back into the old behavior set `migrationCandidates: { excludeOfficialPaths: false }` explicitly.
 
 **Q. How do I run Lighthouse against a page that requires login?**
 

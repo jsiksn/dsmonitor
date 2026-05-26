@@ -151,6 +151,23 @@ const config: UIHealthConfig = {
   //     4 로 올리면 더 보수적으로 줄어듭니다.
   migrationMinClassLength: 3,
 
+  // ────── 마이그레이션 후보 옵션 (0.7.2+) ──────
+  //
+  // excludeOfficialPaths:
+  //   true (default) — designSystem.officialPaths 에 매치되는 파일을 마이그레이션
+  //   후보 검출에서 자동 제외합니다. DS 본체가 자체적으로 native HTML 을 쓰는
+  //   케이스 (예: Button.tsx 가 내부에서 <button> 사용) 가 false positive 로 잡히지
+  //   않습니다. scan.ignore 에 DS 폴더를 따로 추가하지 않아도 됩니다.
+  //
+  //   false — 옛 (~ 0.7.1) 동작. DS 본체 파일도 후보 검출 대상이 됩니다. DS 본체 자체의
+  //   native HTML 패턴을 그대로 보고 싶을 때만 활용하세요.
+  //
+  //   영향 범위: 본 옵션은 마이그레이션 후보 검출 흐름만 정정합니다.
+  //   totals.dsComponentFiles 같은 다른 지표는 영향을 받지 않습니다.
+  migrationCandidates: {
+    excludeOfficialPaths: true,
+  },
+
   // ────── 프레임워크 ──────
   // analyzeCodebase 안 framework adapter 결정 — id 누락 시점에 throw.
   // 지원: "react" / 다른 framework 추가 시점에 본 항목 변경.

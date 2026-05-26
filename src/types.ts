@@ -54,6 +54,15 @@ export interface UIHealthConfig {
     { aliases: string[]; nativeTags: NativeTagSpec[] }
   >;
   migrationMinClassLength: number;
+  /**
+   * 마이그레이션 후보 검출 옵션 (0.7.2+).
+   *
+   * 옛 schema 와의 관계:
+   *   - `metrics.migrationCandidates: boolean` = 측정 자체를 켜고 끄는 toggle.
+   *   - `migrationCandidates: MigrationCandidatesOptions` = 측정 동작의 세부 옵션.
+   *   같은 prefix 를 가지지만 다른 차원입니다.
+   */
+  migrationCandidates?: MigrationCandidatesOptions;
   report: {
     outputDir: string;
     baselineFilenamePrefix: string;
@@ -161,6 +170,39 @@ export interface UIHealthConfig {
     currentPhase?: { name: string; note?: string; startedAt?: string };
     upcomingPhases?: Array<{ name: string; note?: string }>;
   };
+}
+
+/**
+ * `UIHealthConfig.migrationCandidates` 의 세부 옵션 (0.7.2+).
+ *
+ * 본 옵션은 마이그레이션 후보 검출 흐름만 정정합니다. `totals.dsComponentFiles`
+ * 같은 다른 지표는 영향을 받지 않습니다.
+ */
+export interface MigrationCandidatesOptions {
+  /**
+   * `designSystem.officialPaths` 에 매치되는 파일을 마이그레이션 후보 검출에서
+   * 자동으로 제외할지 여부.
+   *
+   * @default true
+   *
+   * true 시점 (default):
+   *   - officialPaths glob (`src/laon-web-ui/**`, `src/components/ds/**` 등) 안 파일은
+   *     후보 점검에서 제외됩니다.
+   *   - DS 본체 안에서 native HTML 을 자연스럽게 사용하는 케이스 (예: Button.tsx 가
+   *     내부에서 `<button>` 을 쓰는 경우) 가 false positive 로 잡히지 않습니다.
+   *   - `scan.ignore` 에 DS 폴더를 따로 추가하지 않아도 됩니다.
+   *
+   * false 시점:
+   *   - 옛 (~ 0.7.1) 동작 — officialPaths 안 파일도 후보 검출 대상.
+   *   - DS 본체 자체의 native HTML 패턴을 그대로 보고 싶을 때 활용합니다.
+   *
+   * 영향 범위 — `scan.ignore` 와 비교:
+   *   - `scan.ignore` 는 모든 측정에서 제외합니다 (파일을 walk 자체에서 건너뜀).
+   *   - `excludeOfficialPaths` 는 마이그레이션 후보 검출에서만 제외합니다.
+   *     officialPaths 안 파일은 그대로 `totals.dsComponentFiles` 등 DS 본체 지표에
+   *     포함됩니다.
+   */
+  excludeOfficialPaths?: boolean;
 }
 
 /**
