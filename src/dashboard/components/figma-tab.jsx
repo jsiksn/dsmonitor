@@ -105,7 +105,8 @@ function TokenMatchSection({ d }) {
   const nonPrimaryLabels = d.nonPrimaryLabels ?? [];
   const primaryS = primaryLabel ? stats[primaryLabel] : null;
   if (!primaryS) return null;
-  const primaryRatio = primaryS.matchedWithCode / primaryS.total;
+  // 0.8.0 — 분모 0 케이스 (Figma DS 안 styles=0 / variables=0) NaN 표시 정정.
+  const primaryRatio = primaryS.total === 0 ? 0 : primaryS.matchedWithCode / primaryS.total;
   const primaryPct = (primaryRatio * 100).toFixed(1);
 
   return (
@@ -156,7 +157,8 @@ function TokenMatchSection({ d }) {
         {[primaryLabel, ...nonPrimaryLabels].map((label, i) => {
           const s = stats[label];
           if (!s) return null;
-          const ratio = s.matchedWithCode / s.total;
+          // 0.8.0 — 분모 0 가드.
+          const ratio = s.total === 0 ? 0 : s.matchedWithCode / s.total;
           const pct = (ratio * 100).toFixed(1);
           const isPrimary = label === primaryLabel;
           return (
@@ -176,7 +178,7 @@ function TokenMatchSection({ d }) {
                 <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>{isPrimary ? "기준" : "참고"}</div>
               </div>
               <div className="bar-track" style={{ margin: 0 }}>
-                <div className="bar-track-fill" style={{ width: `${ratio * 100}%`, background: isPrimary ? "var(--bad)" : "var(--good)" }} />
+                <div className="bar-track-fill" style={{ width: `${(s.total === 0 ? 0 : ratio) * 100}%`, background: isPrimary ? "var(--bad)" : "var(--good)" }} />
               </div>
               <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)", textAlign: "right" }}>
                 {s.matchedWithCode} / {s.total}

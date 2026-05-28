@@ -235,12 +235,20 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
           </div>
           <div className="grid">
             <Card label={`${d.figma.primaryLabel ?? "primary"} 토큰 매칭률 (Styles)`} belowThreshold>
+              {(() => {
+                // 0.8.0 — 분모 0 케이스 (DS 안 styles=0) NaN 표시 정정.
+                const ratio = d.figma.dsNewTotal === 0 ? 0 : d.figma.dsNewMatched / d.figma.dsNewTotal;
+                return (
+                  <>
               <div className="numwrap">
-                <span className="num warn">{pct(d.figma.dsNewMatched / d.figma.dsNewTotal, 1)}</span>
+                <span className="num warn">{pct(ratio, 1)}</span>
                 <span className="unit">%</span>
                 <span className="sub-num">· {d.figma.dsNewMatched} / {d.figma.dsNewTotal}</span>
               </div>
-              <div className="bar"><div className="bar-fill warn" style={{width: `${(d.figma.dsNewMatched / d.figma.dsNewTotal) * 100}%`}} /></div>
+              <div className="bar"><div className="bar-fill warn" style={{width: `${ratio * 100}%`}} /></div>
+                  </>
+                );
+              })()}
               <div className="bar-row"><span>primary DS 토큰 (Styles) 가 코드에 반영된 비율</span><span>목표 ↑</span></div>
               <div className="card-hint"><ArrowUp /><span><strong>상승 필요</strong> — Variables 는 plan 제약으로 미포함.</span></div>
               <TrendReserved note="↑ 상승 필요" />

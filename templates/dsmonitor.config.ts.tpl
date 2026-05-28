@@ -8,11 +8,13 @@
  */
 
 import type { UIHealthConfig } from "dsmonitor";
-import scssPreset from "dsmonitor/presets/scss-project.js";
-// 다른 preset 활용 시점에 본 import 한 줄을 교체:
-//   import bootstrapPreset from "dsmonitor/presets/bootstrap-project.js";
-//   import tailwindPreset  from "dsmonitor/presets/tailwind-project.js";
-//   import cssModulesPreset from "dsmonitor/presets/css-modules-project.js";
+
+// 4종 preset 중 골라 import 줄 교체 (변수명은 stylingPolicy 그대로 유지 — config key shorthand):
+//   import stylingPolicy from "dsmonitor/presets/scss-project.js";        // CSS / SCSS 클래스 기반 (.css / .scss 모두 포함)
+//   import stylingPolicy from "dsmonitor/presets/bootstrap-project.js";   // Bootstrap
+//   import stylingPolicy from "dsmonitor/presets/tailwind-project.js";    // Tailwind
+//   import stylingPolicy from "dsmonitor/presets/css-modules-project.js"; // CSS Modules
+import stylingPolicy from "dsmonitor/presets/scss-project.js";
 
 const config: UIHealthConfig = {
   // ".." = dsmonitor/ 폴더 한 단계 위 (실제 프로젝트 root). 본 흐름 = dsmonitor init
@@ -26,15 +28,8 @@ const config: UIHealthConfig = {
   // projectName: "MyProject",
 
   // ────── 스타일링 정책 ──────
-  // 4종 preset 중 골라 import (위쪽 import 한 줄 교체):
-  //   - dsmonitor/presets/scss-project.js       (SCSS 기반)
-  //   - dsmonitor/presets/bootstrap-project.js  (Bootstrap)
-  //   - dsmonitor/presets/tailwind-project.js   (Tailwind)
-  //   - dsmonitor/presets/css-modules-project.js (CSS Modules)
-  //
-  // 0.7.3 부터 ESM 흐름으로 통일됨. 옛 `require("dsmonitor/presets/...")` 형식은
-  // ESM 프로젝트 (`"type": "module"`) 에서 `ReferenceError: require is not defined` 발생.
-  stylingPolicy: scssPreset,
+  // 위 import 한 줄 교체로 preset 선택. shorthand 로 한 줄.
+  stylingPolicy,
 
   // ────── 분석 대상 ──────
   scan: {

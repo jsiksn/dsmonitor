@@ -1,10 +1,21 @@
 "use strict";
 
 /**
- * 예시 정책 — SCSS가 정식, Bootstrap/Tailwind가 레거시인 프로젝트.
+ * scss-project preset — 클래스 기반 스타일링 전반 대상.
  *
- * Next.js + SCSS 프로젝트(예: Pages Router 안)가 이 케이스. 루트
- * `dsmonitor/stylingPolicy.js` 참고(동일 구조).
+ * .scss / .css 두 형식 모두 포함. preset 명칭은 "scss" 지만 순수 CSS 프로젝트도
+ * 동일하게 적용됩니다 (.css 만 활용하는 React + CSS files 환경 / SCSS 환경 /
+ * 혼합 환경 모두 OK).
+ *
+ * 활용 예:
+ *   - 컴포넌트 .module.css / .module.scss 활용
+ *   - 전역 .css / .scss 파일에서 클래스 정의
+ *
+ * Tailwind / Bootstrap 활용 시점에는 각각 tailwind-project / bootstrap-project preset 활용.
+ *
+ * EN — scss-project preset covers class-based styling broadly. Despite the "scss"
+ * name in the file, both `.scss` and `.css` projects fit. For Tailwind use
+ * tailwind-project; for Bootstrap use bootstrap-project.
  */
 
 /** @type {import('../../src/policy').StylingPolicy} */

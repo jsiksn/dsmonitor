@@ -8,6 +8,44 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.0] — 2026-05-28
+
+### 추가 / Added
+
+- **한 —** baseline JSON 안 `code.classDefinitions` section 이 신규 추가됩니다 (3 배열 — `pureApply` / `applyMixed` / `pureCss`). `globalStyleSources` glob 에 매치되는 모든 SCSS / CSS 파일을 파싱해 각 클래스 정의 내용을 `@apply` directive 와 일반 CSS property 의 조합으로 분류한 결과입니다. 같은 className 이 여러 rule (예: light / dark theme) 에 등장하면 첫 정의를 우선 보존하고 분류는 OR 통합합니다 — 한 rule 라도 `@apply` 와 일반 CSS property 가 섞이면 전체를 `applyMixed` 로 격상. 본 결과 자체는 dashboard 에 별도 카드로 노출되지 않고, 아래 `forbiddenClassCount` 및 `stylingMethodDistribution` 의 matrix 산정 입력으로 활용됩니다.
+- **EN —** A new `code.classDefinitions` section (`pureApply` / `applyMixed` / `pureCss` arrays) is added to baseline JSON. All SCSS / CSS files matched by `globalStyleSources` are parsed and every class definition is categorised by whether it contains `@apply` directives, regular CSS properties, or both. When the same className appears in multiple rules (e.g. light / dark theme), the first definition wins for ordering and the categorisation is OR-merged — a single rule mixing `@apply` with regular CSS escalates the whole entry to `applyMixed`. The section is not surfaced as a dedicated dashboard card; it feeds the matrix used by `forbiddenClassCount` and `stylingMethodDistribution`.
+- **한 —** `forbiddenClassCount.byId` 와 `stylingMethodDistribution.counts.forbidden` 에 matrix 산정으로 검출되는 신규 sub-key 가 추가됩니다 — `apply-mixed` (두 preset 공통), `tailwind-via-wrapper` (scss-project 한정), `scss-style-raw-css` (tailwind-project 한정). 옛 sub-key (`bootstrap-utilities`, `tailwind-classes`) 는 그대로 보존되어 옛 분석 도구 호환성에 영향이 없습니다. dashboard 의 스타일링 방식 분포 카드 안 신규 row 는 tooltip 으로 위반 사유가 preset 기준으로 표시됩니다.
+- **EN —** `forbiddenClassCount.byId` and `stylingMethodDistribution.counts.forbidden` gain new sub-keys driven by the matrix — `apply-mixed` (both presets), `tailwind-via-wrapper` (scss-project only), `scss-style-raw-css` (tailwind-project only). Existing sub-keys (`bootstrap-utilities`, `tailwind-classes`) are preserved so downstream analysis tooling remains compatible. The new rows in the styling-method-distribution card surface a preset-specific reason via tooltip.
+
+### 변경 / Changed
+
+- **한 —** `stylingMethodDistribution` 산정 흐름이 matrix 기반으로 갱신됩니다. preset 의 `preferred` 가 `scss` 또는 `tailwind` 일 때 한정해, 옛 `allowedGlobal` 로 분류되던 파일 가운데 사용 중인 global class 의 정의가 (1) `applyMixed` 면 모든 preset 에서 금지 (`apply-mixed`), (2) `pureApply` 면 scss-project 에서 금지 (`tailwind-via-wrapper`) / tailwind-project 에서 정상, (3) `pureCss` 면 scss-project 에서 정상 / tailwind-project 에서 금지 (`scss-style-raw-css`) 로 재분류됩니다. 한 파일이 여러 case 에 걸치는 경우 worst-first 우선순위로 결정됩니다. `preferred` 가 그 외 (`bootstrap` / `css-modules`) 인 경우 옛 흐름이 그대로 보존됩니다.
+- **EN —** `stylingMethodDistribution` now uses a matrix-based classification. Only when the preset's `preferred` is `scss` or `tailwind`, files previously bucketed as `allowedGlobal` are re-checked against the definition type of the global classes they use: (1) `applyMixed` is forbidden in both presets (`apply-mixed`), (2) `pureApply` is forbidden in scss-project (`tailwind-via-wrapper`) but allowed in tailwind-project, (3) `pureCss` is allowed in scss-project but forbidden in tailwind-project (`scss-style-raw-css`). Files matching multiple cases resolve worst-first. Other `preferred` values (`bootstrap` / `css-modules`) keep the legacy flow as-is.
+- **한 —** dashboard Code 탭 카드 순서가 테마별 그룹화 흐름으로 재정렬됩니다 — scope 개요 (파일 집계 / DS 커버리지) → 마이그레이션 (마이그레이션 후보 파일 / TypeScript 마이그레이션) → CSS 컴플라이언스 (금지 CSS 클래스 / 스타일링 방식 분포) → 변수 + 색상 (SCSS 변수 준수율 / 하드코딩 색상). 카드 자체 본문 / 데이터는 변경 X.
+- **EN —** Code-tab card order is regrouped by theme — scope overview → migration → CSS compliance → variables + colors. Card bodies and data are unchanged.
+- **한 —** dashboard 안 일부 한글 라벨이 정정됩니다 — 스타일링 방식 분포 카드 안 권장 방식 row 라벨은 `preferredId` 따라 동적 결정 (옛 "권장 (scss)" hard-code 정정), 고아 클래스 라벨은 preset 무관 표현으로 "고아 클래스 (정의 못 찾음)" (옛 "SCSS 정의 못 찾음" 정정). 옛 분석 도구가 활용하는 baseline JSON 안 machine key (`allowedGlobal`, `noClass`, `forbidden.*` 등) 는 그대로 보존됩니다.
+- **EN —** A few Korean dashboard labels are corrected — the "preferred" row label in the styling distribution card is now derived from `preferredId` (replacing the hard-coded `"권장 (scss)"`), and the orphan-class label is preset-agnostic (`"고아 클래스 (정의 못 찾음)"`, dropping the misleading "SCSS"). The machine keys in baseline JSON (`allowedGlobal`, `noClass`, `forbidden.*`, etc.) are unchanged.
+- **한 —** `dsmonitor init` 으로 생성되는 `dsmonitor.config.ts` 템플릿이 정리됩니다 — 변수명을 `stylingPolicy` 로 통일하고 (config key 와 동일), preset 선택을 import 한 줄 교체로 마무리하도록 shorthand 화 (`stylingPolicy: scssPreset` → `stylingPolicy,`). 옛 0.7.3 의 ESM 호환 흐름은 그대로 유지됩니다.
+- **EN —** The `dsmonitor.config.ts` template emitted by `dsmonitor init` is tidied — the imported preset is now bound to the variable `stylingPolicy` (matching the config key), and the policy line is shortened to `stylingPolicy,` so switching presets is a one-line import swap. The 0.7.3 ESM compatibility behavior is preserved.
+- **한 —** `presets/scss-project.js` 주석과 README 안 preset 설명이 정정됩니다 — preset 명칭은 "scss" 지만 `.css` 만 활용하는 React + CSS files 환경 / 혼합 환경 모두 적용된다는 점이 명시됩니다. README 안 옛 `stylingPolicy: require("dsmonitor/presets/...")` 흔적은 ESM `import` 형식으로 일괄 교체됩니다 (한국어 / 영어 정본 1:1).
+- **EN —** `presets/scss-project.js` and the matching README entry are revised to make clear that the preset covers class-based CSS / SCSS broadly — both `.css`-only React projects and SCSS projects fit. Remaining `stylingPolicy: require("dsmonitor/presets/...")` snippets in the README are replaced with the ESM `import` form (Korean / English mirrored).
+
+### 정정 / Fixed
+
+- **한 —** dashboard 안 분모 0 케이스 (예: Figma DS 파일 안 styles=0 / variables=0 / tsFiles + jsFiles=0 / forbidden 전체 0건 등) 에서 `NaN%` 로 표시되던 카드들이 `0.0%` 로 정정됩니다. 영향 카드 — DS 토큰 매칭률 (Styles) (root.jsx), DS 토큰 매칭률 (Styles + Variables) (figma-tab.jsx, primary + DS 별 row), 금지 CSS 클래스 그룹 분포 (code-tab.jsx), 스타일링 방식 분포 카운트 (code-tab.jsx), 하드코딩 색상 상위 파일 점유 (code-tab.jsx), TypeScript 마이그레이션 카드 (code-tab.jsx). 측정 데이터 자체에는 영향이 없고 렌더링 layer 에만 영향이 있습니다.
+- **EN —** Dashboard cards that previously rendered `NaN%` when a denominator was zero (e.g. Figma DS file with `styles=0` / `variables=0`, `tsFiles + jsFiles = 0`, total forbidden count = 0) now render `0.0%`. Affected cards — DS token match rate (Styles, in root.jsx), DS token match rate (Styles + Variables, primary + per-DS rows in figma-tab.jsx), forbidden CSS class group distribution (code-tab.jsx), styling-method-distribution counts (code-tab.jsx), top-file share of hardcoded colors (code-tab.jsx), TypeScript migration card (code-tab.jsx). No measurement data changes — render-layer only.
+
+### 옛 사용자 영향 / Migration notes
+
+- **한 —** matrix 산정 도입으로 `scss-project` / `tailwind-project` 환경에서 옛 baseline 의 `forbiddenClassCount` / `stylingMethodDistribution` 수치와 0.8.0 수치가 어긋날 수 있습니다 — 의도된 변경 (측정 로직 정확도 ↑). 0.7.x 이하 baseline 과 0.8.0 baseline 수치를 직접 비교하지 말고, 0.8.0 baseline 을 새 기준선으로 활용하시기 바랍니다. tailwind-project 환경에서는 raw CSS 클래스가 새로 금지로 잡혀 금지 카운트가 증가할 수 있고, scss-project 환경에서는 pure-@apply wrapper 가 새로 금지로 잡혀 금지 카운트가 증가할 수 있습니다. `preferred` 가 `bootstrap` / `css-modules` 인 환경은 옛 흐름 그대로 — 수치 변경 없습니다.
+- **EN —** With the new matrix in place, `forbiddenClassCount` / `stylingMethodDistribution` values may diverge from prior baselines in `scss-project` / `tailwind-project` setups — this is intended (more accurate measurement). Do not compare 0.7.x and 0.8.0 baseline numbers directly; treat the 0.8.0 baseline as the new reference. In tailwind-project setups, raw CSS classes may newly count as forbidden; in scss-project setups, pure-`@apply` wrappers may newly count as forbidden. `preferred = bootstrap` / `css-modules` setups are unaffected.
+
+### 참고 / Notes
+
+- 0.x.x 유연성을 활용한 minor release — matrix 산정 도입은 측정 의미를 갱신하는 변경입니다. baseline JSON shape 자체는 옛 key 보존 + 신규 key 추가 흐름 (옛 분석 도구 호환).
+- A minor release that updates the meaning of existing metrics. baseline JSON shape preserves prior keys and only adds new ones (compatible with existing analysis tooling).
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.7.3] — 2026-05-28
 
 ### 정정 / Fixed
