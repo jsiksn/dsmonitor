@@ -8,6 +8,21 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.7.3] — 2026-05-28
+
+### 정정 / Fixed
+
+- **한 —** `dsmonitor init` 으로 생성되는 `dsmonitor.config.ts` 템플릿 안 `stylingPolicy: require("dsmonitor/presets/scss-project")` 호출이 ESM static import 로 교체되었습니다. dsmonitor cli 는 user config 를 `tsx/esm/api` 로 load 하기 때문에 `"type": "module"` 프로젝트는 항상 ESM context 로 평가되며, 옛 표기는 `ReferenceError: require is not defined` 로 실패했습니다. 0.7.3 부터 템플릿 상단에 `import scssPreset from "dsmonitor/presets/scss-project.js"` 한 줄이 emit 되고, 4종 preset 선택 안내 주석도 ESM import 형식으로 정정됩니다. 옛 user config (이미 `init` 으로 생성된 파일) 안 `require()` 호출은 본 import 한 줄로 교체하면 옛 동작 그대로 복구됩니다.
+- **EN —** The `stylingPolicy: require("dsmonitor/presets/scss-project")` line in the `dsmonitor.config.ts` template emitted by `dsmonitor init` is now an ESM static import. The dsmonitor cli loads user configs through `tsx/esm/api`, so `"type": "module"` projects always evaluate the file as ESM, and the previous form threw `ReferenceError: require is not defined`. Starting with 0.7.3 the template emits `import scssPreset from "dsmonitor/presets/scss-project.js"` at the top and the four-preset selection comments are written in ESM import form. Existing user configs already produced by `init` can be fixed by replacing the `require()` call with the equivalent import line.
+- **한 —** `codeTokens.parsers` 안 `scss` / `cssVariables` 파서의 `files` 항목이 glob 패턴을 정식 지원합니다 (예: `["src/styles/**/*.css"]`). 0.7.2 까지는 entry 를 literal path 로 해석해 `globalStyleSources` 와 같은 경로를 등록한 환경에서도 `dsmonitor doctor` 가 `not found` 로 보고하고 audit 실행 시점에 `file_not_found` warning 이 발생했습니다. 0.7.3 는 `*`, `?`, `{`, `[` 가 포함된 entry 를 `fast-glob` 으로 확장해 매치된 파일만 파서에 전달합니다. literal path 흐름은 옛 동작 그대로 보존되고, glob match 0건은 옛 file_not_found 와 동일한 자리 (`dsmonitor doctor` 결과 + parser warning) 에 보고됩니다.
+- **EN —** `codeTokens.parsers` `scss` / `cssVariables` parsers now accept glob patterns in their `files` array (e.g. `["src/styles/**/*.css"]`). Through 0.7.2 each entry was treated as a literal file path, so setups that registered the same path as `globalStyleSources` would still be reported as `not found` by `dsmonitor doctor` and trigger `file_not_found` warnings during audit. 0.7.3 expands entries containing `*`, `?`, `{`, `[` via `fast-glob` and forwards only the matched files to the parser. Literal paths keep their existing behavior, and a glob with zero matches is reported in the same surfaces (`dsmonitor doctor` + parser warning).
+
+### 참고 / Notes
+
+- 본 release 는 두 버그 수정에 한정된 patch 입니다. 외부 API / config schema 변경 X.
+- Patch release scoped to the two bug fixes — no public API or config schema changes.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.7.2] — 2026-05-26
 
 ### 추가 / Added
