@@ -137,14 +137,15 @@ function ForbiddenSection({ d, smd }) {
         {groups.map(([id, count]) => {
           // 0.8.0 — 분모 0 가드 (forbidden 전체 0건 케이스).
           // 0.8.1 — 한글 라벨 주 + 영문 mono 작게 병기.
+          // 0.8.2 — 두 줄 명시 (한글 첫 줄 + 영문 mono 두 번째 줄). 좁은 label col 줄바꿈 깨짐 정정.
           const pct = total === 0 ? 0 : (count / total) * 100;
           const label = FORBIDDEN_LABELS[id] ?? id;
           return (
             <div key={id} className="dist-row">
-              <span>
-                {label}
-                <span className="mono dim" style={{ fontSize: 11, marginLeft: 6 }}>({id})</span>
-              </span>
+              <div>
+                <div>{label}</div>
+                <div className="mono dim" style={{ fontSize: 11, marginTop: 2 }}>({id})</div>
+              </div>
               <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: "var(--bad)" }} /></div>
               <span className="v">{count.toLocaleString()} · {pct.toFixed(1)}%</span>
             </div>
@@ -385,7 +386,7 @@ function StylingMethodSection({ d }) {
       <div className="fnote" style={{ marginTop: 14 }}>
         <span className="fnote-icon">ⓘ</span>
         <span>
-          분자: <strong>SCSS + allowedGlobal</strong> (정상 스타일링 방식 합) / 분모: + <strong>forbidden</strong> / 제외: <strong>orphanClass · noClass</strong> (정의 못 찾음 · 스타일 미사용 — 측정 대상 아님)
+          분자: <strong>권장 방식 + allowedGlobal</strong> (정상 스타일링 방식 합) / 분모: + <strong>forbidden</strong> / 제외: <strong>orphanClass · noClass</strong> (정의 못 찾음 · 스타일 미사용 — 측정 대상 아님)
         </span>
       </div>
 
@@ -469,13 +470,14 @@ function StylingMethodSection({ d }) {
         {rows.map(r => {
           // 0.8.0 — 분모 0 가드. matrix forbidden row 는 사유를 tooltip 으로 표시.
           // 0.8.1 — 한글 라벨 주 + 영문 mono 작게 병기.
+          // 0.8.2 — 두 줄 명시 (한글 첫 줄 + 영문 mono 두 번째 줄). 좁은 label col 줄바꿈 깨짐 정정.
           const pct = total === 0 ? 0 : (r.v / total) * 100;
           return (
             <div key={r.k} className="dist-row" title={r.title ?? r.label}>
-              <span>
-                {r.label}
-                <span className="mono dim" style={{ fontSize: 11, marginLeft: 6 }}>({r.k})</span>
-              </span>
+              <div>
+                <div>{r.label}</div>
+                <div className="mono dim" style={{ fontSize: 11, marginTop: 2 }}>({r.k})</div>
+              </div>
               <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: r.color }} /></div>
               <span className="v">{r.v} · {pct.toFixed(1)}%</span>
             </div>
@@ -483,14 +485,7 @@ function StylingMethodSection({ d }) {
         })}
       </div>
 
-      <div className="fnote" style={{ marginTop: 10 }}>
-        <span className="fnote-icon">ⓘ</span>
-        <span>
-          <strong>orphanClass</strong>: “고아 클래스” — SCSS 정의를 찾을 수 없는 className. 아래 샘플에서 확인. <strong>noClass</strong>: className 자체를 쓰지 않는 파일. <strong>allowedGlobal</strong>: 앤 전역 CSS 클래스 (레이아웃 등).
-        </span>
-      </div>
-
-      <Disclosure summary={`고아 클래스 샘플 — SCSS 정의 못 찾은 className (orphanClass)`} count={s.orphanSamples.length}>
+      <Disclosure summary={`고아 클래스 샘플 — 정의 못 찾은 className (orphanClass)`} count={s.orphanSamples.length}>
         <table className="ftable">
           <thead>
             <tr>
@@ -526,7 +521,7 @@ function ScssSection({ d }) {
     <Section
       id="scss"
       field="scssVariableCompliance"
-      title="SCSS 변수 준수율"
+      title="변수 준수율"
       status={{ kind: "met", label: "기준 95% 도달" }}
     >
       <div className="kv-grid">

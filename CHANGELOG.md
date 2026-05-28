@@ -8,6 +8,23 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.2] — 2026-05-28
+
+### 정정 / Fixed
+
+- **한 —** dashboard 스타일링 방식 분포 카드의 dist-row 와 금지 CSS 클래스 그룹별 분포 카드의 dist-row 가 두 줄 흐름으로 정정됩니다. 옛 0.8.1 까지 한글 라벨 + 영문 mono 가 한 줄에 spread 되던 흐름이 좁은 label 컬럼 (110px / 220px) 에서 줄바꿈 깨짐 — 한글 끝 부분 줄 끝 + 영문 mono `(...)` 부분이 다음 줄 시작으로 어색하게 끊기던 시각 부조화 정정. 0.8.2 부터 한글 라벨이 첫 줄, 영문 mono 가 두 번째 줄 (작게) 로 명시 두 줄. row 높이가 약간 ↑ (대략 10px → 26px) 합니다. CSS `align-items: center` 그대로 유지 — dbar / count 가 두 줄 라벨의 가운데와 자연스럽게 정렬. MigrationSection dist-row (컴포넌트별 분포) 와 TotalsSection 표 (파일 집계) 는 옛 흐름 그대로 유지 — MigrationSection 은 영문 mono 병기 흐름 자체가 없고, TotalsSection 은 한글 + 영문 mono 가 한 줄에 들어가 줄바꿈 risk 가 낮습니다.
+- **EN —** Dist-rows in the styling-method-distribution card and the forbidden-CSS-class group distribution card now use a two-line layout. Through 0.8.1 the Korean label and the mono machine key sat on one spread line, which wrapped awkwardly inside the narrow label column (110px / 220px) — the mono `(...)` portion broke onto the next line out of alignment with the rest of the row. 0.8.2 puts the Korean label on the first line and the mono key on a smaller second line. Row height grows slightly (≈ 10px → 26px). `align-items: center` is preserved so the dbar / count are vertically centred against the two-line label. MigrationSection dist-rows (component breakdown) and the TotalsSection table (file totals) keep their existing layout — MigrationSection has no mono pairing, and TotalsSection fits its label + mono on one line without wrapping.
+- **한 —** dashboard 스타일링 방식 분포 카드의 옛 안내 텍스트 (`orphanClass` / `noClass` / `allowedGlobal` 설명 fnote) 가 제거됩니다. 옛 안내 텍스트는 옛 0.8.0 라벨 한글화 (`고아 클래스 (정의 못 찾음)` / `className 없음 (스타일 안 씀)` / `전역 허용`) 와 옛 0.8.1 신규 sub-key 한글 설명 dist-row 추가로 정보가 이미 라벨 자체에 흡수된 상태였습니다. 안내 텍스트 안 "SCSS 정의를 찾을 수 없는" 표현이 preset 이 tailwind 인 환경에서 부정확한 점, "앤 전역 CSS 클래스" 의 typo 도 함께 정리됩니다.
+- **EN —** The legacy informational fnote in the styling-method-distribution card (describing `orphanClass` / `noClass` / `allowedGlobal`) is removed. With the 0.8.0 Korean label rename (`고아 클래스 (정의 못 찾음)` / `className 없음 (스타일 안 씀)` / `전역 허용`) and the 0.8.1 description rows for the new sub-keys, the fnote was redundant — its "SCSS 정의를 찾을 수 없는" wording was also inaccurate in tailwind preset setups, and a Korean typo ("앤 전역 CSS 클래스") got cleaned up along the way.
+- **한 —** dashboard 안 SCSS 단어 활용 4곳이 preset 무관 표현으로 정정됩니다 — (1) 고아 클래스 샘플 Disclosure summary "SCSS 정의 못 찾은 className" → "정의 못 찾은 className", (2) ScssSection 카드 제목 "SCSS 변수 준수율" → "변수 준수율", (3) Summary Layer 01 / Code 설명 "SCSS · TS · DS 사용 규칙" → "스타일 · TS · DS 사용 규칙", (4) StylingMethodSection fnote "분자: SCSS + allowedGlobal" → "분자: 권장 방식 + allowedGlobal" (preset 무관 단순화). preset 이 tailwind / scss / bootstrap / css-modules 중 어느 흐름이든 표현이 자연스럽습니다. `id="scss"` / `field="scssVariableCompliance"` machine key + `ScssSection` 코드 식별자 는 옛 그대로 보존 (사용자 노출 X / Tier 2 옛 규약 유지).
+- **EN —** Four user-facing "SCSS" references in the dashboard are reworded to preset-agnostic phrasing — (1) the orphan-class samples Disclosure summary drops "SCSS 정의 못 찾은" in favour of "정의 못 찾은", (2) the variable-compliance card title drops "SCSS" ("변수 준수율"), (3) the Summary Layer 01 / Code description leads with "스타일" instead of "SCSS", (4) the styling-method-distribution fnote uses "권장 방식" instead of the literal "SCSS". The phrasing now reads naturally whether the preset is tailwind / scss / bootstrap / css-modules. Machine keys (`id="scss"` / `field="scssVariableCompliance"`) and the `ScssSection` code identifier are preserved (Tier 2 — not user-facing).
+
+### 참고 / Notes
+
+- 옛 0.8.1 출시 직후 hotfix patch. 측정 데이터 / baseline JSON shape / sub-key 명칭 모두 변경 없음 — UI 렌더링 정정만.
+- Hotfix patch following 0.8.1. Measurement data, baseline JSON shape, and sub-key names are all unchanged — render-layer only.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.1] — 2026-05-28
 
 ### 정정 / Fixed
