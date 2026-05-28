@@ -8,6 +8,26 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.3] — 2026-05-29
+
+### 정정 / Fixed
+
+- **한 —** dashboard 스타일링 방식 분포 카드의 forbidden row 가 preset 따라 필터링됩니다. 옛 0.8.2 까지 9 row 전수 hard-code 표시 흐름이라 tailwind-project 환경에서 의미 없는 row (`금지 (tailwind-classes)` / `금지 (Tailwind via wrapper)`) 가 항상 0 카운트로 노출되어 사용자 혼동을 유발했습니다. 0.8.3 부터 preset 별 의미 있는 forbidden sub-key 매트릭스 (`FORBIDDEN_BY_PRESET`) 따라 row 결정 — tailwind-project 안 `bootstrap-utilities` / `apply-mixed` / `raw-css`, scss-project 안 `bootstrap-utilities` / `tailwind-classes` / `apply-mixed` / `tailwind-via-wrapper`, bootstrap-project 안 `tailwind-classes` / `inline-styles`, css-modules-project 안 `bootstrap-utilities` / `tailwind-classes` / `global-css`. 매트릭스에 정의된 sub-key 는 카운트 0 이라도 row 노출 (preset 정의 흐름 존중 + 미래 확장 자동). 알 수 없는 preset 시점에 forbidden row 0 (fallback). baseline JSON 안 `byId` raw key 자체는 그대로 보존되어 옛 분석 도구 호환성에 영향이 없습니다.
+- **EN —** Dashboard styling-method-distribution card filters forbidden rows by preset. Through 0.8.2 the row array was hard-coded to nine rows regardless of preset, so tailwind-project setups always saw irrelevant rows (`금지 (tailwind-classes)` / `금지 (Tailwind via wrapper)`) sitting at zero, which caused confusion. Starting with 0.8.3 the rows come from a preset-keyed matrix (`FORBIDDEN_BY_PRESET`) — tailwind-project shows `bootstrap-utilities` / `apply-mixed` / `raw-css`, scss-project shows `bootstrap-utilities` / `tailwind-classes` / `apply-mixed` / `tailwind-via-wrapper`, bootstrap-project shows `tailwind-classes` / `inline-styles`, css-modules-project shows `bootstrap-utilities` / `tailwind-classes` / `global-css`. Sub-keys defined in the matrix render even at zero (respecting preset intent + future-proofing). Unknown presets fall back to no forbidden rows. Raw `byId` keys in baseline JSON are unchanged — downstream tooling is unaffected.
+
+### 변경 / Changed
+
+- **한 —** dashboard `FORBIDDEN_LABELS` 매핑이 ForbiddenSection (금지 CSS 클래스 카드) + StylingMethodSection (스타일링 방식 분포 카드) 두 곳에서 공통 활용되도록 통합됩니다. 옛 5 entry (`bootstrap-utilities` / `tailwind-classes` / `apply-mixed` / `tailwind-via-wrapper` / `raw-css`) 가 8 entry 로 확장 — `inline-styles` (bootstrap-project) / `global-css` (css-modules-project) / `scss-modules` (tailwind-project) 가 추가됐고, StylingMethodSection 안 옛 hard-code 라벨 (`금지 (bootstrap-utilities)` / `금지 (tailwind-classes)`) 이 본 매핑 흐름을 활용해 한글 표현 (`금지 (Bootstrap utility)` / `금지 (Tailwind utility)`) 으로 정정됩니다. 코드 중복 제거.
+- **EN —** The `FORBIDDEN_LABELS` mapping is now shared between the ForbiddenSection (forbidden CSS class card) and the StylingMethodSection (styling-method-distribution card). The mapping grows from 5 entries to 8 — adding `inline-styles` (bootstrap-project), `global-css` (css-modules-project), and `scss-modules` (tailwind-project). Hard-coded English-id labels in StylingMethodSection (`금지 (bootstrap-utilities)` / `금지 (tailwind-classes)`) are replaced with the mapped Korean phrasing (`금지 (Bootstrap utility)` / `금지 (Tailwind utility)`).
+- **한 —** ForbiddenSection (금지 CSS 클래스 카드) 그룹별 분포 dist-row 의 label 컬럼 width 가 StylingMethodSection 과 동일한 220px 로 통일됩니다 (옛 110px → 220px). 두 카드 안 한글 라벨 첫 줄 + 영문 mono 두 번째 줄 정렬 흐름이 균일.
+- **EN —** The ForbiddenSection (forbidden CSS class card) group-distribution dist-row label column is widened to 220px to match StylingMethodSection (was 110px). Both cards now align the Korean label + mono machine key pair consistently.
+
+### 참고 / Notes
+
+- 옛 0.8.2 출시 직후 hotfix patch. 측정 데이터 / baseline JSON shape / sub-key 명칭 모두 변경 없음 — UI 렌더링 정정만.
+- Hotfix patch following 0.8.2. Measurement data, baseline JSON shape, and sub-key names are all unchanged — render-layer only.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.2] — 2026-05-28
 
 ### 정정 / Fixed
