@@ -86,12 +86,43 @@ function Section({ id, field, title, status, direction, children }) {
 
 // ---------- 1. forbiddenClassCount ----------
 // 0.8.1 — preset id (영문) → 한글 라벨 매핑. dist-row 안 한글 주 / 영문 mono 작게 병기.
+// 0.8.3 — ForbiddenSection + StylingMethodSection 공통 활용. 8 entry 로 확장.
 const FORBIDDEN_LABELS = {
   "bootstrap-utilities":   "Bootstrap utility",
   "tailwind-classes":      "Tailwind utility",
   "apply-mixed":           "@apply-mixed",
   "tailwind-via-wrapper":  "Tailwind via wrapper",
   "raw-css":               "raw CSS",
+  "inline-styles":         "inline styles",
+  "global-css":            "global CSS imports",
+  "scss-modules":          "SCSS imports",
+};
+
+// 0.8.3 — preset 별 의미 있는 forbidden sub-key 매트릭스.
+//   preset.forbidden id + matrix 추가 sub-key 흐름 그대로 반영.
+//   카운트 0 row 도 노출 (preset 정의 존중 + 미래 확장 흐름).
+//   알 수 없는 preset 시점에 forbidden row 0 — preset 추가 시점에 본 매핑 갱신 필요.
+const FORBIDDEN_BY_PRESET = {
+  scss: [
+    { id: "bootstrap-utilities" },
+    { id: "tailwind-classes" },
+    { id: "apply-mixed",          title: "@apply 유입 + raw CSS 혼합 — tailwind 의존 끌어옴" },
+    { id: "tailwind-via-wrapper", title: "pure-@apply wrapper class — tailwind 의존" },
+  ],
+  tailwind: [
+    { id: "bootstrap-utilities" },
+    { id: "apply-mixed",          title: "@apply + raw CSS 혼합 — utility-first 위반" },
+    { id: "raw-css",              title: "pure-css 클래스 — utility-first 위반" },
+  ],
+  bootstrap: [
+    { id: "tailwind-classes" },
+    { id: "inline-styles" },
+  ],
+  "css-modules": [
+    { id: "bootstrap-utilities" },
+    { id: "tailwind-classes" },
+    { id: "global-css" },
+  ],
 };
 
 function ForbiddenSection({ d, smd }) {
@@ -326,26 +357,25 @@ function StylingMethodSection({ d }) {
   const allowedTotal = Object.values(s.counts.allowed).reduce((a, b) => a + b, 0);
   // 0.8.0 — 권장 방식 row 라벨은 preferredId 따라 동적 결정.
   //   고아 클래스 라벨은 preset 무관 표현으로 정정 ("SCSS 정의 못 찾음" → "정의 못 찾음").
+  // 0.8.3 — forbidden row 가 옛 hard-code 전수 표시 흐름이라 tailwind-project 환경에서
+  //   의미 없는 row (tailwind-classes / tailwind-via-wrapper) 가 노출되던 정정.
+  //   FORBIDDEN_BY_PRESET 매트릭스 + FORBIDDEN_LABELS 매핑 활용 흐름.
   const preferredId = s.preferredId;
   const preferredAllowedCount = s.counts.allowed[preferredId] ?? 0;
-  // 0.8.0 matrix — 신규 sub-key (apply-mixed / tailwind-via-wrapper / raw-css).
-  //   tooltip 사유는 preset 기준으로 본 row 의 title 안 그대로 노출.
-  const applyMixedReason =
-    preferredId === "scss"
-      ? "@apply 유입 + raw CSS 혼합 — tailwind 의존 끌어옴"
-      : preferredId === "tailwind"
-      ? "@apply + raw CSS 혼합 — utility-first 위반"
-      : "@apply 와 raw CSS 가 혼합된 클래스 정의";
+  const forbiddenSpecs = FORBIDDEN_BY_PRESET[preferredId] ?? [];
+  const forbiddenRows = forbiddenSpecs.map(spec => ({
+    k: `forbidden.${spec.id}`,
+    label: `금지 (${FORBIDDEN_LABELS[spec.id] ?? spec.id})`,
+    v: s.counts.forbidden[spec.id] || 0,
+    color: "var(--bad)",
+    title: spec.title,
+  }));
   const rows = [
-    { k: `allowed.${preferredId}`, label: `권장 (${preferredId})`,         v: preferredAllowedCount,              color: "var(--good)" },
-    { k: "allowedGlobal",          label: "전역 허용",                       v: s.counts.allowedGlobal,             color: "oklch(0.65 0.06 200)" },
-    { k: "noClass",                label: "className 없음 (스타일 안 씀)",    v: s.counts.noClass,                   color: "var(--ink-4)" },
-    { k: "forbidden.bootstrap",    label: "금지 (bootstrap-utilities)",       v: s.counts.forbidden["bootstrap-utilities"] || 0, color: "var(--bad)" },
-    { k: "forbidden.tailwind",     label: "금지 (tailwind-classes)",          v: s.counts.forbidden["tailwind-classes"] || 0,    color: "var(--bad)" },
-    { k: "forbidden.apply-mixed",  label: "금지 (@apply-mixed)",              v: s.counts.forbidden["apply-mixed"] || 0,          color: "var(--bad)", title: applyMixedReason },
-    { k: "forbidden.tailwind-via-wrapper", label: "금지 (Tailwind via wrapper)", v: s.counts.forbidden["tailwind-via-wrapper"] || 0, color: "var(--bad)", title: "pure-@apply wrapper class — tailwind 의존" },
-    { k: "forbidden.raw-css",   label: "금지 (raw CSS)",              v: s.counts.forbidden["raw-css"] || 0,   color: "var(--bad)", title: "pure-css 클래스 — utility-first 위반" },
-    { k: "orphanClass",            label: "고아 클래스 (정의 못 찾음)",       v: s.counts.orphanClass,               color: "var(--warn)" },
+    { k: `allowed.${preferredId}`, label: `권장 (${preferredId})`,         v: preferredAllowedCount,           color: "var(--good)" },
+    { k: "allowedGlobal",          label: "전역 허용",                       v: s.counts.allowedGlobal,         color: "oklch(0.65 0.06 200)" },
+    { k: "noClass",                label: "className 없음 (스타일 안 씀)",    v: s.counts.noClass,               color: "var(--ink-4)" },
+    ...forbiddenRows,
+    { k: "orphanClass",            label: "고아 클래스 (정의 못 찾음)",       v: s.counts.orphanClass,           color: "var(--warn)" },
   ].sort((a, b) => b.v - a.v);
 
   return (
