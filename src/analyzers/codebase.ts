@@ -301,7 +301,7 @@ function analyzeStyling(
   // 0.8.0 — matrix 적용 시점에 추가되는 신규 sub-key. 옛 sub-key 는 그대로 보존.
   //   apply-mixed          : 두 preset 공통 — @apply + raw CSS 혼합 클래스 사용
   //   tailwind-via-wrapper : scss-project 한정 — pure-@apply wrapper 사용 (tailwind 의존)
-  //   scss-style-raw-css   : tailwind-project 한정 — pure-css 클래스 사용 (utility-first 위반)
+  //   raw-css   : tailwind-project 한정 — pure-css 클래스 사용 (utility-first 위반)
   if (useMatrix) {
     forbiddenFileCounts["apply-mixed"] = 0;
     forbiddenOccurrences["apply-mixed"] = 0;
@@ -309,8 +309,8 @@ function analyzeStyling(
       forbiddenFileCounts["tailwind-via-wrapper"] = 0;
       forbiddenOccurrences["tailwind-via-wrapper"] = 0;
     } else {
-      forbiddenFileCounts["scss-style-raw-css"] = 0;
-      forbiddenOccurrences["scss-style-raw-css"] = 0;
+      forbiddenFileCounts["raw-css"] = 0;
+      forbiddenOccurrences["raw-css"] = 0;
     }
   }
 
@@ -424,7 +424,7 @@ function analyzeStyling(
             matrixForbiddenKey = "tailwind-via-wrapper";
             matrixOccurrences = pureApplyHits;
           } else if (preferred === "tailwind" && hasPureCss) {
-            matrixForbiddenKey = "scss-style-raw-css";
+            matrixForbiddenKey = "raw-css";
             matrixOccurrences = pureCssHits;
           }
         }

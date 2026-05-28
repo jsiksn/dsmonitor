@@ -8,6 +8,37 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.1] — 2026-05-28
+
+### 정정 / Fixed
+
+- **한 —** Tailwind utility detect 정규식이 보강되어 `mr-auto` / `space-y-6` / `text-xs` / `font-bold` / `rounded-md` / `shadow` / `hidden` / `hover:bg-blue-500` / `sm:flex` / `dark:bg-zinc-900` / `-mt-4` / `w-[200px]` / `text-[#fff]` 같은 흔한 utility 가 모두 매치됩니다. 옛 0.8.0 이하 정규식은 좁은 union (`(?:m|p)-\d+`) 형태라 위 케이스가 detect 누락되어 tailwind-project 환경에서 정상 활용이 orphanClass 로 잘못 카운트되거나, scss-project 환경에서 금지 카운트가 누락되는 false negative 가 있었습니다. 0.8.1 부터 `presets/_tailwind-detect.js` 공통 helper 가 Tailwind v3 / v4 utility prefix 전수 + literal + variant prefix (응답형 / 상태 / dark / aria) + 음수 + arbitrary value 를 한 흐름으로 매치합니다. 4 preset (tailwind / scss / bootstrap / css-modules) 모두 본 helper 활용.
+- **EN —** The Tailwind utility detect regex is widened so common utilities such as `mr-auto`, `space-y-6`, `text-xs`, `font-bold`, `rounded-md`, `shadow`, `hidden`, `hover:bg-blue-500`, `sm:flex`, `dark:bg-zinc-900`, `-mt-4`, `w-[200px]`, `text-[#fff]` all match. Through 0.8.0 the regex was a narrow union (`(?:m|p)-\d+`) and missed these cases, causing legitimate Tailwind usage in tailwind-project setups to be mis-bucketed as orphanClass and forbidden counts in scss-project setups to underreport. Starting with 0.8.1 the shared `presets/_tailwind-detect.js` helper matches the full Tailwind v3 / v4 utility prefix set + literals + variant prefixes (responsive / state / dark / aria) + negatives + arbitrary values. All four presets (tailwind / scss / bootstrap / css-modules) consume the helper.
+- **한 —** dashboard `preferredCompliance` 계산식 안 분자 / 분모 row 의 한글 설명이 `preferredId` 따라 동적 결정됩니다. 옛 0.8.0 까지는 `k === "scss"` hard-code 로 `"권장 (scss) 파일"` 표기가 박혀 있어 tailwind-project 환경에서 본 row 라벨이 빈 칸 노출되던 흐름 정정. 분모 row 의 옛 표현 (`"주 마이그레이션 대상"` / `"소수 (Phase B 대상)"`) 은 자명한 표현 (`"Bootstrap 잔재"` / `"Tailwind utility 잔재"`) 으로 정정되고, 0.8.0 도입 matrix 신규 sub-key (`apply-mixed` / `tailwind-via-wrapper` / `raw-css`) 의 한글 설명도 본 row 에 함께 표시됩니다.
+- **EN —** The Korean descriptions on numerator / denominator rows in the `preferredCompliance` breakdown are now derived from `preferredId`. Through 0.8.0 the code hard-coded `k === "scss"` so the row label appeared blank in tailwind-project setups. Denominator-row prose is also clarified (`"주 마이그레이션 대상"` → `"Bootstrap 잔재"`, `"소수 (Phase B 대상)"` → `"Tailwind utility 잔재"`), and the 0.8.0 matrix sub-keys (`apply-mixed` / `tailwind-via-wrapper` / `raw-css`) gained their own descriptions on this row.
+- **한 —** dashboard 안 dist-row + 파일 집계 표 안 영문 key 노출이 정정됩니다 — 한글 라벨을 주로 두고 영문 mono key 를 작게 병기. 영향 위치 3곳 — 금지 CSS 클래스 그룹별 분포 (옛 preset id 만 노출), 파일 집계 표 (옛 2 컬럼 `필드` / `설명` 분리 → 1 컬럼 합병), 스타일링 방식 분포 dist-row. baseline JSON 안 raw key 는 그대로 보존되어 옛 분석 도구 호환성 영향이 없습니다.
+- **EN —** Dist-row labels and the totals card table now lead with the Korean label and append the machine key in a smaller mono tag. Three affected spots — forbidden CSS class group distribution (previously displayed the raw preset id), the totals table (collapses the previous two-column `필드` / `설명` layout into a single column), and the styling-method-distribution dist-row. Raw keys in baseline JSON are unchanged — downstream analysis tooling is unaffected.
+- **한 —** dashboard `preferredCompliance` 계산식 disclosure summary 와 formula title 에 한글 주제어가 병기됩니다 (`"권장 방식 준수율 (preferredCompliance) 계산식"`). 옛 mono 영문 단독 표기 흐름 정정.
+- **EN —** The disclosure summary and formula title for the `preferredCompliance` breakdown now show the Korean topic alongside the mono key (`"권장 방식 준수율 (preferredCompliance) 계산식"`). Previously only the mono key was shown.
+
+### 변경 / Changed
+
+- **한 —** matrix forbidden sub-key 명칭 변경 — `scss-style-raw-css` → `raw-css`. 옛 명칭이 길고 "scss-style" 단어가 박혀있어 tailwind-project 환경과 혼동되던 흐름 정정. **옛 0.8.0 baseline 호환 X** — 0.8.0 baseline 안 `scss-style-raw-css` 카운트는 0.8.1 baseline 안 `raw-css` 자리로 직접 비교 X. 0.8.0 출시 직후 hotfix 라 영향 LOW. 새 baseline 측정 흐름으로 정정 완료.
+- **EN —** The matrix forbidden sub-key is renamed — `scss-style-raw-css` → `raw-css`. The previous name was long and the `scss-style` token caused confusion in tailwind-project setups. **Breaking for 0.8.0 baselines** — counts under `scss-style-raw-css` in a 0.8.0 baseline cannot be directly compared to `raw-css` in 0.8.1. Impact is low (0.8.1 ships immediately after 0.8.0). Re-measure to get a clean baseline.
+
+### 옛 사용자 영향 / Migration notes
+
+- **한 —** Tailwind detect 보강으로 tailwind-project 환경에서 옛 orphanClass 로 잡혔던 정상 utility 가 `allowed.tailwind` 로 이동합니다. 본 결과 = orphanClass 감소 / allowed.tailwind 증가 / preferredCompliance % 변동 예상. scss-project 환경에서는 옛 누락 utility 가 새로 `forbidden.tailwind-classes` 로 잡혀 금지 카운트가 증가할 수 있습니다. portal-iris-web 외 다른 사용자 환경에서도 같은 흐름 — 0.7.x 이하 baseline 과 0.8.1 baseline 수치 직접 비교 X. 0.8.1 baseline 을 새 기준선으로 활용 권장.
+- **EN —** Wider Tailwind detect moves legitimate utilities previously bucketed as orphanClass into `allowed.tailwind` in tailwind-project setups — expect orphanClass to drop, `allowed.tailwind` to rise, and `preferredCompliance` to shift. In scss-project setups, utilities previously missed are newly counted as `forbidden.tailwind-classes`, so the forbidden count may rise. Do not compare 0.7.x baselines (or 0.8.0 baselines) directly with 0.8.1; treat 0.8.1 as a fresh reference.
+- **한 —** 0.8.0 baseline 사용자는 `scss-style-raw-css` → `raw-css` 명칭 변경 영향 — 옛 baseline 안 카운트와 0.8.1 baseline 안 카운트 직접 비교 X. 새 baseline 측정 권장.
+- **EN —** Users with a 0.8.0 baseline are affected by the `scss-style-raw-css` → `raw-css` rename — counts in 0.8.0 cannot be directly compared with 0.8.1. Re-measure to refresh the baseline.
+
+### 참고 / Notes
+
+- 옛 0.8.0 출시 직후 hotfix patch. baseline JSON shape 안 옛 sub-key (`bootstrap-utilities` / `tailwind-classes` / `apply-mixed` / `tailwind-via-wrapper`) 는 그대로 보존, `scss-style-raw-css` → `raw-css` 단일 명칭 정정만.
+- Hotfix patch following 0.8.0 (released the same day). The baseline JSON shape keeps existing sub-keys; only `scss-style-raw-css` is renamed to `raw-css`.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.0] — 2026-05-28
 
 ### 추가 / Added

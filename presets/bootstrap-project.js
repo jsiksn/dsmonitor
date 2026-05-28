@@ -1,9 +1,11 @@
 "use strict";
 
+const tailwindDetect = require("./_tailwind-detect.js");
+
 /**
- * 예시 정책 — Bootstrap이 정식, Tailwind/inline이 레거시인 프로젝트.
+ * bootstrap-project preset — Bootstrap 이 정식, Tailwind / inline 이 레거시인 프로젝트.
  *
- * 사용: dsmonitor/stylingPolicy.js를 이 내용으로 교체.
+ * 0.8.1 — forbidden tailwind-classes detect 를 `_tailwind-detect.js` 공통 helper 로 통일.
  */
 
 /** @type {import('../../src/policy').StylingPolicy} */
@@ -29,13 +31,8 @@ module.exports = {
       id: "tailwind-classes",
       label: "Tailwind utility classes",
       severity: "error",
-      classPatterns: [
-        /^(?:text|bg|border)-(?:slate|gray|red|blue|green|yellow|orange|purple)-(?:100|200|300|400|500|600|700|800|900)$/,
-        /^items-(?:start|end|center|baseline|stretch)$/,
-        /^text-(?:xs|sm|base|lg|xl|2xl|3xl|4xl)$/,
-        /^font-(?:thin|light|medium|semibold|bold|extrabold|black)$/,
-        /^rounded-(?:none|sm|md|lg|xl|2xl|3xl|full)$/,
-      ],
+      // 0.8.1 — 공통 helper 활용.
+      classPatterns: tailwindDetect.classPatterns,
     },
     {
       id: "inline-styles",

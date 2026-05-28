@@ -1,5 +1,7 @@
 "use strict";
 
+const tailwindDetect = require("./_tailwind-detect.js");
+
 /**
  * scss-project preset — 클래스 기반 스타일링 전반 대상.
  *
@@ -52,14 +54,8 @@ module.exports = {
       id: "tailwind-classes",
       label: "Tailwind utility classes",
       severity: "error",
-      classPatterns: [
-        /^(?:text|bg|border)-(?:slate|gray|red|blue|green|yellow|orange|purple)-(?:50|100|200|300|400|500|600|700|800|900|950)$/,
-        /^items-(?:start|end|center|baseline|stretch)$/,
-        /^text-(?:xs|sm|base|lg|xl|2xl|3xl|4xl)$/,
-        /^font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)$/,
-        /^rounded-(?:none|sm|md|lg|xl|2xl|3xl|full)$/,
-        // ... 전체 목록은 dsmonitor/stylingPolicy.js 참고
-      ],
+      // 0.8.1 — `_tailwind-detect.js` 공통 helper 활용. 옛 좁은 union 정규식 폐기.
+      classPatterns: tailwindDetect.classPatterns,
     },
   ],
 };
