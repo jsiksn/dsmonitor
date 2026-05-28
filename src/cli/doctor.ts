@@ -13,7 +13,13 @@
 
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import fg from "fast-glob";
 import type { UIHealthConfig } from "../types";
+
+/** 0.7.3 — codeTokens.parsers.files 의 glob entry 지원용. */
+function isGlobPattern(pattern: string): boolean {
+  return /[*?{}\[\]]/.test(pattern);
+}
 
 type Severity = "ok" | "warn" | "error";
 
@@ -184,8 +190,27 @@ export function runDoctor(
           });
         }
       } else if (parser.type === "cssVariables" || parser.type === "scss") {
+        // 0.7.3 — glob 문자 포함 entry 는 fast-glob 으로 확장 후 match 수 확인.
+        //   literal path 는 옛 existsSync 흐름 유지.
+        //   globalStyleSources 와 동일한 입력 형식 (예: "src/styles/**/*.css") 그대로 활용 가능.
         for (const f of parser.files) {
-          if (!exists(f)) {
+          if (isGlobPattern(f)) {
+            const matches = fg.sync(f, { cwd: absRoot, dot: false });
+            if (matches.length === 0) {
+              push({
+                severity: "error",
+                category: "codeTokens.parsers",
+                message: `${idx} ${parser.type}: ${f} (glob match 0건)`,
+                hint: "glob 패턴이 매치되는 실제 파일이 없습니다. 패턴 또는 globalStyleSources 와 같은 경로를 활용 중인지 확인하세요.",
+              });
+            } else {
+              push({
+                severity: "ok",
+                category: "codeTokens.parsers",
+                message: `${idx} ${parser.type}: ${f} (glob match ${matches.length}건)`,
+              });
+            }
+          } else if (!exists(f)) {
             push({
               severity: "error",
               category: "codeTokens.parsers",

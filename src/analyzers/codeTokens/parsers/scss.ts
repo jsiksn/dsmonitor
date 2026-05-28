@@ -8,6 +8,7 @@
 
 import { existsSync } from "node:fs";
 import path from "node:path";
+import fg from "fast-glob";
 import type {
   CodeTokenEntry,
   CodeTokenParser,
@@ -15,6 +16,37 @@ import type {
   CodeTokenParserWarning,
 } from "../../../types";
 import { parseScssTokens } from "../../scssTokens";
+
+/**
+ * 0.7.3 — files entry 안 glob 문자 (*, ?, {, [) 포함 시 `fast-glob` 으로 확장.
+ * literal path 는 옛 흐름 그대로 (existsSync 검사).
+ * glob 확장 결과 0건은 warning, ≥1건은 본 결과를 그대로 활용.
+ */
+function isGlob(pattern: string): boolean {
+  return /[*?{}\[\]]/.test(pattern);
+}
+
+function expandFiles(absRoot: string, files: string[]): { resolved: string[]; misses: string[] } {
+  const resolved: string[] = [];
+  const misses: string[] = [];
+  for (const entry of files) {
+    if (isGlob(entry)) {
+      const matches = fg.sync(entry, { cwd: absRoot, dot: false });
+      if (matches.length === 0) {
+        misses.push(entry);
+      } else {
+        resolved.push(...matches);
+      }
+    } else {
+      if (!existsSync(path.resolve(absRoot, entry))) {
+        misses.push(entry);
+      } else {
+        resolved.push(entry);
+      }
+    }
+  }
+  return { resolved, misses };
+}
 
 export const scssParser: CodeTokenParser = {
   type: "scss",
@@ -29,17 +61,17 @@ export const scssParser: CodeTokenParser = {
       );
     }
     // 0.7.0 (Z): 지정된 SCSS 파일이 실제로 존재하는지 확인.
+    // 0.7.3: glob 문자 포함 시 fast-glob 으로 확장. literal path 는 옛 흐름 유지.
+    const { resolved, misses } = expandFiles(absRoot, config.files);
     if (warnings) {
-      for (const rel of config.files) {
-        if (!existsSync(path.resolve(absRoot, rel))) {
-          warnings.push({
-            parser: "scss",
-            path: rel,
-            issue: "file_not_found",
-          });
-        }
+      for (const miss of misses) {
+        warnings.push({
+          parser: "scss",
+          path: miss,
+          issue: "file_not_found",
+        });
       }
     }
-    return parseScssTokens(absRoot, config.files);
+    return parseScssTokens(absRoot, resolved);
   },
 };
