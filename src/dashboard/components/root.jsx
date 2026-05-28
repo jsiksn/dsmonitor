@@ -117,7 +117,7 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
             <div className="layer-title">
               <div className="layer-tag">Layer 01 / Code</div>
               <h2>소스코드 정적 분석</h2>
-              <div className="desc">SCSS · TS · DS 사용 규칙이 코드에 어느 정도 반영되어 있나</div>
+              <div className="desc">스타일 · TS · DS 사용 규칙이 코드에 어느 정도 반영되어 있나</div>
             </div>
             <div className="stamp">측정 <span className="mono">{d.stamp.code}</span></div>
           </div>
