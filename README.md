@@ -229,15 +229,17 @@ projectName: "MyProject",
 
 ### 6.3 `stylingPolicy` (필수)
 
-프로젝트의 스타일링 정책 — 어떤 방식을 허용하고 (`allowed`), 어떤 방식을 권장하며 (`preferred`), 어떤 방식을 금지할지 (`forbidden`) 정의합니다. `presets/` 에 네 가지 기본 정책이 들어 있으니 가까운 것을 골라서 require 하면 됩니다.
+프로젝트의 스타일링 정책 — 어떤 방식을 허용하고 (`allowed`), 어떤 방식을 권장하며 (`preferred`), 어떤 방식을 금지할지 (`forbidden`) 정의합니다. `presets/` 에 네 가지 기본 정책이 들어 있으니 가까운 것을 골라서 import 하면 됩니다 (0.7.3+ ESM 흐름).
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/scss-project"),
+import stylingPolicy from "dsmonitor/presets/scss-project.js";
+// config 안:
+//   stylingPolicy,
 ```
 
 | preset                          | preferred  | allowed              | forbidden                              | 어울리는 프로젝트                                              |
 | ------------------------------- | ---------- | -------------------- | -------------------------------------- | ------------------------------------------------------------ |
-| `dsmonitor/presets/scss-project`        | scss       | SCSS / CSS imports   | Bootstrap utility / Tailwind utility   | SCSS 기반 프로젝트 (Bootstrap / Tailwind 잔재를 정리하는 단계). |
+| `dsmonitor/presets/scss-project`        | scss       | SCSS / CSS imports   | Bootstrap utility / Tailwind utility   | CSS / SCSS 클래스 기반 스타일링 (.css / .scss 모두 포함). Bootstrap / Tailwind 잔재 정리 단계 활용. |
 | `dsmonitor/presets/bootstrap-project`   | bootstrap  | Bootstrap (utility + component) | Tailwind / inline             | Bootstrap 우선.                                                |
 | `dsmonitor/presets/tailwind-project`    | tailwind   | Tailwind utility     | Bootstrap / inline                     | Tailwind 우선.                                                 |
 | `dsmonitor/presets/css-modules-project` | css-modules | CSS Modules import  | global utility                         | CSS Modules 로 모듈화 우선.                                    |
@@ -723,7 +725,7 @@ reportStatus: {
 ### 7.1 Next.js + TypeScript + React + SCSS
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/scss-project"),
+import stylingPolicy from "dsmonitor/presets/scss-project.js"; // → config 안: stylingPolicy,
 scan: { styleExts: [".scss", ".css"] },
 globalStyleSources: ["styles/**/*.{scss,css}"],
 hardcodedValues: {
@@ -739,7 +741,7 @@ figma: {
 ### 7.2 Next.js + TypeScript + React + Tailwind
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/tailwind-project"),
+import stylingPolicy from "dsmonitor/presets/tailwind-project.js"; // → config 안: stylingPolicy,
 scan: { styleExts: [".css"] },
 globalStyleSources: ["src/app/globals.css", "src/styles/**/*.css"],
 hardcodedValues: {
@@ -757,7 +759,7 @@ Tailwind 환경에서 `scssVariableCompliance: true` 를 그대로 두면 compli
 ### 7.3 Next.js + TypeScript + React + CSS Modules
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/css-modules-project"),
+import stylingPolicy from "dsmonitor/presets/css-modules-project.js"; // → config 안: stylingPolicy,
 scan: { styleExts: [".scss", ".css"] },
 globalStyleSources: ["src/styles/global*.{scss,css}"],
 hardcodedValues: {
@@ -1247,15 +1249,16 @@ Name shown in the dashboard header / footer. If omitted, dsmonitor reads `packag
 
 ### 6.3 `stylingPolicy` (required)
 
-The project's styling policy — which approaches are `allowed`, which is `preferred`, and which are `forbidden`. Four ready-made presets ship under `presets/`; pick the closest one.
+The project's styling policy — which approaches are `allowed`, which is `preferred`, and which are `forbidden`. Four ready-made presets ship under `presets/`; pick the closest one (ESM `import` since 0.7.3).
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/scss-project"),
+import stylingPolicy from "dsmonitor/presets/scss-project.js";
+// in config: stylingPolicy,
 ```
 
 | preset                                  | preferred   | allowed                         | forbidden                              | Suitable for                                                              |
 | --------------------------------------- | ----------- | ------------------------------- | -------------------------------------- | ------------------------------------------------------------------------- |
-| `dsmonitor/presets/scss-project`        | scss        | SCSS / CSS imports              | Bootstrap utility / Tailwind utility   | SCSS-based projects cleaning up Bootstrap / Tailwind leftovers.            |
+| `dsmonitor/presets/scss-project`        | scss        | SCSS / CSS imports              | Bootstrap utility / Tailwind utility   | Class-based CSS / SCSS styling (both `.css` and `.scss` covered). Use during Bootstrap / Tailwind cleanup phases. |
 | `dsmonitor/presets/bootstrap-project`   | bootstrap   | Bootstrap (utility + component) | Tailwind / inline                      | Bootstrap-first.                                                          |
 | `dsmonitor/presets/tailwind-project`    | tailwind    | Tailwind utility                | Bootstrap / inline                     | Tailwind-first.                                                           |
 | `dsmonitor/presets/css-modules-project` | css-modules | CSS Modules import              | global utility                         | CSS Modules-first.                                                        |
@@ -1737,7 +1740,7 @@ reportStatus: {
 ### 7.1 Next.js + TypeScript + React + SCSS
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/scss-project"),
+import stylingPolicy from "dsmonitor/presets/scss-project.js"; // → config 안: stylingPolicy,
 scan: { styleExts: [".scss", ".css"] },
 globalStyleSources: ["styles/**/*.{scss,css}"],
 hardcodedValues: {
@@ -1753,7 +1756,7 @@ figma: {
 ### 7.2 Next.js + TypeScript + React + Tailwind
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/tailwind-project"),
+import stylingPolicy from "dsmonitor/presets/tailwind-project.js"; // → config 안: stylingPolicy,
 scan: { styleExts: [".css"] },
 globalStyleSources: ["src/app/globals.css", "src/styles/**/*.css"],
 hardcodedValues: {
@@ -1771,7 +1774,7 @@ Leaving `scssVariableCompliance: true` in a Tailwind project will always report 
 ### 7.3 Next.js + TypeScript + React + CSS Modules
 
 ```ts
-stylingPolicy: require("dsmonitor/presets/css-modules-project"),
+import stylingPolicy from "dsmonitor/presets/css-modules-project.js"; // → config 안: stylingPolicy,
 scan: { styleExts: [".scss", ".css"] },
 globalStyleSources: ["src/styles/global*.{scss,css}"],
 hardcodedValues: {

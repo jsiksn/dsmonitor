@@ -346,10 +346,41 @@ export interface CodebaseReport {
   };
 
   /**
+   * 0.8.0 — globalStyleSources 안 정의된 CSS / SCSS 클래스의 정의 내용 분석 결과.
+   *
+   * 본 결과는 stylingMethodDistribution / forbiddenClassCount 의 matrix 산정에 활용됩니다.
+   * preset 종류에 따라 같은 정의가 정상 / 금지로 다르게 분류됩니다 (matrix 흐름).
+   *
+   * - pureApply  — `@apply` directive 만 포함된 wrapper class
+   * - applyMixed — `@apply` + 일반 CSS property 혼합
+   * - pureCss    — 일반 CSS property 만 (`@apply` 없음)
+   *
+   * dedup: 같은 className 이 여러 rule (예: light / dark theme) 에 나타나는 경우
+   * 첫 정의 우선 + 분류는 OR 통합 (한 rule 라도 @apply-mixed 면 전체 @apply-mixed).
+   */
+  classDefinitions?: {
+    pureApply: string[];
+    applyMixed: string[];
+    pureCss: string[];
+  };
+
+  /**
    * Figma baseline 측정 결과 (Phase 0.5).
    * `cfg.metrics.figmaAnalysis` 가 false 이거나 측정 실패 시 undefined.
    */
   figma?: FigmaReport;
+}
+
+/**
+ * 0.8.0 — globalStyleSources 안 정의된 CSS 클래스 1건의 정의 분류.
+ *
+ * matrix 산정 (analyzeStyling) 에서 preset 따라 정상 / 금지로 결정됩니다.
+ */
+export type ClassDefinitionType = "pureApply" | "applyMixed" | "pureCss";
+
+export interface ClassDefinition {
+  className: string;
+  type: ClassDefinitionType;
 }
 
 /**

@@ -7,6 +7,8 @@ import type {
   UIHealthConfig,
   CodebaseReport,
   ClassIndex,
+  ClassDefinition,
+  ClassDefinitionType,
   SourceFile,
   PreferredComplianceMeta,
 } from "../types";
@@ -175,11 +177,19 @@ function extractClassNamesFromSelector(selector: string): string[] {
  * globalStyleSources glob 에 매치되는 모든 SCSS/CSS 파일을 파싱해
  * 정의된 CSS 클래스 셀렉터 집합을 반환. v0.4 orphan class 분류에 사용.
  *
+ * 0.8.0 — 각 클래스의 정의 내용도 함께 분석합니다 (matrix 산정 입력).
+ *
  * - SCSS 파일: postcss-scss parser (중첩·`&`·mixin 허용)
  * - CSS 파일: 기본 postcss parser
- * - 파싱 실패 / 매치 파일 0건 → 명시 에러로 종료 (빈 Set 폴백 금지)
+ * - 파싱 실패 / 매치 파일 0건 → 명시 에러로 종료 (빈 Map 폴백 금지)
+ *
+ * dedup: 같은 className 이 여러 rule (예: light / dark theme) 에 등장하면 첫 정의를
+ * 우선 보존하고, 분류는 OR 통합합니다 — 한 rule 라도 @apply 와 일반 CSS property 가
+ * 섞이면 전체를 @apply-mixed 로 결정.
  */
-async function buildGlobalClassIndex(cfg: Cfg): Promise<Set<string>> {
+async function buildGlobalClassDefinitions(
+  cfg: Cfg
+): Promise<Map<string, ClassDefinition>> {
   const patterns = cfg.globalStyleSources;
   if (!patterns || patterns.length === 0) {
     throw new Error(
@@ -201,7 +211,16 @@ async function buildGlobalClassIndex(cfg: Cfg): Promise<Set<string>> {
     );
   }
 
-  const index = new Set<string>();
+  // 분류 OR 통합 우선순위:
+  //   applyMixed > pureApply > pureCss
+  // (applyMixed 가 가장 strict — 한 rule 이라도 mixed 면 전체 mixed 로 격상)
+  const rank: Record<ClassDefinitionType, number> = {
+    applyMixed: 2,
+    pureApply: 1,
+    pureCss: 0,
+  };
+
+  const defs = new Map<string, ClassDefinition>();
   for (const abs of files) {
     const content = await fs.readFile(abs, "utf8");
     const ext = path.extname(abs).toLowerCase();
@@ -217,22 +236,43 @@ async function buildGlobalClassIndex(cfg: Cfg): Promise<Set<string>> {
       );
     }
     root.walkRules((rule) => {
+      let hasApply = false;
+      let hasCssDecl = false;
+      rule.walkAtRules((at) => {
+        if (at.name === "apply") hasApply = true;
+      });
+      rule.walkDecls(() => {
+        hasCssDecl = true;
+      });
+      if (!hasApply && !hasCssDecl) return; // 빈 rule 은 분류 X
+      const type: ClassDefinitionType =
+        hasApply && hasCssDecl
+          ? "applyMixed"
+          : hasApply
+          ? "pureApply"
+          : "pureCss";
       for (const sel of rule.selectors) {
         for (const cn of extractClassNamesFromSelector(sel)) {
-          index.add(cn);
+          const existing = defs.get(cn);
+          if (!existing) {
+            defs.set(cn, { className: cn, type });
+          } else if (rank[type] > rank[existing.type]) {
+            // OR 통합 — 더 strict 한 분류로 격상.
+            defs.set(cn, { className: cn, type });
+          }
         }
       }
     });
   }
 
-  return index;
+  return defs;
 }
 
 function analyzeStyling(
   codeFiles: SourceFile[],
   cfg: Cfg,
   adapter: FrameworkAdapter,
-  globalIndex: Set<string>,
+  globalDefs: Map<string, ClassDefinition>,
   jsxUsedOut: Set<string>
 ): {
   distribution: CodebaseReport["stylingMethodDistribution"];
@@ -241,6 +281,15 @@ function analyzeStyling(
   const policy = cfg.stylingPolicy;
   const codeExts = new Set(cfg.scan.codeExts);
 
+  // 0.8.0 matrix — preset preferred 따라 wrapper / raw-css 분류를 결정.
+  //   scss-project (preferred = scss): pure-@apply 사용은 금지 (tailwind 의존 유입),
+  //                                     pure-css 사용은 정상.
+  //   tailwind-project (preferred = tailwind): pure-@apply 사용은 정상,
+  //                                              pure-css 사용은 금지 (utility-first 위반).
+  //   bootstrap / css-modules / 그 외 preferred: 본 release 범위 밖 (옛 흐름 그대로 보존).
+  const preferred = policy.preferred;
+  const useMatrix = preferred === "scss" || preferred === "tailwind";
+
   const allowedCounts: Record<string, number> = {};
   const forbiddenFileCounts: Record<string, number> = {};
   const forbiddenOccurrences: Record<string, number> = {};
@@ -248,6 +297,21 @@ function analyzeStyling(
   for (const f of policy.forbidden) {
     forbiddenFileCounts[f.id] = 0;
     forbiddenOccurrences[f.id] = 0;
+  }
+  // 0.8.0 — matrix 적용 시점에 추가되는 신규 sub-key. 옛 sub-key 는 그대로 보존.
+  //   apply-mixed          : 두 preset 공통 — @apply + raw CSS 혼합 클래스 사용
+  //   tailwind-via-wrapper : scss-project 한정 — pure-@apply wrapper 사용 (tailwind 의존)
+  //   scss-style-raw-css   : tailwind-project 한정 — pure-css 클래스 사용 (utility-first 위반)
+  if (useMatrix) {
+    forbiddenFileCounts["apply-mixed"] = 0;
+    forbiddenOccurrences["apply-mixed"] = 0;
+    if (preferred === "scss") {
+      forbiddenFileCounts["tailwind-via-wrapper"] = 0;
+      forbiddenOccurrences["tailwind-via-wrapper"] = 0;
+    } else {
+      forbiddenFileCounts["scss-style-raw-css"] = 0;
+      forbiddenOccurrences["scss-style-raw-css"] = 0;
+    }
   }
 
   const perFile = new Map<
@@ -313,7 +377,11 @@ function analyzeStyling(
     }
 
     // v0.4: allowed / forbidden 아무것도 매치 안 된 파일을
-    // className 과 globalIndex 관계에 따라 3분할.
+    // className 과 globalDefs 관계에 따라 3분할.
+    //
+    // 0.8.0 (matrix) — allowedGlobal 진입 시점에 해당 파일이 사용하는 global
+    // className 들의 정의 내용 (pure-@apply / @apply-mixed / pure-css) 을 함께 보고
+    // preset 기준으로 재분류. case 별 옛 sub-key 보존 + 신규 sub-key 추가.
     if (!matchedAny) {
       const allTokens: string[] = [];
       for (const cn of signals.classNames) {
@@ -322,12 +390,64 @@ function analyzeStyling(
 
       if (allTokens.length === 0) {
         noClassCount += 1;
-      } else if (allTokens.some((tok) => globalIndex.has(tok))) {
-        allowedGlobalCount += 1;
+      } else if (allTokens.some((tok) => globalDefs.has(tok))) {
+        // matrix 적용 — 파일이 사용하는 global class 의 정의 분류를 집계.
+        // 우선순위 (worst-first): applyMixed > pureApply(scss preset 한정) /
+        // pureCss(tailwind preset 한정) > 정상.
+        let matrixForbiddenKey: string | null = null;
+        let matrixOccurrences = 0;
+        if (useMatrix) {
+          let hasApplyMixed = false;
+          let hasPureApply = false;
+          let hasPureCss = false;
+          let applyMixedHits = 0;
+          let pureApplyHits = 0;
+          let pureCssHits = 0;
+          for (const tok of allTokens) {
+            const def = globalDefs.get(tok);
+            if (!def) continue;
+            if (def.type === "applyMixed") {
+              hasApplyMixed = true;
+              applyMixedHits += 1;
+            } else if (def.type === "pureApply") {
+              hasPureApply = true;
+              pureApplyHits += 1;
+            } else if (def.type === "pureCss") {
+              hasPureCss = true;
+              pureCssHits += 1;
+            }
+          }
+          if (hasApplyMixed) {
+            matrixForbiddenKey = "apply-mixed";
+            matrixOccurrences = applyMixedHits;
+          } else if (preferred === "scss" && hasPureApply) {
+            matrixForbiddenKey = "tailwind-via-wrapper";
+            matrixOccurrences = pureApplyHits;
+          } else if (preferred === "tailwind" && hasPureCss) {
+            matrixForbiddenKey = "scss-style-raw-css";
+            matrixOccurrences = pureCssHits;
+          }
+        }
+
+        if (matrixForbiddenKey) {
+          // 파일을 forbidden 으로 재분류 — file 카운트 + occurrence 카운트 모두 증가.
+          forbiddenFileCounts[matrixForbiddenKey] += 1;
+          forbiddenOccurrences[matrixForbiddenKey] += matrixOccurrences;
+          forbiddenUsed += 1;
+          const fileById: Record<string, number> = {
+            [matrixForbiddenKey]: matrixOccurrences,
+          };
+          perFile.set(f.relPath, {
+            byId: fileById,
+            total: matrixOccurrences,
+          });
+        } else {
+          allowedGlobalCount += 1;
+        }
       } else {
         orphanClassCount += 1;
         for (const tok of allTokens) {
-          if (globalIndex.has(tok)) continue;
+          if (globalDefs.has(tok)) continue;
           const entry = orphanClassUsage.get(tok) ?? {
             occurrences: 0,
             files: new Set<string>(),
@@ -754,20 +874,26 @@ export async function analyzeCodebase(
 
   // v0.4 orphan class 분류용 글로벌 인덱스. stylingDistribution 비활성 시
   // 생략 (빌드 실패가 그대로 에러로 종료되므로 fail-fast 원칙 유지).
-  const globalIndex = cfg.metrics.stylingDistribution
-    ? await buildGlobalClassIndex(cfg)
-    : new Set<string>();
+  // 0.8.0 — Set<string> 에서 Map<string, ClassDefinition> 으로 갱신. matrix 산정 입력.
+  const globalDefs = cfg.metrics.stylingDistribution
+    ? await buildGlobalClassDefinitions(cfg)
+    : new Map<string, ClassDefinition>();
 
   // 컴포넌트 매칭 (B 그룹 단계 3) 분자용 jsx className 인덱스.
   // analyzeStyling 안 walk 에서 같이 누적 — 별도 walk 회피.
   const jsxUsedClassNames = new Set<string>();
 
   const stylingResult = cfg.metrics.stylingDistribution
-    ? analyzeStyling(codeFiles, cfg, adapter, globalIndex, jsxUsedClassNames)
+    ? analyzeStyling(codeFiles, cfg, adapter, globalDefs, jsxUsedClassNames)
     : {
         distribution: emptyDist(cfg),
         forbidden: { byId: {}, total: 0, topFiles: [] },
       };
+
+  // 0.8.0 — baseline JSON 안 classDefinitions section (matrix 산정의 raw 입력 노출).
+  const classDefinitions = cfg.metrics.stylingDistribution
+    ? buildClassDefinitionsSection(globalDefs)
+    : { pureApply: [], applyMixed: [], pureCss: [] };
 
   const ts = cfg.metrics.tsMigration
     ? analyzeTsMigration(codeFiles)
@@ -817,13 +943,36 @@ export async function analyzeCodebase(
     tsMigration: ts,
     dsCoverage: ds,
     migrationCandidates: migration,
+    classDefinitions,
   };
 
   return {
     report,
     classIndex: {
-      globalClassNames: globalIndex,
+      globalClassNames: new Set(globalDefs.keys()),
       jsxUsedClassNames,
     },
+  };
+}
+
+/**
+ * 0.8.0 — globalDefs Map 을 baseline JSON 노출용 3 배열로 펼침.
+ * 배열은 className 알파벳 순 정렬 (안정성 + diff 가독성).
+ */
+function buildClassDefinitionsSection(
+  defs: Map<string, ClassDefinition>
+): NonNullable<CodebaseReport["classDefinitions"]> {
+  const pureApply: string[] = [];
+  const applyMixed: string[] = [];
+  const pureCss: string[] = [];
+  for (const def of defs.values()) {
+    if (def.type === "applyMixed") applyMixed.push(def.className);
+    else if (def.type === "pureApply") pureApply.push(def.className);
+    else pureCss.push(def.className);
+  }
+  return {
+    pureApply: pureApply.sort(),
+    applyMixed: applyMixed.sort(),
+    pureCss: pureCss.sort(),
   };
 }

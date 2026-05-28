@@ -125,13 +125,17 @@ function ForbiddenSection({ d, smd }) {
         <span className="csect-field mono">byId</span>
       </div>
       <div className="dist">
-        {groups.map(([id, count]) => (
-          <div key={id} className="dist-row">
-            <span className="mono">{id}</span>
-            <div className="dbar"><div className="dbar-fill" style={{ width: `${(count / total) * 100}%`, background: "var(--bad)" }} /></div>
-            <span className="v">{count.toLocaleString()} · {((count / total) * 100).toFixed(1)}%</span>
-          </div>
-        ))}
+        {groups.map(([id, count]) => {
+          // 0.8.0 — 분모 0 가드 (forbidden 전체 0건 케이스).
+          const pct = total === 0 ? 0 : (count / total) * 100;
+          return (
+            <div key={id} className="dist-row">
+              <span className="mono">{id}</span>
+              <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: "var(--bad)" }} /></div>
+              <span className="v">{count.toLocaleString()} · {pct.toFixed(1)}%</span>
+            </div>
+          );
+        })}
       </div>
 
       <Disclosure summary="파일별 Top 20 — 가장 많이 위반한 파일 보기" count={d.forbidden.topFiles.length}>
@@ -304,13 +308,28 @@ function StylingMethodSection({ d }) {
   const den = pc.denominator;
   const exc = pc.excluded;
   const allowedTotal = Object.values(s.counts.allowed).reduce((a, b) => a + b, 0);
+  // 0.8.0 — 권장 방식 row 라벨은 preferredId 따라 동적 결정.
+  //   고아 클래스 라벨은 preset 무관 표현으로 정정 ("SCSS 정의 못 찾음" → "정의 못 찾음").
+  const preferredId = s.preferredId;
+  const preferredAllowedCount = s.counts.allowed[preferredId] ?? 0;
+  // 0.8.0 matrix — 신규 sub-key (apply-mixed / tailwind-via-wrapper / scss-style-raw-css).
+  //   tooltip 사유는 preset 기준으로 본 row 의 title 안 그대로 노출.
+  const applyMixedReason =
+    preferredId === "scss"
+      ? "@apply 유입 + raw CSS 혼합 — tailwind 의존 끌어옴"
+      : preferredId === "tailwind"
+      ? "@apply + raw CSS 혼합 — utility-first 위반"
+      : "@apply 와 raw CSS 가 혼합된 클래스 정의";
   const rows = [
-    { k: "allowed.scss",        label: "권장 (scss)",   v: s.counts.allowed.scss || 0, color: "var(--good)" },
-    { k: "allowedGlobal",       label: "전역 허용",     v: s.counts.allowedGlobal,     color: "oklch(0.65 0.06 200)" },
-    { k: "noClass",             label: "className 없음 (스타일 안 씀)", v: s.counts.noClass, color: "var(--ink-4)" },
-    { k: "forbidden.bootstrap", label: "금지 (bootstrap-utilities)", v: s.counts.forbidden["bootstrap-utilities"] || 0, color: "var(--bad)" },
-    { k: "forbidden.tailwind",  label: "금지 (tailwind-classes)",    v: s.counts.forbidden["tailwind-classes"] || 0,    color: "var(--bad)" },
-    { k: "orphanClass",         label: "고아 클래스 (SCSS 정의 못 찾음)", v: s.counts.orphanClass, color: "var(--warn)" },
+    { k: `allowed.${preferredId}`, label: `권장 (${preferredId})`,         v: preferredAllowedCount,              color: "var(--good)" },
+    { k: "allowedGlobal",          label: "전역 허용",                       v: s.counts.allowedGlobal,             color: "oklch(0.65 0.06 200)" },
+    { k: "noClass",                label: "className 없음 (스타일 안 씀)",    v: s.counts.noClass,                   color: "var(--ink-4)" },
+    { k: "forbidden.bootstrap",    label: "금지 (bootstrap-utilities)",       v: s.counts.forbidden["bootstrap-utilities"] || 0, color: "var(--bad)" },
+    { k: "forbidden.tailwind",     label: "금지 (tailwind-classes)",          v: s.counts.forbidden["tailwind-classes"] || 0,    color: "var(--bad)" },
+    { k: "forbidden.apply-mixed",  label: "금지 (@apply-mixed)",              v: s.counts.forbidden["apply-mixed"] || 0,          color: "var(--bad)", title: applyMixedReason },
+    { k: "forbidden.tailwind-via-wrapper", label: "금지 (Tailwind via wrapper)", v: s.counts.forbidden["tailwind-via-wrapper"] || 0, color: "var(--bad)", title: "pure-@apply wrapper class — tailwind 의존" },
+    { k: "forbidden.scss-style-raw-css",   label: "금지 (raw CSS)",              v: s.counts.forbidden["scss-style-raw-css"] || 0,   color: "var(--bad)", title: "pure-css 클래스 — utility-first 위반" },
+    { k: "orphanClass",            label: "고아 클래스 (정의 못 찾음)",       v: s.counts.orphanClass,               color: "var(--warn)" },
   ].sort((a, b) => b.v - a.v);
 
   return (
@@ -426,13 +445,17 @@ function StylingMethodSection({ d }) {
         <span className="cross-ref-pill" style={{ marginLeft: "auto" }}>분모: {total} (전체 코드 파일)</span>
       </div>
       <div className="dist">
-        {rows.map(r => (
-          <div key={r.k} className="dist-row" title={r.label}>
-            <span className="mono">{r.k}</span>
-            <div className="dbar"><div className="dbar-fill" style={{ width: `${(r.v / total) * 100}%`, background: r.color }} /></div>
-            <span className="v">{r.v} · {((r.v / total) * 100).toFixed(1)}%</span>
-          </div>
-        ))}
+        {rows.map(r => {
+          // 0.8.0 — 분모 0 가드. matrix forbidden row 는 사유를 tooltip 으로 표시.
+          const pct = total === 0 ? 0 : (r.v / total) * 100;
+          return (
+            <div key={r.k} className="dist-row" title={r.title ?? r.label}>
+              <span className="mono">{r.k}</span>
+              <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: r.color }} /></div>
+              <span className="v">{r.v} · {pct.toFixed(1)}%</span>
+            </div>
+          );
+        })}
       </div>
 
       <div className="fnote" style={{ marginTop: 10 }}>
@@ -538,7 +561,7 @@ function HardcodedSection({ d }) {
           </div>
           <div className="kv-row">
             <span className="k">상위 파일 점유</span>
-            <span className="v mono">{((h.byFile[0]?.count / h.total) * 100).toFixed(1)}%</span>
+            <span className="v mono">{h.total === 0 ? "0.0" : ((h.byFile[0]?.count / h.total) * 100).toFixed(1)}%</span>
           </div>
         </div>
       </div>
@@ -672,7 +695,8 @@ function DsCoverageSection({ d }) {
 function TsSection({ d }) {
   const t = d.ts;
   const total = t.tsFiles + t.jsFiles;
-  const pct = (t.tsFiles / total) * 100;
+  // 0.8.0 — 분모 0 가드 (tsFiles + jsFiles = 0 케이스).
+  const pct = total === 0 ? 0 : (t.tsFiles / total) * 100;
   return (
     <Section
       id="ts"
@@ -778,15 +802,20 @@ function TsByDir({ t }) {
 // ---------- main CodeTab ----------
 // v0.10 (2026-04-29): 카드 컴포넌트 배열로 분리. window.CodeTab_CardCount 자동 export.
 // 카드 추가/제거 시 root.jsx Tabs 의 카운트 자동 반영 — hardcoded 동기화 의무 제거.
+// 0.8.0 — 테마별 그룹화 흐름으로 카드 순서 재정렬.
+//   scope 개요         : 파일 집계 / DS 커버리지
+//   마이그레이션      : 마이그레이션 후보 파일 / TypeScript 마이그레이션
+//   CSS 컴플라이언스 : 금지 CSS 클래스 / 스타일링 방식 분포
+//   변수 + 색상      : SCSS 변수 준수율 / 하드코딩 색상
 const CODE_CARD_SECTIONS = [
-  ForbiddenSection,
-  MigrationSection,
-  TotalsSection,
-  StylingMethodSection,
-  ScssSection,
-  HardcodedSection,
-  DsCoverageSection,
-  TsSection,
+  TotalsSection,        // 1 파일 집계
+  DsCoverageSection,    // 2 DS 커버리지
+  MigrationSection,     // 3 마이그레이션 후보 파일
+  TsSection,            // 4 TypeScript 마이그레이션
+  ForbiddenSection,     // 5 금지 CSS 클래스
+  StylingMethodSection, // 6 스타일링 방식 분포
+  ScssSection,          // 7 SCSS 변수 준수율
+  HardcodedSection,     // 8 하드코딩 색상
 ];
 
 function CodeTab() {
