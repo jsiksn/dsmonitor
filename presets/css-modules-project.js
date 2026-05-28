@@ -1,13 +1,15 @@
 "use strict";
 
+const tailwindDetect = require("./_tailwind-detect.js");
+
 /**
- * 예시 정책 — CSS Modules가 정식인 프로젝트.
- *
- * 사용: dsmonitor/stylingPolicy.js를 이 내용으로 교체.
+ * css-modules-project preset — CSS Modules 가 정식인 프로젝트.
  *
  * 특징:
- * - `styles.xxx` 접근을 AST 레벨에서 정확히 탐지하려면 detector 확장이 필요.
- *   v0.1에서는 `*.module.{css,scss}` import만 탐지한다.
+ *   - `styles.xxx` 접근을 AST 레벨에서 정확히 탐지하려면 detector 확장 필요.
+ *     v0.1 에서는 `*.module.{css,scss}` import 만 탐지.
+ *
+ * 0.8.1 — forbidden tailwind-classes detect 를 `_tailwind-detect.js` 공통 helper 로 통일.
  */
 
 /** @type {import('../../src/policy').StylingPolicy} */
@@ -39,11 +41,8 @@ module.exports = {
       id: "tailwind-classes",
       label: "Tailwind utility classes",
       severity: "error",
-      classPatterns: [
-        /^(?:text|bg|border)-(?:slate|gray|red|blue|green|yellow)-(?:100|200|300|400|500|600|700|800|900)$/,
-        /^items-(?:start|end|center|baseline|stretch)$/,
-        /^text-(?:xs|sm|base|lg|xl|2xl|3xl|4xl)$/,
-      ],
+      // 0.8.1 — 공통 helper 활용.
+      classPatterns: tailwindDetect.classPatterns,
     },
     {
       id: "global-css",

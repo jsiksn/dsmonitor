@@ -85,6 +85,15 @@ function Section({ id, field, title, status, direction, children }) {
 }
 
 // ---------- 1. forbiddenClassCount ----------
+// 0.8.1 — preset id (영문) → 한글 라벨 매핑. dist-row 안 한글 주 / 영문 mono 작게 병기.
+const FORBIDDEN_LABELS = {
+  "bootstrap-utilities":   "Bootstrap utility",
+  "tailwind-classes":      "Tailwind utility",
+  "apply-mixed":           "@apply-mixed",
+  "tailwind-via-wrapper":  "Tailwind via wrapper",
+  "raw-css":               "raw CSS",
+};
+
 function ForbiddenSection({ d, smd }) {
   const total = d.forbidden.total;
   const byId = d.forbidden.byId;
@@ -127,10 +136,15 @@ function ForbiddenSection({ d, smd }) {
       <div className="dist">
         {groups.map(([id, count]) => {
           // 0.8.0 — 분모 0 가드 (forbidden 전체 0건 케이스).
+          // 0.8.1 — 한글 라벨 주 + 영문 mono 작게 병기.
           const pct = total === 0 ? 0 : (count / total) * 100;
+          const label = FORBIDDEN_LABELS[id] ?? id;
           return (
             <div key={id} className="dist-row">
-              <span className="mono">{id}</span>
+              <span>
+                {label}
+                <span className="mono dim" style={{ fontSize: 11, marginLeft: 6 }}>({id})</span>
+              </span>
               <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: "var(--bad)" }} /></div>
               <span className="v">{count.toLocaleString()} · {pct.toFixed(1)}%</span>
             </div>
@@ -278,16 +292,17 @@ function TotalsSection({ d }) {
       <table className="ftable">
         <thead>
           <tr>
-            <th>필드</th>
-            <th>설명</th>
+            <th>항목</th>
             <th style={{ width: 100, textAlign: "right" }}>값</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.k}>
-              <td className="mono dim">{r.k}</td>
-              <td>{r.label}</td>
+              <td>
+                {r.label}
+                <span className="mono dim" style={{ fontSize: 11, marginLeft: 6 }}>({r.k})</span>
+              </td>
               <td className="mono right">{r.v.toLocaleString()}</td>
             </tr>
           ))}
@@ -312,7 +327,7 @@ function StylingMethodSection({ d }) {
   //   고아 클래스 라벨은 preset 무관 표현으로 정정 ("SCSS 정의 못 찾음" → "정의 못 찾음").
   const preferredId = s.preferredId;
   const preferredAllowedCount = s.counts.allowed[preferredId] ?? 0;
-  // 0.8.0 matrix — 신규 sub-key (apply-mixed / tailwind-via-wrapper / scss-style-raw-css).
+  // 0.8.0 matrix — 신규 sub-key (apply-mixed / tailwind-via-wrapper / raw-css).
   //   tooltip 사유는 preset 기준으로 본 row 의 title 안 그대로 노출.
   const applyMixedReason =
     preferredId === "scss"
@@ -328,7 +343,7 @@ function StylingMethodSection({ d }) {
     { k: "forbidden.tailwind",     label: "금지 (tailwind-classes)",          v: s.counts.forbidden["tailwind-classes"] || 0,    color: "var(--bad)" },
     { k: "forbidden.apply-mixed",  label: "금지 (@apply-mixed)",              v: s.counts.forbidden["apply-mixed"] || 0,          color: "var(--bad)", title: applyMixedReason },
     { k: "forbidden.tailwind-via-wrapper", label: "금지 (Tailwind via wrapper)", v: s.counts.forbidden["tailwind-via-wrapper"] || 0, color: "var(--bad)", title: "pure-@apply wrapper class — tailwind 의존" },
-    { k: "forbidden.scss-style-raw-css",   label: "금지 (raw CSS)",              v: s.counts.forbidden["scss-style-raw-css"] || 0,   color: "var(--bad)", title: "pure-css 클래스 — utility-first 위반" },
+    { k: "forbidden.raw-css",   label: "금지 (raw CSS)",              v: s.counts.forbidden["raw-css"] || 0,   color: "var(--bad)", title: "pure-css 클래스 — utility-first 위반" },
     { k: "orphanClass",            label: "고아 클래스 (정의 못 찾음)",       v: s.counts.orphanClass,               color: "var(--warn)" },
   ].sort((a, b) => b.v - a.v);
 
@@ -375,10 +390,10 @@ function StylingMethodSection({ d }) {
       </div>
 
       {/* === preferredCompliance 분자/분모 명시 (접힘) === */}
-      <Disclosure summary="preferredCompliance 계산식 — 펼쳐서 자세히 보기" count={`${(pcValue * 100).toFixed(1)}%`}>
+      <Disclosure summary="권장 방식 준수율 (preferredCompliance) 계산식 — 펼쳐서 자세히 보기" count={`${(pcValue * 100).toFixed(1)}%`}>
       <div className="formula-box">
         <div className="formula-title">
-          <span className="mono">preferredCompliance</span> 계산식
+          권장 방식 준수율 (<span className="mono">preferredCompliance</span>) 계산식
         </div>
         <div className="formula-eq">
           <span className="mono">{(pcValue * 100).toFixed(1)}%</span>
@@ -393,7 +408,10 @@ function StylingMethodSection({ d }) {
               <span className="frole">{i === 0 ? "분자" : ""}</span>
               <span className="mono">{k}</span>
               <span className="fval mono">{num.counts[k]}</span>
-              <span className="fdesc">{k === "scss" ? "권장 (scss) 파일" : k === "allowedGlobal" ? "전역 클래스 (정상 방식)" : ""}</span>
+              <span className="fdesc">{
+                k === s.preferredId ? `권장 (${s.preferredId}) 파일` :
+                k === "allowedGlobal" ? "전역 클래스 (정상 방식)" : ""
+              }</span>
             </div>
           ))}
           <div className="formula-row" style={{ borderTop: "1px dashed var(--border)", paddingTop: 6 }}>
@@ -408,10 +426,13 @@ function StylingMethodSection({ d }) {
               <span className="mono">{k}</span>
               <span className="fval mono">{den.counts[k]}</span>
               <span className="fdesc">{
-                k === "scss" ? "권장" :
+                k === s.preferredId ? "권장" :
                 k === "allowedGlobal" ? "정상 (분자에도 포함)" :
-                k === "forbidden.bootstrap-utilities" ? "주 마이그레이션 대상" :
-                k === "forbidden.tailwind-classes" ? "소수 (Phase B 대상)" : ""
+                k === "forbidden.bootstrap-utilities" ? "Bootstrap 잔재" :
+                k === "forbidden.tailwind-classes" ? "Tailwind utility 잔재" :
+                k === "forbidden.apply-mixed" ? "@apply + raw CSS 혼합" :
+                k === "forbidden.tailwind-via-wrapper" ? "pure-@apply wrapper (Tailwind 의존)" :
+                k === "forbidden.raw-css" ? "pure-css 클래스 (utility-first 위반)" : ""
               }</span>
             </div>
           ))}
@@ -447,10 +468,14 @@ function StylingMethodSection({ d }) {
       <div className="dist">
         {rows.map(r => {
           // 0.8.0 — 분모 0 가드. matrix forbidden row 는 사유를 tooltip 으로 표시.
+          // 0.8.1 — 한글 라벨 주 + 영문 mono 작게 병기.
           const pct = total === 0 ? 0 : (r.v / total) * 100;
           return (
             <div key={r.k} className="dist-row" title={r.title ?? r.label}>
-              <span className="mono">{r.k}</span>
+              <span>
+                {r.label}
+                <span className="mono dim" style={{ fontSize: 11, marginLeft: 6 }}>({r.k})</span>
+              </span>
               <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: r.color }} /></div>
               <span className="v">{r.v} · {pct.toFixed(1)}%</span>
             </div>
