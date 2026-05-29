@@ -8,6 +8,29 @@
 import type { CodebaseReport } from "../../types";
 import type { FigmaTabData, LighthouseTabData, SummaryTabData } from "./types";
 
+/**
+ * 0.8.5 — summary 탭 "금지 CSS 클래스" 카드 라벨 매핑 + preset 매트릭스.
+ *   code-tab.jsx 안 FORBIDDEN_LABELS / FORBIDDEN_BY_PRESET 와 같은 흐름 (babel-inline jsx
+ *   는 ESM import X 라 TS transformer 와 jsx 가 자연스럽게 중복. 다음 release 통합 결정 가능).
+ */
+const FORBIDDEN_LABELS: Record<string, string> = {
+  "bootstrap-utilities":   "Bootstrap utility",
+  "tailwind-classes":      "Tailwind utility",
+  "apply-mixed":           "@apply-mixed",
+  "tailwind-via-wrapper":  "Tailwind via wrapper",
+  "raw-css":               "raw CSS",
+  "inline-styles":         "inline styles",
+  "global-css":            "global CSS imports",
+  "scss-imports":          "SCSS imports",
+};
+
+const FORBIDDEN_BY_PRESET: Record<string, string[]> = {
+  scss:          ["bootstrap-utilities", "tailwind-classes", "apply-mixed", "tailwind-via-wrapper"],
+  tailwind:      ["bootstrap-utilities", "apply-mixed", "raw-css"],
+  bootstrap:     ["tailwind-classes", "inline-styles"],
+  "css-modules": ["bootstrap-utilities", "tailwind-classes", "global-css"],
+};
+
 export function buildSummaryData(args: {
   report: CodebaseReport;
   lighthouse: LighthouseTabData | null;
@@ -23,14 +46,22 @@ export function buildSummaryData(args: {
   const figmaStamp = (figmaReport?.generatedAt || "").slice(0, 10);
   const lhStamp = lighthouse?.measuredAt ?? "—";
 
+  // 0.8.5 — preset 매트릭스 적용한 forbidden 배열 미리 build. JSX 는 단순 map 흐름.
+  const preferredId = report.stylingMethodDistribution.preferredId;
+  const forbiddenIds = FORBIDDEN_BY_PRESET[preferredId] ?? [];
+  const forbiddenByPreset = forbiddenIds.map((id) => ({
+    id,
+    label: FORBIDDEN_LABELS[id] ?? id,
+    value: report.forbiddenClassCount.byId[id] ?? 0,
+  }));
+
   // ─── code 압축 ───
   const code: SummaryTabData["code"] = {
     scssCompliance: report.scssVariableCompliance.compliance,
     scssVariableUsages: report.scssVariableCompliance.variableUsages,
     scssHardcoded: report.hardcodedColors.total,
     forbiddenTotal: report.forbiddenClassCount.total,
-    forbiddenBootstrap: report.forbiddenClassCount.byId["bootstrap-utilities"] ?? 0,
-    forbiddenTailwind: report.forbiddenClassCount.byId["tailwind-classes"] ?? 0,
+    forbiddenByPreset,
     tsRatio: report.tsMigration.ratio,
     tsFiles: report.tsMigration.tsFiles,
     jsFiles: report.tsMigration.jsFiles,

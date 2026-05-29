@@ -130,10 +130,14 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
               <TrendReserved note="↑ 상승 필요" />
             </Card>
 
-            <Card label="금지 CSS 클래스 개수" belowThreshold>
+            <Card label="금지 CSS 클래스 (활용 횟수)" belowThreshold>
               <div className="numwrap"><span className="num warn">{d.code.forbiddenTotal.toLocaleString()}</span><span className="unit">건</span></div>
-              <div className="emph-row"><span className="k">bootstrap-utilities</span><span className="v">{d.code.forbiddenBootstrap}</span></div>
-              <div className="emph-row"><span className="k">tailwind-classes</span><span className="v">{d.code.forbiddenTailwind}</span></div>
+              {(d.code.forbiddenByPreset ?? []).map((row) => (
+                <div key={row.id} className="emph-row">
+                  <span className="k">{row.label}</span>
+                  <span className="v">{row.value}</span>
+                </div>
+              ))}
               <div className="card-hint"><ArrowDown /><span><strong>감소 필요 · 기준 0 건.</strong> 파일별 Top 20 은 Code 탭에서 확인.</span></div>
               <TrendReserved note="↓ 감소 필요" />
             </Card>

@@ -185,8 +185,15 @@ export interface SummaryTabData {
     scssVariableUsages: number;
     scssHardcoded: number;
     forbiddenTotal: number;
-    forbiddenBootstrap: number;
-    forbiddenTailwind: number;
+    /**
+     * 0.8.5 — preset 매트릭스 적용 결과 (transformer 안 한 곳에서 결정).
+     *   옛 forbiddenBootstrap / forbiddenTailwind 두 hard-code field 폐기.
+     *   tailwind-project = bootstrap-utilities / apply-mixed / raw-css,
+     *   scss-project = bootstrap-utilities / tailwind-classes / apply-mixed / tailwind-via-wrapper,
+     *   bootstrap-project = tailwind-classes / inline-styles,
+     *   css-modules-project = bootstrap-utilities / tailwind-classes / global-css.
+     */
+    forbiddenByPreset: Array<{ id: string; label: string; value: number }>;
     tsRatio: number;
     tsFiles: number;
     jsFiles: number;
