@@ -8,6 +8,26 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.5] — 2026-05-29
+
+### 정정 / Fixed
+
+- **한 —** dashboard summary 탭 "금지 CSS 클래스" 카드가 preset 매트릭스 흐름 + 한글 라벨로 정정됩니다. 옛 0.8.4 까지 summary 카드 안 emph-row 2개 (`bootstrap-utilities` / `tailwind-classes`) 가 hard-code 로 노출 — preset 무관 흐름이라 tailwind-project 환경에서 `tailwind-classes` 가 의미 X 자리에 노출되고, emph-row 라벨도 영문 코드 키 직접 표시 (한글 라벨 적용 X). 옛 0.8.3 매트릭스 필터링 + 0.8.4 라벨 정정이 code 탭 한정 흐름이었음. 0.8.5 부터 summary 카드도 `FORBIDDEN_BY_PRESET` 매트릭스 + `FORBIDDEN_LABELS` 매핑 활용 — tailwind-project 환경 = `Bootstrap utility` / `@apply-mixed` / `raw CSS` 3 emph-row, scss-project = 4 emph-row, bootstrap / css-modules-project 도 각자 매트릭스 따라 결정. 카드 제목도 옛 `금지 CSS 클래스 개수` 에서 `금지 CSS 클래스 (활용 횟수)` 로 정정 — code 탭 일관 (occurrence 단위 명시).
+- **EN —** The dashboard summary tab "forbidden CSS class" card now uses preset-matrix flow + Korean labels. Through 0.8.4 the card emitted two hard-coded emph-rows (`bootstrap-utilities` / `tailwind-classes`) regardless of preset, so tailwind-project setups saw irrelevant rows and the labels showed raw English keys (no Korean mapping). The 0.8.3 matrix filtering + 0.8.4 label rename only covered the code tab. Starting with 0.8.5 the summary card also consumes `FORBIDDEN_BY_PRESET` + `FORBIDDEN_LABELS` — tailwind-project shows `Bootstrap utility` / `@apply-mixed` / `raw CSS` (3 rows), scss-project 4 rows, bootstrap / css-modules-project follow their own matrix. The card title is also updated from `금지 CSS 클래스 개수` to `금지 CSS 클래스 (활용 횟수)` to match the code-tab convention (explicit occurrence unit).
+
+### 변경 / Changed
+
+- **한 —** `SummaryTabData` 안 옛 derived field (`forbiddenBootstrap` / `forbiddenTailwind`) 가 폐기되고 신규 `forbiddenByPreset` 배열 필드 1개로 통일됩니다. transformer (`baseline-to-summary-data.ts`) 가 preset 매트릭스 + 라벨 매핑 결과를 미리 build, JSX 는 단순 map 흐름. dashboard HTML inject 자체로 활용되는 derived field 라 외부 분석 도구에 영향 X (baseline JSON shape 자체는 그대로).
+- **EN —** The legacy derived fields (`forbiddenBootstrap` / `forbiddenTailwind`) on `SummaryTabData` are dropped in favour of a single `forbiddenByPreset` array. The transformer (`baseline-to-summary-data.ts`) precomputes the matrix + label mapping result so JSX is a simple `.map`. These fields only feed dashboard HTML; downstream analysis tooling that reads baseline JSON is unaffected.
+- **한 —** preset 매트릭스 + 라벨 매핑 정의가 transformer (TS) 와 code-tab.jsx (babel-inline) 두 곳에 중복 정의됩니다 — babel-inline jsx 가 ESM import 흐름이 아니라 자연스러운 중복. 다음 release 에서 통합 흐름 결정 가능 (예: `shell.ts` 안 `window.__FORBIDDEN_META` inject 활용).
+- **EN —** The preset matrix and label mapping are duplicated in two places — the TS transformer and `code-tab.jsx` (babel-inline). The duplication is acceptable for now because the inline JSX cannot use ESM imports; a follow-up release may consolidate them (e.g. injecting `window.__FORBIDDEN_META` from `shell.ts`).
+
+### 참고 / Notes
+
+- 옛 0.8.4 출시 직후 hotfix patch. 측정 데이터 / baseline JSON shape / sub-key 명칭 모두 변경 없음 — summary 탭 렌더링 정정 + transformer 안 derived field 정리.
+- Hotfix patch following 0.8.4. Measurement data, baseline JSON shape, and sub-key names are all unchanged — summary tab render fix plus derived-field tidy-up in the transformer.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.4] — 2026-05-29
 
 ### 정정 / Fixed
