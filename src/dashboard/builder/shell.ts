@@ -40,6 +40,33 @@ function readComponent(name: string): string {
   return fs.readFileSync(path.join(COMPONENTS_DIR, name), "utf8");
 }
 
+/**
+ * 0.8.4 — dsmonitor 패키지 자체 version + buildDate 를 dashboard footer 자동 일관용으로 read.
+ *   dev (src/dashboard/builder/) → ../../../package.json
+ *   bundled (dist/) → ../package.json
+ *   둘 모두 실패 시점에 fallback ("unknown" / "—").
+ */
+function readDsMonitorMeta(): { version: string; buildDate: string } {
+  const candidates = [
+    path.resolve(__dirname, "..", "..", "..", "package.json"),
+    path.resolve(__dirname, "..", "package.json"),
+  ];
+  for (const cand of candidates) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(cand, "utf8"));
+      if (pkg.name === "dsmonitor" && typeof pkg.version === "string") {
+        return {
+          version: pkg.version,
+          buildDate: new Date().toISOString().slice(0, 10),
+        };
+      }
+    } catch {
+      // 다음 candidate 진입
+    }
+  }
+  return { version: "unknown", buildDate: "—" };
+}
+
 export function buildHtmlShell(data: DashboardData): string {
   const styles = readComponent("styles.css");
   const codeJsx = readComponent("code-tab.jsx");
@@ -55,6 +82,8 @@ export function buildHtmlShell(data: DashboardData): string {
   const figmaJson = data.figma ? safeJson(data.figma) : "null";
   const lhJson = data.lighthouse ? safeJson(data.lighthouse) : "null";
   const pluginsJson = safeJson(data.plugins ?? []);
+  // 0.8.4 — dashboard footer 안 dsmonitor 패키지 version + buildDate 자동 일관.
+  const dsMonitorMetaJson = safeJson(readDsMonitorMeta());
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -82,6 +111,7 @@ ${styles}
   <script id="figma-tab-data" type="application/json">${figmaJson}</script>
   <script id="lighthouse-tab-data" type="application/json">${lhJson}</script>
   <script id="plugins-data" type="application/json">${pluginsJson}</script>
+  <script id="dsmonitor-meta" type="application/json">${dsMonitorMetaJson}</script>
 
   <script>
     window.__PROJECT_NAME = JSON.parse(document.getElementById("project-name-data").textContent);
@@ -90,6 +120,7 @@ ${styles}
     window.__FIGMA_DATA = JSON.parse(document.getElementById("figma-tab-data").textContent);
     window.__LH_DATA = JSON.parse(document.getElementById("lighthouse-tab-data").textContent);
     window.__PLUGINS_DATA = JSON.parse(document.getElementById("plugins-data").textContent);
+    window.__DSMONITOR_META = JSON.parse(document.getElementById("dsmonitor-meta").textContent);
   </script>
 
   <script type="text/babel" data-presets="env,react">

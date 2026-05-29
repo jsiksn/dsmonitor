@@ -41,7 +41,7 @@ module.exports = {
       importModules: ["reactstrap", "react-bootstrap", "bootstrap"],
     },
     {
-      id: "scss-modules",
+      id: "scss-imports",
       label: "SCSS / Sass imports",
       severity: "warn",
       classPatterns: [], // className에는 걸지 않음
