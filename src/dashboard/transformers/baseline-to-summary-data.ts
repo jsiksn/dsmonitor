@@ -49,11 +49,14 @@ export function buildSummaryData(args: {
   // 0.8.5 — preset 매트릭스 적용한 forbidden 배열 미리 build. JSX 는 단순 map 흐름.
   const preferredId = report.stylingMethodDistribution.preferredId;
   const forbiddenIds = FORBIDDEN_BY_PRESET[preferredId] ?? [];
-  const forbiddenByPreset = forbiddenIds.map((id) => ({
-    id,
-    label: FORBIDDEN_LABELS[id] ?? id,
-    value: report.forbiddenClassCount.byId[id] ?? 0,
-  }));
+  // 0.8.6 — 카운트 내림차순 sort. code 탭 ForbiddenSection / StylingMethodSection 정렬 흐름 일관.
+  const forbiddenByPreset = forbiddenIds
+    .map((id) => ({
+      id,
+      label: FORBIDDEN_LABELS[id] ?? id,
+      value: report.forbiddenClassCount.byId[id] ?? 0,
+    }))
+    .sort((a, b) => b.value - a.value);
 
   // ─── code 압축 ───
   const code: SummaryTabData["code"] = {

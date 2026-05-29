@@ -8,6 +8,19 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.6] — 2026-05-29
+
+### 정정 / Fixed
+
+- **한 —** dashboard summary 탭 "금지 CSS 클래스 (활용 횟수)" 카드 안 emph-row 정렬이 카운트 내림차순으로 정정됩니다. 옛 0.8.5 까지 매트릭스 정의 순서 그대로 노출 (예: tailwind-project = `Bootstrap utility` → `@apply-mixed` → `raw CSS`) 흐름이라 code 탭 ForbiddenSection / StylingMethodSection 의 카운트 내림차순 정렬 흐름과 어긋남. 0.8.6 부터 transformer (`baseline-to-summary-data.ts`) 안 `forbiddenByPreset` 배열 생성 시점에 카운트 내림차순 sort 적용 — code 탭 정렬 흐름 일관.
+- **EN —** The dashboard summary tab "금지 CSS 클래스 (활용 횟수)" card now sorts emph-rows by count descending. Through 0.8.5 the rows followed the matrix definition order (e.g. for tailwind-project: `Bootstrap utility` → `@apply-mixed` → `raw CSS`), out of step with the code-tab ForbiddenSection / StylingMethodSection which already sort by count. Starting with 0.8.6 the transformer (`baseline-to-summary-data.ts`) sorts `forbiddenByPreset` by count descending — consistent with the code tab.
+
+### 참고 / Notes
+
+- 옛 0.8.5 출시 직후 hotfix patch. 측정 데이터 / baseline JSON shape / sub-key 명칭 / 매핑 정의 모두 변경 없음 — summary 탭 emph-row 정렬 흐름만 정정.
+- Hotfix patch following 0.8.5. Measurement data, baseline JSON shape, sub-key names, and mapping definitions are all unchanged — summary tab emph-row sort order only.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.5] — 2026-05-29
 
 ### 정정 / Fixed
