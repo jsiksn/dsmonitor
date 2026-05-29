@@ -8,6 +8,41 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.4] — 2026-05-29
+
+### 정정 / Fixed
+
+- **한 —** dashboard 두 카드의 metric 단위가 카드 제목에 명시됩니다 — 금지 CSS 클래스 카드는 활용 횟수 (occurrence) 단위 (`forbiddenClassCount.byId` = `forbiddenOccurrences`), 스타일링 방식 분포 카드는 영향 코드 파일 수 단위 (`stylingMethodDistribution.counts.forbidden` = `forbiddenFileCounts`) — 같은 sub-key id 가 두 카드에서 다른 metric 으로 노출되던 흐름이 옛 0.8.0 도입 시점부터 의도된 설계였으나 단위 명시가 없어 사용자 혼동을 유발했습니다. 새 카드 제목 — `금지 CSS 클래스 (활용 횟수)` / `스타일링 방식 분포 (영향 코드 파일 수)`.
+- **EN —** Metric units are now spelled out in the card titles. The forbidden CSS class card surfaces occurrence counts (`forbiddenClassCount.byId` = `forbiddenOccurrences`), while the styling-method-distribution card surfaces file counts (`stylingMethodDistribution.counts.forbidden` = `forbiddenFileCounts`). The two cards have always shown different metrics for the same sub-key id (by design since 0.8.0), but the lack of explicit unit labels confused users. New titles — `금지 CSS 클래스 (활용 횟수)` / `스타일링 방식 분포 (영향 코드 파일 수)`.
+- **한 —** 금지 CSS 클래스 카드 dist-row 의 두 줄 흐름 (한글 라벨 + 영문 mono) 이 한 줄 흐름으로 회귀합니다. 한글 라벨 (`Bootstrap utility`) 과 영문 mono (`(bootstrap-utilities)`) 가 거의 동일 흐름이라 시각 중복 — 한글 라벨 단독 표시로 정리. 스타일링 방식 분포 카드는 옛 두 줄 흐름 그대로 유지 (다른 카테고리 — allowed / forbidden / orphanClass / noClass — 가 섞여 영문 mono 식별자 역할 필요).
+- **EN —** The two-line dist-row layout in the forbidden CSS class card reverts to a single line. The Korean label (`Bootstrap utility`) and the mono key (`(bootstrap-utilities)`) read nearly identically, so the second line was visual redundancy. The styling-method-distribution card keeps the two-line layout (different categories — allowed / forbidden / orphanClass / noClass — mix in there, so the mono key still serves as an identifier).
+- **한 —** 금지 CSS 클래스 카드의 그룹별 분포가 preset 매트릭스 따라 필터링됩니다. 옛 흐름은 baseline JSON 안 `byId` 모든 sub-key 를 그대로 노출 — `analyzeStyling()` 안 forbidden / matrix sub-key 초기화 흐름이 preset 별 자동 필터링을 보장한다고 옛 0.8.3 분석에서 단정했으나, 실제로는 baseline JSON 안 다른 preset 의 sub-key 가 0 카운트로 그대로 남아 dashboard 에 잘못 노출되던 케이스가 있었습니다. 0.8.4 는 dashboard 표시 흐름에서 `FORBIDDEN_BY_PRESET` 매트릭스로 한 번 더 필터링 — baseline JSON raw key 는 옛 그대로 보존 (호환성 유지).
+- **EN —** Forbidden CSS class card group distribution now filters by preset matrix. Previously every sub-key under baseline JSON `byId` was rendered as-is. The 0.8.3 analysis claimed `analyzeStyling()` already pruned per-preset, but residual sub-keys from other presets could still leak in at zero counts and surface in the dashboard. 0.8.4 applies `FORBIDDEN_BY_PRESET` matrix filtering at the render layer too — raw keys in baseline JSON are unchanged (compatibility preserved).
+- **한 —** 스타일링 방식 분포 카드 row 위치가 카테고리 그룹으로 분리됩니다 — 측정 대상 (권장 방식 / 전역 허용 / 금지 sub-key) 가 위쪽, 측정 대상 X (className 없음 / 고아 클래스) 가 아래쪽. 그룹 안 카운트 내림차순. 옛 흐름 (전체 카운트 내림차순) 은 noClass / orphanClass 가 측정 대상 row 들과 섞여 측정 대상 / 측정 대상 X 경계가 흐려졌습니다.
+- **EN —** Styling-method-distribution card rows are now grouped by category — measured rows (preferred method / allowedGlobal / forbidden sub-keys) at the top, excluded rows (noClass / orphanClass) at the bottom. Sort by count is preserved within each group. The previous single-list sort caused noClass / orphanClass to land between measured rows, obscuring the boundary.
+- **한 —** 스타일링 방식 분포 카드의 cross-ref-pill 표기가 `분모: 527 (전체 코드 파일)` 에서 `전체 코드 파일: 527` 로 정정됩니다. 옛 표기 안 `분모` 가 `preferredCompliance` 계산식 안 `분모` 표기와 헷갈리던 흐름 해소. `preferredCompliance` fnote 안 `분모` 표기 자체는 옛 그대로 (계산식 분모 의미 정확).
+- **EN —** The cross-ref-pill in the styling-method-distribution card now reads `전체 코드 파일: 527` instead of `분모: 527 (전체 코드 파일)`. The previous wording conflicted with the `분모` (denominator) appearing in the `preferredCompliance` formula breakdown. The fnote's `분모` wording inside the formula is preserved (still accurate there).
+- **한 —** dashboard footer 의 버전 표기가 dsmonitor 패키지 버전과 자동 일관됩니다. 옛 `v0.1 · 2026-04-24` hard-code 가 `v<package.json version> · <buildDate>` 형식으로 동적 결정 — shell.ts 안 `readDsMonitorMeta()` 가 패키지 자체의 `package.json` 을 read 해 `window.__DSMONITOR_META` 로 inject. release 시점 자동 갱신.
+- **EN —** The dashboard footer version label now auto-syncs with the dsmonitor package version. The hard-coded `v0.1 · 2026-04-24` becomes `v<package.json version> · <buildDate>` — `shell.ts`'s `readDsMonitorMeta()` reads the package's own `package.json` and injects `window.__DSMONITOR_META`. Updates automatically on every release.
+
+### 변경 / Changed
+
+- **한 —** matrix forbidden sub-key 명칭 변경 — `scss-modules` → `scss-imports`. 옛 명칭이 CSS Modules 흐름 (`.module.css`) 과 헷갈리던 점 정정. 본 sub-key 는 tailwind-project preset 안 SCSS 파일 import 자체를 금지하는 의도 (옛 preset 정의 안 영문 라벨 `SCSS / Sass imports` 와 일관). **옛 baseline 호환 X** — 옛 baseline 안 `scss-modules` 카운트는 새 baseline 안 `scss-imports` 자리로 직접 비교 X. 옛 preset 정의 흐름이 `classPatterns: []` 빈 정의라 실제 카운트는 0 — 영향 LOW.
+- **EN —** The matrix forbidden sub-key is renamed — `scss-modules` → `scss-imports`. The previous name collided with CSS Modules (`.module.css`); the sub-key in tailwind-project preset is about banning SCSS file imports outright (matches the preset's existing English label `SCSS / Sass imports`). **Breaking for 0.8.3 baselines** — `scss-modules` counts cannot be directly compared to `scss-imports` in 0.8.4. Impact is low since the preset's empty `classPatterns: []` produced zero counts in practice.
+- **한 —** README 안 도입성 표현이 일반 설명 (`DSMonitor`) 으로 정정됩니다 — README 두 정본 (한국어 / 영어) 의 제목 (`# DSMonitor`) + 도입문 4곳. 코드 기반 (CLI / 패키지명 / `dsmonitor.config.ts` / 파일 경로 / import 등) 안 lowercase `dsmonitor` 는 옛 그대로 보존 (실제 코드 흐름과 일관).
+- **EN —** README introductory copy switches to `DSMonitor` (general phrasing) — title (`# DSMonitor`) and four intro sentences across both references (Korean / English). Code-grounded references (CLI, package name, `dsmonitor.config.ts`, file paths, imports) keep the lowercase `dsmonitor` (matching actual code usage).
+
+### 옛 사용자 영향 / Migration notes
+
+- **한 —** `scss-modules` → `scss-imports` 명칭 변경으로 옛 baseline 호환 X. 옛 baseline 안 `scss-modules` 카운트는 새 baseline 안 `scss-imports` 자리로 직접 비교 X. 옛 preset 정의 흐름이 `classPatterns: []` 빈 정의라 실제 카운트는 0 — 새 baseline 측정 권장 (선택).
+- **EN —** The `scss-modules` → `scss-imports` rename breaks 0.8.3 baseline compatibility. Counts under `scss-modules` cannot be directly compared with `scss-imports` in 0.8.4. The preset's empty `classPatterns: []` made the actual counts zero in practice — re-measure is optional.
+
+### 참고 / Notes
+
+- 옛 0.8.3 출시 직후 hotfix patch. 측정 데이터 변경 X — UI 정정 + sub-key 명칭 정정만.
+- Hotfix patch following 0.8.3. Measurement logic unchanged — UI fixes plus a sub-key rename.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.3] — 2026-05-29
 
 ### 정정 / Fixed

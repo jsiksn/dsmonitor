@@ -95,7 +95,7 @@ const FORBIDDEN_LABELS = {
   "raw-css":               "raw CSS",
   "inline-styles":         "inline styles",
   "global-css":            "global CSS imports",
-  "scss-modules":          "SCSS imports",
+  "scss-imports":          "SCSS imports",
 };
 
 // 0.8.3 — preset 별 의미 있는 forbidden sub-key 매트릭스.
@@ -128,13 +128,21 @@ const FORBIDDEN_BY_PRESET = {
 function ForbiddenSection({ d, smd }) {
   const total = d.forbidden.total;
   const byId = d.forbidden.byId;
-  const groups = Object.entries(byId).sort((a, b) => b[1] - a[1]);
+  // 0.8.4 — preset 매트릭스 따라 dashboard 표시 필터링. baseline JSON raw key 자체는 보존.
+  //   FORBIDDEN_BY_PRESET 매트릭스에 정의된 sub-key 만 표시 — 다른 preset 의 sub-key 가
+  //   잘못 노출되던 옛 흐름 정정. 알 수 없는 preset 시점에 forbidden row 0 (fallback).
+  const preferredId = d.smd?.preferredId;
+  const presetSpecs = FORBIDDEN_BY_PRESET[preferredId] ?? [];
+  const presetIds = new Set(presetSpecs.map(spec => spec.id));
+  const groups = Object.entries(byId)
+    .filter(([id]) => presetIds.has(id))
+    .sort((a, b) => b[1] - a[1]);
   const maxFile = d.forbidden.topFiles[0]?.total || 1;
   return (
     <Section
       id="forbidden"
       field="forbiddenClassCount"
-      title="금지 CSS 클래스"
+      title="금지 CSS 클래스 (활용 횟수)"
       status={{ kind: "below", label: "기준 미달 · 목표 0" }}
       direction={{ kind: "down-good" }}
     >
@@ -167,16 +175,15 @@ function ForbiddenSection({ d, smd }) {
       <div className="dist">
         {groups.map(([id, count]) => {
           // 0.8.0 — 분모 0 가드 (forbidden 전체 0건 케이스).
-          // 0.8.1 — 한글 라벨 주 + 영문 mono 작게 병기.
-          // 0.8.2 — 두 줄 명시 (한글 첫 줄 + 영문 mono 두 번째 줄). 좁은 label col 줄바꿈 깨짐 정정.
+          // 0.8.1 → 0.8.2 한글 + 영문 mono 두 줄 흐름 — 0.8.4 시각 중복 제거 위해 한 줄 회귀.
+          //   한글 라벨 단독 표시. 영문 mono 식별자가 거의 동일 흐름이라 노출 X.
+          //   스타일링 방식 분포 카드는 다른 카테고리 (allowed / orphan / noClass) 가 섞여
+          //   영문 mono 가 식별자 역할이라 두 줄 흐름 유지 — 본 카드와 별개.
           const pct = total === 0 ? 0 : (count / total) * 100;
           const label = FORBIDDEN_LABELS[id] ?? id;
           return (
             <div key={id} className="dist-row">
-              <div>
-                <div>{label}</div>
-                <div className="mono dim" style={{ fontSize: 11, marginTop: 2 }}>({id})</div>
-              </div>
+              <span>{label}</span>
               <div className="dbar"><div className="dbar-fill" style={{ width: `${pct}%`, background: "var(--bad)" }} /></div>
               <span className="v">{count.toLocaleString()} · {pct.toFixed(1)}%</span>
             </div>
@@ -370,19 +377,25 @@ function StylingMethodSection({ d }) {
     color: "var(--bad)",
     title: spec.title,
   }));
-  const rows = [
-    { k: `allowed.${preferredId}`, label: `권장 (${preferredId})`,         v: preferredAllowedCount,           color: "var(--good)" },
-    { k: "allowedGlobal",          label: "전역 허용",                       v: s.counts.allowedGlobal,         color: "oklch(0.65 0.06 200)" },
-    { k: "noClass",                label: "className 없음 (스타일 안 씀)",    v: s.counts.noClass,               color: "var(--ink-4)" },
+  // 0.8.4 — 카테고리 그룹 분리: 측정 대상 ↑ / 측정 대상 X (noClass + orphanClass) ↓.
+  //   그룹 안 카운트 내림차순. 옛 0.8.x 까지 전체 카운트 내림차순 흐름이라 noClass / orphanClass 가
+  //   중간에 섞여 측정 대상 / 측정 대상 X 의 경계가 흐려졌습니다.
+  const measuredRows = [
+    { k: `allowed.${preferredId}`, label: `권장 (${preferredId})`,    v: preferredAllowedCount,  color: "var(--good)" },
+    { k: "allowedGlobal",          label: "전역 허용",                  v: s.counts.allowedGlobal, color: "oklch(0.65 0.06 200)" },
     ...forbiddenRows,
-    { k: "orphanClass",            label: "고아 클래스 (정의 못 찾음)",       v: s.counts.orphanClass,           color: "var(--warn)" },
   ].sort((a, b) => b.v - a.v);
+  const excludedRows = [
+    { k: "noClass",     label: "className 없음 (스타일 안 씀)", v: s.counts.noClass,     color: "var(--ink-4)" },
+    { k: "orphanClass", label: "고아 클래스 (정의 못 찾음)",    v: s.counts.orphanClass, color: "var(--warn)" },
+  ].sort((a, b) => b.v - a.v);
+  const rows = [...measuredRows, ...excludedRows];
 
   return (
     <Section
       id="smd"
       field="stylingMethodDistribution"
-      title="스타일링 방식 분포"
+      title="스타일링 방식 분포 (영향 코드 파일 수)"
       status={{ kind: "below" }}
       direction={{ kind: "up-good", label: "preferred ↑ 높을수록 좋음" }}
     >
@@ -494,7 +507,7 @@ function StylingMethodSection({ d }) {
       <div className="csect-subhead">
         <h4>방식별 카운트</h4>
         <span className="csect-field mono">counts</span>
-        <span className="cross-ref-pill" style={{ marginLeft: "auto" }}>분모: {total} (전체 코드 파일)</span>
+        <span className="cross-ref-pill" style={{ marginLeft: "auto" }}>전체 코드 파일: {total}</span>
       </div>
       <div className="dist">
         {rows.map(r => {

@@ -1,10 +1,10 @@
-# dsmonitor
+# DSMonitor
 
 > UI Health Monitoring Framework — 코드베이스, 스타일, 디자인의 일관성을 정량으로 측정하는 도구입니다.
 >
 > UI Health Monitoring Framework — a tool that quantifies codebase, style, and design consistency.
 
-dsmonitor 는 **측정 도구** 입니다 (개선 도구가 아닙니다). 분석 결과는 baseline JSON 과 markdown 리포트, 그리고 인터랙티브 대시보드로 출력됩니다.
+DSMonitor 는 **측정 도구** 입니다 (개선 도구가 아닙니다). 분석 결과는 baseline JSON 과 markdown 리포트, 그리고 인터랙티브 대시보드로 출력됩니다.
 
 > 이 문서는 한국어 정본을 먼저 두고 그 아래에 영어 정본을 둡니다. 두 정본은 같은 sub-section 순서로 1:1 대응됩니다. **English version is in the lower half of this file** (see [English](#english)).
 
@@ -12,7 +12,7 @@ dsmonitor 는 **측정 도구** 입니다 (개선 도구가 아닙니다). 분�
 
 ## 지원 기술 스택 / Supported Tech Stacks
 
-dsmonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 도입을 검토하는 단계에서 가장 먼저 이 표로 호환 여부를 확인하시면 됩니다.
+DSMonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 도입을 검토하는 단계에서 가장 먼저 이 표로 호환 여부를 확인하시면 됩니다.
 
 | 분야                | 지원                                                                  |
 |---------------------|----------------------------------------------------------------------|
@@ -25,7 +25,7 @@ dsmonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 �
 
 위 조합에 해당하지 않는 환경 (예: Vue / Svelte 프로젝트) 은 본 시점 미지원이며, 호환성 검토는 별도로 진행이 필요합니다.
 
-dsmonitor supports the following technology stack combinations. When you are evaluating dsmonitor for a new project, this table is the first place to check compatibility.
+DSMonitor supports the following technology stack combinations. When you are evaluating DSMonitor for a new project, this table is the first place to check compatibility.
 
 | Area                     | Support                                                              |
 |--------------------------|----------------------------------------------------------------------|
@@ -42,7 +42,7 @@ Stacks not listed above (e.g. Vue / Svelte projects) are currently unsupported; 
 
 ## 1. 측정 항목
 
-dsmonitor 는 세 가지 항목을 측정합니다.
+DSMonitor 는 세 가지 항목을 측정합니다.
 
 | 항목       | 분석 대상                                                                                                                                                  | 출력                                                              |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -54,7 +54,7 @@ dsmonitor 는 세 가지 항목을 측정합니다.
 
 ## 2. 사이드카 plugin 시스템
 
-dsmonitor 가 직접 측정하지 않는 항목 (단위 테스트 결과, 번들 크기, 접근성 검사 등) 도 약속된 JSON 파일만 출력하면 대시보드에 자동으로 표시됩니다.
+DSMonitor 가 직접 측정하지 않는 항목 (단위 테스트 결과, 번들 크기, 접근성 검사 등) 도 약속된 JSON 파일만 출력하면 대시보드에 자동으로 표시됩니다.
 
 - 파일 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳순으로 정렬됩니다)
 - 자동 표시: `npx dsmonitor dashboard` 실행 시 약속된 폴더를 자동으로 검색합니다. 별도 명령은 필요 없습니다.
@@ -1058,17 +1058,17 @@ MIT — [LICENSE](./LICENSE)
 
 <a id="english"></a>
 
-# dsmonitor (English)
+# DSMonitor (English)
 
 > UI Health Monitoring Framework — a tool that quantifies codebase, style, and design consistency.
 
-dsmonitor is a **measurement tool** (not an improvement tool). Results are emitted as a baseline JSON, a markdown report, and an interactive dashboard.
+DSMonitor is a **measurement tool** (not an improvement tool). Results are emitted as a baseline JSON, a markdown report, and an interactive dashboard.
 
 > The Korean reference version sits above this line. Each English sub-section mirrors the matching Korean one.
 
 ## 1. Measurement Areas
 
-dsmonitor measures three things.
+DSMonitor measures three things.
 
 | Area       | Targets                                                                                                                                            | Output                                                            |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |

@@ -428,7 +428,12 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
         </main>
         <footer>
           <span>{PROJECT_NAME} · DSMonitor 리뷰</span>
-          <span className="mono">v0.1 · 2026-04-24</span>
+          <span className="mono">{(() => {
+            // 0.8.4 — dsmonitor 패키지 자체 version + buildDate 자동 일관.
+            //   shell.ts 안 readDsMonitorMeta() 결과를 window.__DSMONITOR_META 로 inject.
+            const meta = window.__DSMONITOR_META ?? { version: "unknown", buildDate: "—" };
+            return `v${meta.version} · ${meta.buildDate}`;
+          })()}</span>
         </footer>
       </div>
     );
