@@ -8,6 +8,26 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.7] — 2026-06-23
+
+### 변경 / Changed
+
+- **한 —** README 가 비개발자(기획·퍼블리싱) 진입을 우선하도록 재구성됩니다. 섹션 순서가 "시작하기"(측정 항목 → 설치 → 빠른 시작 → CLI → 출력물 위치 → 보고서 활용) 와 "심화 레퍼런스"(설정 가이드 → 환경별 예 → Figma 동작 원리 → ESLint → 사이드카 plugin → 환경변수 → FAQ) 두 띠로 나뉩니다. 옛 흐름에서 맨 뒤에 있던 출력물 위치·보고서 활용이 실행 단계 직후로 올라오고, 옛 §2 의 사이드카 plugin 개념 설명이 작성 가이드와 함께 §11 로 통합됩니다. 헤더 번호와 본문 상호참조가 함께 재번호됩니다. 코드·동작 변경 없음 (문서 전용).
+- **EN —** The README is restructured to put non-developer (planning / publishing) onboarding first. Sections are split into two bands — "Getting started" (Measurement Areas → Installation → Quick Start → CLI → Output Locations → Reading the Reports) and "Reference" (Configuration Guide → Per-stack Sketches → How Figma Matching Works → ESLint → Sidecar Plugins → Environment Variables → FAQ). Output Locations and Reading the Reports, previously at the very end, move up to right after the run step, and the sidecar-plugin concept (formerly §2) is merged into the authoring guide at §11. Header numbers and in-text cross-references are renumbered accordingly. No code or behavior change (docs only).
+
+### 추가 / Added
+
+- **한 —** 비개발자 진입 보강 블록이 한국어·영어 정본에 1:1 로 추가됩니다 — 상단 목차 + 역할별 읽기 경로, 설치 사전 조건(Node.js 18+ · npm · 프로젝트 루트 터미널), "비개발자 5분 시작" 박스와 대시보드 여는 법(`open …/dashboard-*.html` · Windows `start` · 탐색기 더블클릭), 설정 가이드 머리말의 "(필수)" 의미 주석, FAQ 의 용어 풀이 표, `overview-for-stakeholders.md` 안내.
+- **EN —** Non-developer onboarding blocks are added 1:1 to both the Korean and English references — a top table of contents + role-based reading paths, installation prerequisites (Node.js 18+ · npm · terminal at the project root), a "Non-developer 5-minute start" box with how to open the dashboard (`open …/dashboard-*.html` · Windows `start` · double-click in the file explorer), a "(required)"-label clarification in the configuration-guide intro, a glossary table in the FAQ, and a pointer to `overview-for-stakeholders.md`.
+
+### 참고 / Notes
+
+- 문서 전용 release. 측정 데이터 / baseline JSON shape / sub-key 명칭 / CLI 동작 모두 변경 없음. 정렬 라인 diff 로 레퍼런스 본문 무손실 확인.
+- Docs-only release. Measurement data, baseline JSON shape, sub-key names, and CLI behavior are all unchanged. Reference content verified intact via a sorted-line diff.
+- 영어 정본의 "지원 기술 스택" 섹션 누락(옛 비대칭)은 이번 범위 밖 — 다음 release 후보.
+- The missing "Supported Tech Stacks" section in the English reference (a pre-existing asymmetry) is out of scope here — a follow-up candidate.
+- `npm run typecheck` + `npm run build` 통과 / Verified.
+
 ## [0.8.6] — 2026-05-29
 
 ### 정정 / Fixed

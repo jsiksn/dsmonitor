@@ -10,6 +10,22 @@ DSMonitor 는 **측정 도구** 입니다 (개선 도구가 아닙니다). 분�
 
 ![dsmonitor dashboard](docs/images/dashboard.png)
 
+## 목차 / Table of Contents
+
+**처음이신가요? (기획 · 퍼블리싱 등 비개발자)** — [2. 설치](#2-설치) → [3. 빠른 시작](#3-빠른-시작) → [5. 출력물 위치](#5-출력물-위치) → [6. 보고서 활용](#6-보고서-활용-가이드) 네 곳만 순서대로 따라가면 한 바퀴 돌려볼 수 있습니다. 나머지는 필요할 때 찾아보면 됩니다.
+
+**개발자 · 세부 설정** — 위에 더해 [7. 설정 가이드](#7-설정-가이드--dsmonitorconfigts-의-모든-필드) 이하 심화 레퍼런스까지 함께 보십시오.
+
+| 시작하기 | 심화 레퍼런스 |
+|----------|----------------|
+| [1. 측정 항목](#1-측정-항목) | [7. 설정 가이드](#7-설정-가이드--dsmonitorconfigts-의-모든-필드) |
+| [2. 설치](#2-설치) | [8. 환경별 설정 예](#8-환경별-설정-예) |
+| [3. 빠른 시작](#3-빠른-시작) | [9. Figma 매칭 동작 원리](#9-figma-매칭-동작-원리) |
+| [4. CLI 명령어](#4-cli-명령어) | [10. ESLint plugin](#10-eslint-plugin) |
+| [5. 출력물 위치](#5-출력물-위치) | [11. 사이드카 plugin](#11-사이드카-plugin) |
+| [6. 보고서 활용](#6-보고서-활용-가이드) | [12. 환경변수](#12-환경변수) |
+| | [13. 트러블슈팅 / FAQ](#13-트러블슈팅--faq) |
+
 ## 지원 기술 스택 / Supported Tech Stacks
 
 DSMonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 도입을 검토하는 단계에서 가장 먼저 이 표로 호환 여부를 확인하시면 됩니다.
@@ -52,19 +68,9 @@ DSMonitor 는 세 가지 항목을 측정합니다.
 
 세 항목 가운데 code 만 필수입니다. figma 와 lighthouse 는 설정에서 빼면 대시보드에서도 자동으로 숨겨집니다.
 
-## 2. 사이드카 plugin 시스템
+## 2. 설치
 
-DSMonitor 가 직접 측정하지 않는 항목 (단위 테스트 결과, 번들 크기, 접근성 검사 등) 도 약속된 JSON 파일만 출력하면 대시보드에 자동으로 표시됩니다.
-
-- 파일 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳순으로 정렬됩니다)
-- 자동 표시: `npx dsmonitor dashboard` 실행 시 약속된 폴더를 자동으로 검색합니다. 별도 명령은 필요 없습니다.
-- 검증: 필수 필드 누락이나 id 불일치, 잘못된 JSON 형식이 있으면 대시보드에 빨간 알림이 표시됩니다.
-- 오래된 데이터: 측정 시점이 7일 이상 지난 plugin 은 회색 배지로 표시됩니다.
-- plugin 1개당 Summary 탭에 Layer 04+ 한 칸이 자동으로 추가되고, plugin 탭이 동적으로 생성됩니다.
-
-plugin 작성 가이드는 [docs/plugin-development.md](./docs/plugin-development.md) 에 있습니다.
-
-## 3. 설치
+**사전 조건** — Node.js 18 이상과 npm 이 필요합니다 ([nodejs.org](https://nodejs.org) 에서 LTS 설치). 아래 명령은 모두 **프로젝트 루트 폴더에서 연 터미널**(macOS 터미널, Windows 명령 프롬프트, VS Code 통합 터미널 등)에서 실행합니다.
 
 ```bash
 npm install --save-dev dsmonitor
@@ -85,9 +91,17 @@ npm install --save-dev dsmonitor eslint-plugin-dsmonitor
 | `@lhci/cli` >= 0.13        | Lighthouse 측정을 사용하는 경우                  | `dsmonitor init` 실행 시 자동 설치                  |
 | `typescript` >= 5.0        | `dsmonitor.config.ts` 를 직접 작성하는 경우      | 대개 이미 설치되어 있습니다                          |
 
-## 4. 빠른 시작
+## 3. 빠른 시작
 
-### 4.1 부트스트랩 (`dsmonitor init`)
+> **비개발자 5분 시작** — 설정을 깊이 건드리지 않고 코드 항목만 빠르게 보고 싶다면:
+>
+> 1. `npx dsmonitor init` — Figma / Lighthouse 사용 여부를 묻습니다. 잘 모르겠으면 둘 다 `N` 으로 두면 됩니다 (나중에 켤 수 있습니다).
+> 2. `npx dsmonitor audit --only code` — 코드 항목만 측정합니다 (Figma 토큰이나 로그인 설정 없이 바로 돌아갑니다).
+> 3. 생성된 대시보드를 브라우저로 엽니다 — macOS 는 터미널에서 `open dsmonitor/reports/dashboard-*.html`, Windows 는 `start dsmonitor\reports\dashboard-*.html`, 또는 파일 탐색기에서 `dsmonitor/reports/` 폴더의 `dashboard-….html` 파일을 더블클릭합니다.
+>
+> Figma · Lighthouse 까지 포함한 설정은 아래 3.1 ~ 3.3 과 [7. 설정 가이드](#7-설정-가이드--dsmonitorconfigts-의-모든-필드) 에서 다룹니다.
+
+### 3.1 부트스트랩 (`dsmonitor init`)
 
 ```bash
 npx dsmonitor init
@@ -118,7 +132,7 @@ my-project/
         └── auth/custom.js         ← custom 인증 어댑터를 쓰는 경우에만
 ```
 
-### 4.2 `.env.local` 작성
+### 3.2 `.env.local` 작성
 
 `.env.local.example` 의 키를 실제 값으로 채워서 `dsmonitor/.env.local` 로 복사합니다.
 
@@ -139,7 +153,7 @@ cp dsmonitor/.env.local.example dsmonitor/.env.local
 - `.env.local` 은 `.gitignore` 에 반드시 추가하세요 (민감 정보).
 - custom 어댑터를 사용하는 경우에는 변수를 자유롭게 정의해도 됩니다. 어댑터 본문에서 읽는 변수와 `.env.local.example` 의 안내 줄을 일치시켜 두면 다른 팀원이 알아보기 쉽습니다.
 
-### 4.3 `dsmonitor.config.ts` 작성
+### 3.3 `dsmonitor.config.ts` 작성
 
 `dsmonitor init` 으로 생성된 `dsmonitor/dsmonitor.config.ts` 에서 다음 항목을 환경에 맞게 채웁니다. 각 필드의 세부 의미는 아래 "설정 가이드" 항목에서 다룹니다.
 
@@ -149,7 +163,7 @@ cp dsmonitor/.env.local.example dsmonitor/.env.local
 - `lighthouse.baseUrl` / `lighthouse.pages` — Lighthouse 측정 대상 URL 과 페이지 목록.
 - `lighthouse.auth` — 인증 방식 (none / basic / custom).
 
-## 5. CLI 명령어
+## 4. CLI 명령어
 
 ```bash
 npx dsmonitor audit --all                    # 통합 측정 체인 (code + figma + lighthouse + report + dashboard)
@@ -172,7 +186,7 @@ npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]  # Figma f
 - `--env <path>` — `.env.local` 경로를 명시합니다. 미지정 시 설정 파일과 같은 디렉토리에서 찾습니다.
 - `--input <path>` / `--output <path>` — `report` 명령에서 입력 / 출력 경로를 명시합니다.
 
-### 5.1 측정 명령 비교
+### 4.1 측정 명령 비교
 
 권장 패턴은 `package.json` 의 npm scripts 에 다음과 같이 정리해 두는 것입니다.
 
@@ -190,7 +204,7 @@ npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]  # Figma f
 - `dashboard` 는 가장 최근의 `baseline-*.json` (prefix 일치) 을 읽어 HTML 을 그립니다.
 - 더 깊은 흐름 설명은 [docs/measurement-flow.md](./docs/measurement-flow.md) 에 있습니다.
 
-### 5.2 `export-migration` 명령
+### 4.2 `export-migration` 명령
 
 ```bash
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
@@ -207,11 +221,45 @@ npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 | 출력                  | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` (frame 이름과 ds label 은 영문 / 숫자 / 하이픈 / 언더스코어 외 문자가 언더스코어로 치환됩니다). |
 | CSV 컬럼              | `nodeId` / `componentName` / `instanceName` / `dsLabel` / `contextPath` / `figmaUrl` — figmaUrl 은 자동 조립되어 클릭으로 바로 진입할 수 있습니다.    |
 
-## 6. 설정 가이드 — `dsmonitor.config.ts` 의 모든 필드
+## 5. 출력물 위치
+
+| 파일                                                      | 내용                                                                                       |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | 측정 결과 (정식 baseline). `--baseline` 모드로 생성.                                        |
+| `dsmonitor/reports/YYYY-MM-DD.json`                       | non-baseline (gitignored 권장).                                                            |
+| `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance level raw — frame 별 nodeId / componentName / dsLabel / contextPath.       |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4 탭 dashboard (Summary / Code / Lighthouse / Figma) + plugin 탭 동적 추가. 브라우저로 열어 확인합니다 (macOS `open …/dashboard-*.html`, Windows `start`, 또는 탐색기에서 더블클릭).                  |
+| `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV (`export-migration` 출력).                                                 |
+| `dsmonitor/reports/plugins/{id}/{date}.json`              | 사이드카 plugin 의 측정 결과.                                                                |
+| `dsmonitor/docs/baseline.md`                              | markdown 리포트 (자동 생성, 직접 수정 금지).                                                |
+| `dsmonitor/docs/overview-for-stakeholders.md`             | 비개발자 시야의 간결 요약.                                                                  |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/manifest.json`   | LHCI manifest.                                                                            |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/summary.json`    | 페이지별 4점수 요약.                                                                       |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/*-report.html`   | 개별 Lighthouse HTML 리포트 (브라우저에서 열어 확인).                                       |
+
+## 6. 보고서 활용 가이드
+
+대시보드는 5개 탭으로 구성됩니다 (Figma / Lighthouse 가 꺼져 있으면 해당 탭은 숨겨집니다).
+
+- **Summary** — 모든 지표의 한 화면 요약. 카드별로 good / warn / bad 색상이 적용됩니다.
+- **Code** — 코드 측정 상세. forbidden class, DS coverage, TS migration, 마이그레이션 후보, orphan class 등.
+- **Figma** — DS 카운트, 토큰 매트릭스, 출처 미상 instance, DS 컴포넌트 매칭, 마이그레이션 우선순위.
+- **Lighthouse** — 페이지별 4점수와 추세.
+- **Plugin** — `dsmonitor/reports/plugins/` 에 출력된 외부 측정 결과.
+
+markdown 리포트 (`dsmonitor/docs/baseline.md`) 는 PR / 슬랙 / 사내 위키에 그대로 붙여 넣을 수 있는 형식입니다. 자동 생성이므로 직접 수정하지 마세요. 다음 측정 시 덮어씌워집니다.
+
+비개발자(기획 · 디자인 · 퍼블리싱)라면 `dsmonitor/docs/overview-for-stakeholders.md` 부터 보십시오. 측정 결과를 코드 용어 없이 간결하게 요약한 문서입니다 (audit 실행 시 자동 생성).
+
+---
+
+> **여기부터는 심화 레퍼런스입니다.** `dsmonitor init` 이 이미 동작하는 설정 파일을 만들어 두므로, 처음이라면 아래를 전부 읽지 않아도 됩니다. 대개 경로나 URL 같은 값만 환경에 맞게 손보면 됩니다. §7 의 "(필수)" 표기는 "설정 파일에 그 항목이 있어야 한다"는 뜻이며, "직접 처음부터 써야 한다"는 뜻이 아닙니다.
+
+## 7. 설정 가이드 — `dsmonitor.config.ts` 의 모든 필드
 
 설정 파일 한 곳에서 모든 측정 옵션을 제어합니다. 아래는 `UIHealthConfig` 의 필드를 순서대로 정리한 것입니다.
 
-### 6.1 `projectRoot` (필수)
+### 7.1 `projectRoot` (필수)
 
 분석 대상의 루트 경로입니다. 설정 파일이 `dsmonitor/dsmonitor.config.ts` 위치에 있으면 `..` 으로 두는 것이 자연스럽습니다.
 
@@ -219,7 +267,7 @@ npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 projectRoot: "..",
 ```
 
-### 6.2 `projectName` (선택)
+### 7.2 `projectName` (선택)
 
 대시보드 헤더와 푸터에 표시될 이름입니다. 비워 두면 `package.json` 의 `name` 을 읽어옵니다. 둘 다 없으면 `"Unknown Project"` 로 표시됩니다.
 
@@ -227,7 +275,7 @@ projectRoot: "..",
 projectName: "MyProject",
 ```
 
-### 6.3 `stylingPolicy` (필수)
+### 7.3 `stylingPolicy` (필수)
 
 프로젝트의 스타일링 정책 — 어떤 방식을 허용하고 (`allowed`), 어떤 방식을 권장하며 (`preferred`), 어떤 방식을 금지할지 (`forbidden`) 정의합니다. `presets/` 에 네 가지 기본 정책이 들어 있으니 가까운 것을 골라서 import 하면 됩니다 (0.7.3+ ESM 흐름).
 
@@ -246,7 +294,7 @@ import stylingPolicy from "dsmonitor/presets/scss-project.js";
 
 내 프로젝트에 딱 맞지 않을 때는 정책을 직접 작성할 수도 있습니다. 타입은 `import type { StylingPolicy } from "dsmonitor"` 로 가져옵니다.
 
-### 6.4 `scan` (필수)
+### 7.4 `scan` (필수)
 
 분석 대상과 제외 패턴을 정의합니다.
 
@@ -265,7 +313,7 @@ scan: {
 - `ignore` — glob 패턴으로 무시할 경로. CRA 환경이면 `**/build/**` 를, Vite 환경이면 `**/dist/**` 를 추가합니다.
 - `codeExts` / `styleExts` — 확장자 목록. TS 전용 프로젝트면 `.js` / `.jsx` 를 빼도 됩니다.
 
-### 6.5 `globalStyleSources` (필수)
+### 7.5 `globalStyleSources` (필수)
 
 전역으로 허용되는 스타일이 정의된 파일의 glob 패턴입니다. 이 패턴에 잡힌 파일에서 정의된 모든 CSS 셀렉터를 모아 "글로벌 인덱스" 를 만듭니다.
 
@@ -275,7 +323,7 @@ scan: {
 globalStyleSources: ["styles/**/*.{scss,css}"],
 ```
 
-### 6.6 `designSystem` (필수)
+### 7.6 `designSystem` (필수)
 
 DS 컴포넌트가 어디에 있는지, 그리고 코드에서 DS 를 어떻게 import 하는지 두 가지를 함께 알려줍니다. `officialPaths` 와 `officialAliases` 는 같은 DS 를 서로 다른 "언어" 로 가리키며 보통 값이 다릅니다.
 
@@ -293,7 +341,7 @@ designSystem: {
 
 두 필드의 값이 동일한 경우는 alias 가 없는 환경 (직접 경로 import 만 쓰는 경우) 입니다. 헷갈리지 않게 정리해 두면 `officialPaths` 는 "파일이 어디에 있나?", `officialAliases` 는 "import 가 어떻게 쓰이나?" 두 질문에 답한다고 생각하면 됩니다.
 
-### 6.7 `hardcodedValues` (필수)
+### 7.7 `hardcodedValues` (필수)
 
 하드코딩된 값을 잡아내는 정규식 묶음입니다.
 
@@ -316,7 +364,7 @@ hardcodedValues: {
 - `scssVariableUsagePatterns` — 변수 참조를 찾는 정규식 (CSS `var()` + SCSS `$`).
 - `scssVariableDefFiles` — 하드코딩 검출에서 제외할 변수 정의 원본 파일. Tailwind 환경에서 `app/globals.css` 의 `@theme` 색상이 noise 로 잡힐 때 여기에 넣어 둡니다.
 
-### 6.8 `migrationTargets` / `migrationMinClassLength` (필수)
+### 7.8 `migrationTargets` / `migrationMinClassLength` (필수)
 
 native HTML 태그를 어떤 DS 컴포넌트로 대체할지 매핑하는 표입니다. dsmonitor 는 이 표를 보고 "native 태그가 그대로 쓰이는 자리" 중 마이그레이션 후보를 추출합니다.
 
@@ -357,7 +405,7 @@ migrationMinClassLength: 3,
 
 > 옛 `nativeTags: ["input"]` 형식 (0.5.x 까지) 의 설정은 0.6.0 에서도 그대로 작동합니다. 검출 결과의 의미를 바꾸지 않은 호환 변경입니다.
 
-#### 6.8.1 `migrationCandidates.excludeOfficialPaths` (0.7.2+)
+#### 7.8.1 `migrationCandidates.excludeOfficialPaths` (0.7.2+)
 
 DS 본체 안에서 자연스럽게 쓰이는 native HTML (예: `Button.tsx` 가 내부에서 `<button>` 을 사용하는 케이스) 이 마이그레이션 후보로 잘못 잡히는 false positive 를 정정하는 옵션입니다.
 
@@ -379,7 +427,7 @@ migrationCandidates: {
 
 > 0.7.1 까지 `officialPaths: ["src/laon-web-ui/**"]` 처럼 glob 표기를 적은 환경에서는 매칭이 항상 실패해서 DS 본체 파일이 후보로 잡혔습니다. 0.7.2 부터 본 글로브 표기도 자연스럽게 인식되며 default `true` 가 함께 적용됩니다 — 따라서 옛 후보 숫자가 줄어들 수 있습니다 (의도된 정정). 옛 동작이 필요하면 `excludeOfficialPaths: false` 로 명시하세요.
 
-### 6.9 `framework` (필수)
+### 7.9 `framework` (필수)
 
 코드 분석에 사용할 framework 어댑터를 고릅니다. 현재는 `"react"` 만 지원합니다 (Vue / Svelte 어댑터는 향후 추가 예정).
 
@@ -387,7 +435,7 @@ migrationCandidates: {
 framework: { id: "react" },
 ```
 
-### 6.10 `metrics` (필수)
+### 7.10 `metrics` (필수)
 
 지표별 on / off 토글입니다. 프로젝트 상황에 맞지 않는 지표는 `false` 로 두면 대시보드에서도 숨겨집니다.
 
@@ -411,7 +459,7 @@ metrics: {
 - `scssVariableCompliance` — SCSS 변수 사용 / 하드코딩 비율. Tailwind 환경에서는 변수 사용이 0 에 가까워 의미가 없으므로 `false` 권장.
 - `figmaAnalysis` — Figma 측정 on / off. `true` 로 두려면 `figma` 필드와 `FIGMA_API_TOKEN` 환경변수가 함께 필요합니다.
 
-### 6.11 `figma` (선택)
+### 7.11 `figma` (선택)
 
 Figma 측정 설정입니다. `metrics.figmaAnalysis = true` 일 때만 실제로 사용됩니다.
 
@@ -452,8 +500,8 @@ figma: {
 ```
 
 - `validationLevel` — 현재는 `"lite"` 만 지원합니다. Variables API 는 Enterprise plan 이 있어야 호출 가능하기 때문에 Styles + Components 카운트만 측정합니다.
-- `designSystemFiles` — DS 파일 목록. 각 항목은 `{ url, label, primary?, comment? }` 형태로 적습니다. DS 가 2개 이상이면 정확히 1개에 `primary: true` 가 필수입니다 (상세 규칙은 6.11.1 참고).
-- `domainFiles` — 실제 UI 시안 파일 목록. 패턴 A / B / C 세 가지로 작성할 수 있습니다 (6.11.2 참고).
+- `designSystemFiles` — DS 파일 목록. 각 항목은 `{ url, label, primary?, comment? }` 형태로 적습니다. DS 가 2개 이상이면 정확히 1개에 `primary: true` 가 필수입니다 (상세 규칙은 7.11.1 참고).
+- `domainFiles` — 실제 UI 시안 파일 목록. 패턴 A / B / C 세 가지로 작성할 수 있습니다 (7.11.2 참고).
 - `unknownInstances.topN` — "출처 미상 Instance" 상위 몇 개까지 노출할지.
 - `unknownInstances.allowUnknownSource` — 외주 옛 DS 등 미등록 출처도 결과에 포함할지.
 - `codeTokens.parsers` — 코드 토큰 파서 설정 배열입니다. 빈 배열로 두면 토큰 매트릭스의 code 컬럼 카운트가 0 으로 잡힙니다. 지원 파서는 다음 세 가지입니다 (필요한 만큼 함께 등록할 수 있습니다).
@@ -476,7 +524,7 @@ figma: {
 - audit 실행 시 지정한 path 가 파일시스템에 없으면 `⚠ codeTokens.parsers (...) — file_not_found` 한 줄이 stderr 로 emit 되고, baseline JSON 의 `figma.tokenMatrix.warnings` 에 누적되며, dashboard 의 토큰 매트릭스 sub-section 헤더에 노란 배너로 표시됩니다.
 - 일괄 진단은 `npx dsmonitor doctor` — config / 환경변수 / 모든 path 를 한 번에 점검합니다.
 
-#### 6.11.1 DS 파일 라벨과 primary
+#### 7.11.1 DS 파일 라벨과 primary
 
 라벨은 자유 결정입니다 (`"v1"`, `"v2"`, `"main"`, `"legacy"`, `"ds-new"` 등). 대시보드는 사용자가 정한 라벨을 그대로 보여줍니다.
 
@@ -494,7 +542,7 @@ figma: {
 + { url: "...", label: "ds-new", primary: true },
 ```
 
-#### 6.11.2 도메인 파일 입력 패턴
+#### 7.11.2 도메인 파일 입력 패턴
 
 도메인 파일은 세 가지 패턴 중 어느 것으로든 적을 수 있고, 한 도메인 안에서 패턴 B 와 C 를 섞어도 됩니다 (모든 URL 이 같은 file 에 속하는지 자동으로 검증합니다).
 
@@ -532,7 +580,7 @@ figma: {
 
 URL 은 Figma 의 "Copy link" 결과를 그대로 붙여 넣으면 됩니다. fileKey 를 손으로 추출할 필요가 없고, URL 안의 `node-id=2-2` 와 REST API 의 `2:2` 사이 변환도 도구가 알아서 처리합니다.
 
-### 6.12 `lighthouse` (선택)
+### 7.12 `lighthouse` (선택)
 
 Lighthouse 측정 설정입니다.
 
@@ -554,7 +602,7 @@ lighthouse: {
 - `baseUrl` — 측정 대상의 base URL. 환경을 전환할 때는 이 값 하나만 바꾸면 됩니다. 미지정 시 `process.env.LIGHTHOUSE_BASE_URL ?? "http://localhost:3000"` 가 fallback 입니다.
 - `pages` — 측정 대상 페이지 목록. 각 항목은 `{ path, name? }`. 빈 배열이면 `["/"]` 가 fallback 입니다.
 - `runs` — URL 1개당 측정 반복 수. 기본값 3 (대표값을 median 으로 뽑기 위함). 1 로 두면 빠르지만 대표성이 약해집니다.
-- `auth` — 인증 방식. 상세 옵션은 6.12.1 참고.
+- `auth` — 인증 방식. 상세 옵션은 7.12.1 참고.
 - `advanced` — LHCI `ci.collect.settings` 에 deep-merge 되는 untyped passthrough. 흔한 활용 예:
   - `skipAudits: ["uses-http2"]` — 사내망에서 자주 빼는 옵션.
   - `chromeFlags: ["--no-sandbox"]` — Docker / CI 환경.
@@ -568,7 +616,7 @@ lighthouse: {
 - `onlyCategories: ["performance", "accessibility", "best-practices", "seo"]`
 - `disableStorageReset` 은 `auth.type !== "none"` 일 때 자동으로 `true` 가 됩니다 (어댑터가 심은 세션 / JWT 가 측정 사이에 유지되도록).
 
-#### 6.12.1 Lighthouse 인증 방식
+#### 7.12.1 Lighthouse 인증 방식
 
 `lighthouse.auth` 는 세 가지 중 하나를 고르는 discriminated union 입니다.
 
@@ -645,7 +693,7 @@ export default adapter;
 
 전체 안내 (작성 흐름 / 환경변수 패턴 / TypeScript → JavaScript 변환 / `dsmonitor doctor` 로 검증) 는 [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) 에 있습니다.
 
-### 6.13 `thresholds` (필수)
+### 7.13 `thresholds` (필수)
 
 각 지표의 good / warn 임계값입니다. `direction` 이 `"higher"` 면 값이 높을수록 좋고, `"lower"` 면 낮을수록 좋습니다.
 
@@ -664,7 +712,7 @@ thresholds: {
 
 `componentMatch` 는 Figma DS 컴포넌트 ↔ 코드 className 매칭률에 대한 임계값입니다 (선택, Figma 측정을 쓸 때만 의미).
 
-### 6.14 `softBaseline` (선택)
+### 7.14 `softBaseline` (선택)
 
 ESLint forbidden class 의 soft baseline 을 가시화하는 기능입니다. CI 를 막지 않는 대신, 현재 위반 수를 baseline 과 비교해 출력만 합니다.
 
@@ -678,7 +726,7 @@ softBaseline: {
 - 파일이 없으면 "baseline 없음" 메시지만 찍고 종료합니다 (신규 프로젝트 대비).
 - 이 파일은 `dsmonitor/eslint` 가 사용하는 `lint-baseline.json` (파일별 심각도 오버라이드) 과는 **다른 파일** 입니다. 헷갈리지 마세요.
 
-### 6.15 `report` (필수)
+### 7.15 `report` (필수)
 
 baseline JSON 의 출력 위치와 prefix 입니다.
 
@@ -689,7 +737,7 @@ report: {
 },
 ```
 
-### 6.16 `measurementHistory` / `reportStatus` (선택)
+### 7.16 `measurementHistory` / `reportStatus` (선택)
 
 리포트의 시계열 해석을 돕기 위한 메타데이터입니다.
 
@@ -720,9 +768,9 @@ reportStatus: {
 - `measurementHistory` — 측정 도구 자체의 변경 이력. 분석 로직이 바뀌어 과거 수치가 재해석될 필요가 있을 때 기록해 두면, 리포트 하단에서 독자가 "왜 이 숫자가 이만큼 바뀌었는지" 를 추적할 수 있습니다.
 - `reportStatus` — 진행 단계 배지. baseline.md 상단에 렌더링됩니다. 단계 전환은 수동입니다 (upcoming → current → completed).
 
-## 7. 환경별 설정 예
+## 8. 환경별 설정 예
 
-### 7.1 Next.js + TypeScript + React + SCSS
+### 8.1 Next.js + TypeScript + React + SCSS
 
 ```ts
 import stylingPolicy from "dsmonitor/presets/scss-project.js"; // → config 안: stylingPolicy,
@@ -738,7 +786,7 @@ figma: {
 },
 ```
 
-### 7.2 Next.js + TypeScript + React + Tailwind
+### 8.2 Next.js + TypeScript + React + Tailwind
 
 ```ts
 import stylingPolicy from "dsmonitor/presets/tailwind-project.js"; // → config 안: stylingPolicy,
@@ -756,7 +804,7 @@ figma: {
 
 Tailwind 환경에서 `scssVariableCompliance: true` 를 그대로 두면 compliance 가 0% 로 나와 무의미한 값이 됩니다. 또한 `globals.css` 의 `@theme` 색상 hex 가 `colorPatterns` 에 잡혀 noise 가 되니 `scssVariableDefFiles` 에 등록해 두면 좋습니다.
 
-### 7.3 Next.js + TypeScript + React + CSS Modules
+### 8.3 Next.js + TypeScript + React + CSS Modules
 
 ```ts
 import stylingPolicy from "dsmonitor/presets/css-modules-project.js"; // → config 안: stylingPolicy,
@@ -772,7 +820,7 @@ figma: {
 },
 ```
 
-### 7.4 Vite + React + Tailwind
+### 8.4 Vite + React + Tailwind
 
 ```ts
 scan: {
@@ -782,14 +830,14 @@ scan: {
     "**/build/**",  // CRA 와 혼합 사용하는 경우
   ],
 },
-// stylingPolicy / hardcodedValues 등은 7.2 와 동일.
+// stylingPolicy / hardcodedValues 등은 8.2 와 동일.
 ```
 
 dsmonitor 는 빌드 도구 자체에는 의존하지 않습니다. Vite / CRA / Next.js 어느 환경이든 `scan.ignore` 로 출력 폴더만 제외해 두면 됩니다.
 
 `presets/configs/` 디렉토리에 framework + 스타일 조합별 설정 템플릿 (`next-pages-scss.ts`, `next-app-css-modules.ts`, `vite-react-tailwind.ts`) 도 들어 있어 시작점으로 활용할 수 있습니다.
 
-## 8. Figma 매칭 동작 원리
+## 9. Figma 매칭 동작 원리
 
 dsmonitor 의 Figma 측정은 크게 세 갈래로 이루어집니다.
 
@@ -806,7 +854,7 @@ dsmonitor 의 Figma 측정은 크게 세 갈래로 이루어집니다.
 - **CSS 만** — CSS 에 정의됐는데 JSX/TSX 에서 미사용 (dead 가능성).
 - **Figma 만** — Figma 컴포넌트 정의가 있는데 코드에서 className 으로 쓰지 않음 (마이그레이션 우선순위).
 
-## 9. ESLint plugin
+## 10. ESLint plugin
 
 dsmonitor 의 stylingPolicy 를 ESLint 규칙으로도 적용할 수 있습니다.
 
@@ -862,7 +910,21 @@ soft baseline JSON 형식:
 
 CI 통합 패턴은 [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md) 에서 확인할 수 있습니다.
 
-## 10. 사이드카 plugin 작성
+## 11. 사이드카 plugin
+
+> 이 항목은 확장 기능입니다. 처음이라면 건너뛰어도 됩니다 — dsmonitor 의 기본 측정과는 무관합니다.
+
+DSMonitor 가 직접 측정하지 않는 항목 (단위 테스트 결과, 번들 크기, 접근성 검사 등) 도 약속된 JSON 파일만 출력하면 대시보드에 자동으로 표시됩니다.
+
+- 파일 위치: `dsmonitor/reports/plugins/{id}/{date}.json` (id 알파벳순으로 정렬됩니다)
+- 자동 표시: `npx dsmonitor dashboard` 실행 시 약속된 폴더를 자동으로 검색합니다. 별도 명령은 필요 없습니다.
+- 검증: 필수 필드 누락이나 id 불일치, 잘못된 JSON 형식이 있으면 대시보드에 빨간 알림이 표시됩니다.
+- 오래된 데이터: 측정 시점이 7일 이상 지난 plugin 은 회색 배지로 표시됩니다.
+- plugin 1개당 Summary 탭에 Layer 04+ 한 칸이 자동으로 추가되고, plugin 탭이 동적으로 생성됩니다.
+
+plugin 작성 가이드는 [docs/plugin-development.md](./docs/plugin-development.md) 에 있습니다.
+
+### 11.1 plugin 작성하기
 
 dsmonitor 가 측정하지 않는 항목 (단위 테스트, 번들 크기, 접근성 검사 등) 을 대시보드에 자동 표시하려면 다음 형식의 JSON 을 약속된 위치에 출력합니다.
 
@@ -902,39 +964,26 @@ const output: DSMonitorPluginOutput = {
 
 전체 가이드와 더 깊은 예시는 [docs/plugin-development.md](./docs/plugin-development.md) 에 있습니다.
 
-## 11. 출력물 위치
+## 12. 환경변수
 
-| 파일                                                      | 내용                                                                                       |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | 측정 결과 (정식 baseline). `--baseline` 모드로 생성.                                        |
-| `dsmonitor/reports/YYYY-MM-DD.json`                       | non-baseline (gitignored 권장).                                                            |
-| `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance level raw — frame 별 nodeId / componentName / dsLabel / contextPath.       |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4 탭 dashboard (Summary / Code / Lighthouse / Figma) + plugin 탭 동적 추가.                  |
-| `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV (`export-migration` 출력).                                                 |
-| `dsmonitor/reports/plugins/{id}/{date}.json`              | 사이드카 plugin 의 측정 결과.                                                                |
-| `dsmonitor/docs/baseline.md`                              | markdown 리포트 (자동 생성, 직접 수정 금지).                                                |
-| `dsmonitor/docs/overview-for-stakeholders.md`             | 비개발자 시야의 간결 요약.                                                                  |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/manifest.json`   | LHCI manifest.                                                                            |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/summary.json`    | 페이지별 4점수 요약.                                                                       |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/*-report.html`   | 개별 Lighthouse HTML 리포트 (브라우저에서 열어 확인).                                       |
-
-## 12. 보고서 활용 가이드
-
-대시보드는 5개 탭으로 구성됩니다 (Figma / Lighthouse 가 꺼져 있으면 해당 탭은 숨겨집니다).
-
-- **Summary** — 모든 지표의 한 화면 요약. 카드별로 good / warn / bad 색상이 적용됩니다.
-- **Code** — 코드 측정 상세. forbidden class, DS coverage, TS migration, 마이그레이션 후보, orphan class 등.
-- **Figma** — DS 카운트, 토큰 매트릭스, 출처 미상 instance, DS 컴포넌트 매칭, 마이그레이션 우선순위.
-- **Lighthouse** — 페이지별 4점수와 추세.
-- **Plugin** — `dsmonitor/reports/plugins/` 에 출력된 외부 측정 결과.
-
-markdown 리포트 (`dsmonitor/docs/baseline.md`) 는 PR / 슬랙 / 사내 위키에 그대로 붙여 넣을 수 있는 형식입니다. 자동 생성이므로 직접 수정하지 마세요. 다음 측정 시 덮어씌워집니다.
+| 변수                          | 용도                                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| `FIGMA_API_TOKEN`             | Figma REST API 호출용 토큰. `figmaAnalysis = true` 일 때 필요.                              |
+| `LIGHTHOUSE_BASE_URL`         | Lighthouse 측정 대상 base URL.                                                              |
+| `LIGHTHOUSE_LOGIN_URL`        | basic 인증 — 로그인 페이지 경로 또는 절대 URL.                                              |
+| `LIGHTHOUSE_TEST_ID`          | basic 인증 — 테스트 계정 ID.                                                                |
+| `LIGHTHOUSE_TEST_PW`          | basic 인증 — 테스트 계정 비밀번호.                                                          |
+| `LIGHTHOUSE_BASIC_SELECTOR_ID_INPUT` | basic 인증 — 아이디 입력 selector override (선택).                                    |
+| `LIGHTHOUSE_BASIC_SELECTOR_PW_INPUT` | basic 인증 — 비밀번호 입력 selector override (선택).                                  |
+| `LIGHTHOUSE_BASIC_SELECTOR_SUBMIT`   | basic 인증 — 제출 버튼 selector override (선택).                                       |
+| `VITAUI_ENV_FILE`             | legacy — `.env.local` 위치를 직접 지정합니다. 0.2.0 부터 deprecated, `--env <path>` 권장.   |
+| `VITAUI_LINT_BASELINE`        | legacy — soft lint baseline 경로를 직접 지정합니다. `--baseline <path>` 권장.               |
 
 ## 13. 트러블슈팅 / FAQ
 
 **Q. Figma 토큰 매트릭스의 codeCount 가 0 입니다.**
 
-A. `codeTokens.parsers` 에 등록한 path 가 실제 파일과 다른 경우가 흔합니다. 0.7.0 부터 audit 실행 시 stderr 에 `⚠ codeTokens.parsers ...` 한 줄로 알리고, baseline JSON 의 `figma.tokenMatrix.warnings` 에도 누적되며, dashboard 의 "토큰 매트릭스" sub-section 헤더에 노란 배너로 표시됩니다. 빠르게 일괄 점검하려면 `npx dsmonitor doctor` 를 실행하세요. 그 다음 README §6.11 의 `codeTokens.parsers` 안내를 참고해 path 를 정정하면 됩니다.
+A. `codeTokens.parsers` 에 등록한 path 가 실제 파일과 다른 경우가 흔합니다. 0.7.0 부터 audit 실행 시 stderr 에 `⚠ codeTokens.parsers ...` 한 줄로 알리고, baseline JSON 의 `figma.tokenMatrix.warnings` 에도 누적되며, dashboard 의 "토큰 매트릭스" sub-section 헤더에 노란 배너로 표시됩니다. 빠르게 일괄 점검하려면 `npx dsmonitor doctor` 를 실행하세요. 그 다음 README §7.11 의 `codeTokens.parsers` 안내를 참고해 path 를 정정하면 됩니다.
 
 **Q. `tailwind.config` 파일이 자동 감지되지 않습니다 / 확장자가 다릅니다.**
 
@@ -972,7 +1021,7 @@ A. 0.7.2 부터는 `migrationCandidates.excludeOfficialPaths` 의 default 가 `t
 
 **Q. 로그인이 필요한 페이지를 Lighthouse 로 측정하려면 어떻게 하나요?**
 
-A. `dsmonitor.config.ts` 의 `lighthouse.auth` 를 `{ type: "custom", adapter: "./..." }` 로 두고 어댑터 파일을 작성합니다. 흔한 다섯 시나리오 (HTTP Basic / Form login / SSO / JWT 주입 / OAuth 2.0) 는 `docs/auth-adapter-examples/` 에 복사해서 쓸 수 있는 예제가 들어 있습니다. 0.7.1 부터는 `import type { LighthouseAuthAdapter } from "dsmonitor"` 로 TypeScript 시그니처도 받을 수 있어 IDE 자동 완성과 컴파일 검증이 가능합니다. 상세 작성 흐름은 §6.12.1 과 [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) 를 참고하세요.
+A. `dsmonitor.config.ts` 의 `lighthouse.auth` 를 `{ type: "custom", adapter: "./..." }` 로 두고 어댑터 파일을 작성합니다. 흔한 다섯 시나리오 (HTTP Basic / Form login / SSO / JWT 주입 / OAuth 2.0) 는 `docs/auth-adapter-examples/` 에 복사해서 쓸 수 있는 예제가 들어 있습니다. 0.7.1 부터는 `import type { LighthouseAuthAdapter } from "dsmonitor"` 로 TypeScript 시그니처도 받을 수 있어 IDE 자동 완성과 컴파일 검증이 가능합니다. 상세 작성 흐름은 §7.12.1 과 [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) 를 참고하세요.
 
 **Q. `dsmonitor.config.ts` 를 찾지 못한다는 에러가 나옵니다.**
 
@@ -1018,22 +1067,20 @@ A. 2-hop 매칭 (componentId → stable key → DS label) 의 두 번째 hop 에
 
 A. `dsmonitor` 와 `eslint-plugin-dsmonitor` 두 패키지를 모두 설치했는지 확인하세요. ESLint legacy config 는 `eslint-plugin-{name}` 형식의 패키지를 자동으로 찾기 때문에 wrapper 패키지가 별도로 필요합니다.
 
-## 14. 환경변수
+### 용어 풀이
 
-| 변수                          | 용도                                                                                       |
-| ----------------------------- | ----------------------------------------------------------------------------------------- |
-| `FIGMA_API_TOKEN`             | Figma REST API 호출용 토큰. `figmaAnalysis = true` 일 때 필요.                              |
-| `LIGHTHOUSE_BASE_URL`         | Lighthouse 측정 대상 base URL.                                                              |
-| `LIGHTHOUSE_LOGIN_URL`        | basic 인증 — 로그인 페이지 경로 또는 절대 URL.                                              |
-| `LIGHTHOUSE_TEST_ID`          | basic 인증 — 테스트 계정 ID.                                                                |
-| `LIGHTHOUSE_TEST_PW`          | basic 인증 — 테스트 계정 비밀번호.                                                          |
-| `LIGHTHOUSE_BASIC_SELECTOR_ID_INPUT` | basic 인증 — 아이디 입력 selector override (선택).                                    |
-| `LIGHTHOUSE_BASIC_SELECTOR_PW_INPUT` | basic 인증 — 비밀번호 입력 selector override (선택).                                  |
-| `LIGHTHOUSE_BASIC_SELECTOR_SUBMIT`   | basic 인증 — 제출 버튼 selector override (선택).                                       |
-| `VITAUI_ENV_FILE`             | legacy — `.env.local` 위치를 직접 지정합니다. 0.2.0 부터 deprecated, `--env <path>` 권장.   |
-| `VITAUI_LINT_BASELINE`        | legacy — soft lint baseline 경로를 직접 지정합니다. `--baseline <path>` 권장.               |
+| 용어 | 뜻 |
+| ---- | --- |
+| baseline JSON | 한 번의 측정 결과를 통째로 담은 기준 파일 (`dsmonitor/reports/baseline-<날짜>.json`). 대시보드와 리포트가 이 파일을 읽어 그립니다. |
+| forbidden class | 스타일링 정책에서 "쓰면 안 된다"고 정한 CSS 클래스 (예: 정리 대상인 Bootstrap · Tailwind 유틸리티). |
+| orphan class | JSX/TSX 에서 className 으로 쓰는데 어느 CSS 파일에도 정의가 없는 클래스 (정의 누락 가능성). |
+| DS coverage | 디자인 시스템(DS) 컴포넌트를 실제로 import 해 쓰는 파일의 비율. |
+| 마이그레이션 후보 | 아직 native HTML 태그(예: `<button>`)로 남아 있어 DS 컴포넌트로 바꿀 수 있는 자리. |
+| 2-hop 매칭 | Figma instance 가 어느 DS 에서 왔는지 두 단계(componentId → 안정 key → DS 라벨)로 추적하는 방식. |
+| ratchet | ESLint 에서 기존 위반은 경고로 두고 새 위반만 막아 점진적으로 정리하는 동작. |
+| 토큰 매트릭스 | 코드의 토큰(색상 · 간격 등 변수)과 Figma DS 의 Styles 를 교차해 양쪽에 다 있는지 비교한 표. |
 
-## 15. 더 읽기
+## 14. 더 읽기
 
 - [docs/figma-config-guide.md](./docs/figma-config-guide.md) — Figma 설정의 상세 가이드 (DS 파일, 도메인 파일, 마이그레이션 CSV 추출).
 - [docs/eslint-rules.md](./docs/eslint-rules.md) — ESLint 규칙 상세와 ratchet 동작.
@@ -1044,13 +1091,13 @@ A. `dsmonitor` 와 `eslint-plugin-dsmonitor` 두 패키지를 모두 설치했�
 - [docs/measurement-flow.md](./docs/measurement-flow.md) — 측정 흐름 다이어그램.
 - [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (현재 placeholder).
 
-## 16. 기여자
+## 15. 기여자
 
 - **[chenjingdev](https://github.com/chenjingdev)** — 기획 협업.
 - **[june0-K](https://github.com/june0-K)** — 기획 협업.
 - **[servantcdh](https://github.com/servantcdh)** — plugin 시스템 개발 협업.
 
-## 17. 라이선스
+## 16. 라이선스
 
 MIT — [LICENSE](./LICENSE)
 
@@ -1066,6 +1113,22 @@ DSMonitor is a **measurement tool** (not an improvement tool). Results are emitt
 
 > The Korean reference version sits above this line. Each English sub-section mirrors the matching Korean one.
 
+## Table of Contents
+
+**New here? (non-developers — planning · publishing)** — just follow [2. Installation](#2-installation) → [3. Quick Start](#3-quick-start) → [5. Output Locations](#5-output-locations) → [6. Reading the Reports](#6-reading-the-reports) in order for one full pass. Look up the rest when you need it.
+
+**Developers · detailed configuration** — also read [7. Configuration Guide](#7-configuration-guide--all-fields-of-dsmonitorconfigts) and the reference sections below it.
+
+| Getting started | Reference |
+|-----------------|-----------|
+| [1. Measurement Areas](#1-measurement-areas) | [7. Configuration Guide](#7-configuration-guide--all-fields-of-dsmonitorconfigts) |
+| [2. Installation](#2-installation) | [8. Per-stack Configuration Sketches](#8-per-stack-configuration-sketches) |
+| [3. Quick Start](#3-quick-start) | [9. How Figma Matching Works](#9-how-figma-matching-works) |
+| [4. CLI Commands](#4-cli-commands) | [10. ESLint Plugin](#10-eslint-plugin-1) |
+| [5. Output Locations](#5-output-locations) | [11. Sidecar Plugins](#11-sidecar-plugins) |
+| [6. Reading the Reports](#6-reading-the-reports) | [12. Environment Variables](#12-environment-variables) |
+| | [13. Troubleshooting / FAQ](#13-troubleshooting--faq) |
+
 ## 1. Measurement Areas
 
 DSMonitor measures three things.
@@ -1078,19 +1141,9 @@ DSMonitor measures three things.
 
 Only `code` is mandatory. `figma` and `lighthouse` are optional — dropping them from the config also hides their tabs in the dashboard.
 
-## 2. Sidecar Plugin System
+## 2. Installation
 
-You can surface external measurements (unit tests, bundle size, accessibility audits, etc.) in the dashboard by writing a single JSON file in a known location.
-
-- Location: `dsmonitor/reports/plugins/{id}/{date}.json` (sorted alphabetically by id).
-- Auto-discovery: `npx dsmonitor dashboard` scans the folder automatically. No extra command.
-- Validation: missing fields, mismatched id, or invalid JSON triggers a red alert in the dashboard.
-- Staleness: a plugin whose `measuredAt` is older than 7 days gets a gray badge.
-- One Summary Layer 04+ cell and a dedicated plugin tab are added automatically per plugin.
-
-See [docs/plugin-development.md](./docs/plugin-development.md) for the plugin authoring guide.
-
-## 3. Installation
+**Prerequisites** — you need Node.js 18+ and npm ([install the LTS from nodejs.org](https://nodejs.org)). Run every command below in a **terminal opened at your project root** (macOS Terminal, Windows Command Prompt, the VS Code integrated terminal, etc.).
 
 ```bash
 npm install --save-dev dsmonitor
@@ -1111,9 +1164,17 @@ Optional peer dependencies (install only what you actually use):
 | `@lhci/cli` >= 0.13         | Using Lighthouse measurement                      | Auto-installed by `dsmonitor init`                   |
 | `typescript` >= 5.0         | Authoring `dsmonitor.config.ts`                   | Usually already installed                            |
 
-## 4. Quick Start
+## 3. Quick Start
 
-### 4.1 Bootstrap (`dsmonitor init`)
+> **Non-developer 5-minute start** — to see just the code metrics without diving into configuration:
+>
+> 1. `npx dsmonitor init` — it asks whether you use Figma / Lighthouse. If unsure, answer `N` to both (you can turn them on later).
+> 2. `npx dsmonitor audit --only code` — measures code only (runs right away, no Figma token or login setup).
+> 3. Open the generated dashboard in a browser — macOS: `open dsmonitor/reports/dashboard-*.html`; Windows: `start dsmonitor\reports\dashboard-*.html`; or double-click the `dashboard-….html` file in `dsmonitor/reports/` in your file explorer.
+>
+> For full configuration (including Figma · Lighthouse), see 3.1 – 3.3 below and [7. Configuration Guide](#7-configuration-guide--all-fields-of-dsmonitorconfigts).
+
+### 3.1 Bootstrap (`dsmonitor init`)
 
 ```bash
 npx dsmonitor init
@@ -1144,7 +1205,7 @@ my-project/
         └── auth/custom.js         ← only when using a custom adapter
 ```
 
-### 4.2 Filling `.env.local`
+### 3.2 Filling `.env.local`
 
 Copy the example with real values:
 
@@ -1165,9 +1226,9 @@ cp dsmonitor/.env.local.example dsmonitor/.env.local
 - Always keep `.env.local` in `.gitignore` (sensitive material).
 - For custom adapters, define your own variables. Keep the adapter body and the `.env.local.example` comments in sync.
 
-### 4.3 Filling `dsmonitor.config.ts`
+### 3.3 Filling `dsmonitor.config.ts`
 
-After `dsmonitor init` writes `dsmonitor/dsmonitor.config.ts`, fill the entries below. Detailed semantics are in section 6 (Configuration guide).
+After `dsmonitor init` writes `dsmonitor/dsmonitor.config.ts`, fill the entries below. Detailed semantics are in section 7 (Configuration guide).
 
 - `projectRoot` — usually `..` (the parent of `dsmonitor/`).
 - `scan.codeRoots` / `scan.ignore` — analysis targets and ignore patterns.
@@ -1175,7 +1236,7 @@ After `dsmonitor init` writes `dsmonitor/dsmonitor.config.ts`, fill the entries 
 - `lighthouse.baseUrl` / `lighthouse.pages` — Lighthouse base URL and page list.
 - `lighthouse.auth` — auth strategy (none / basic / custom).
 
-## 5. CLI Commands
+## 4. CLI Commands
 
 ```bash
 npx dsmonitor audit --all                    # integrated chain (code + figma + lighthouse + report + dashboard)
@@ -1198,7 +1259,7 @@ Shared options:
 - `--env <path>` — explicit `.env.local` path. Otherwise dsmonitor looks for it next to the config file.
 - `--input <path>` / `--output <path>` — input / output paths for the `report` command.
 
-### 5.1 Comparing measurement commands
+### 4.1 Comparing measurement commands
 
 | Command                                                         | baseline JSON | dashboard | When to use                                                                                  |
 | --------------------------------------------------------------- | ------------- | --------- | -------------------------------------------------------------------------------------------- |
@@ -1214,7 +1275,7 @@ Shared options:
 - `dashboard` reads the latest `baseline-*.json` (matched by prefix) and renders the HTML.
 - More flow details: [docs/measurement-flow.md](./docs/measurement-flow.md).
 
-### 5.2 `export-migration` command
+### 4.2 `export-migration` command
 
 ```bash
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
@@ -1231,11 +1292,45 @@ Exports a CSV of instances within a specific Figma frame — useful as source da
 | Output                 | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` (frame name and ds label are sanitized — any char outside `[A-Za-z0-9_-]` becomes `_`).            |
 | CSV columns            | `nodeId`, `componentName`, `instanceName`, `dsLabel`, `contextPath`, `figmaUrl` — figmaUrl is auto-assembled so you can click straight into Figma.           |
 
-## 6. Configuration Guide — All Fields of `dsmonitor.config.ts`
+## 5. Output Locations
+
+| File                                                      | Content                                                                                    |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | Measurement result (official baseline). Produced by `--baseline`.                          |
+| `dsmonitor/reports/YYYY-MM-DD.json`                       | Non-baseline (recommend gitignored).                                                       |
+| `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance-level raw — per-frame nodeId / componentName / dsLabel / contextPath.       |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4-tab dashboard (Summary / Code / Lighthouse / Figma) + plugin tabs added dynamically. Open it in a browser (macOS `open …/dashboard-*.html`, Windows `start`, or double-click in the file explorer).      |
+| `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | Migration CSV (`export-migration`).                                                        |
+| `dsmonitor/reports/plugins/{id}/{date}.json`              | Sidecar plugin measurement.                                                                |
+| `dsmonitor/docs/baseline.md`                              | Markdown report (auto-generated, do not edit).                                             |
+| `dsmonitor/docs/overview-for-stakeholders.md`             | Concise summary aimed at non-developers.                                                    |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/manifest.json`   | LHCI manifest.                                                                              |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/summary.json`    | Per-page 4-score summary.                                                                   |
+| `dsmonitor/lighthouse/reports/YYYY-MM-DD/*-report.html`   | Individual Lighthouse HTML reports (open in a browser).                                     |
+
+## 6. Reading the Reports
+
+The dashboard has five tabs (Figma / Lighthouse tabs hide themselves when disabled).
+
+- **Summary** — single-screen overview of every metric, color-coded good / warn / bad.
+- **Code** — code measurement details: forbidden class, DS coverage, TS migration, migration candidates, orphan class, etc.
+- **Figma** — DS counts, token matrix, unknown-source instances, DS component matching, migration priority.
+- **Lighthouse** — per-page 4 scores plus trend.
+- **Plugin** — external measurements written under `dsmonitor/reports/plugins/`.
+
+The markdown report (`dsmonitor/docs/baseline.md`) is ready to paste into a PR, Slack, or internal wiki. It is auto-generated, so don't edit it — the next measurement run overwrites it.
+
+If you are a non-developer (planning · design · publishing), start with `dsmonitor/docs/overview-for-stakeholders.md` — a concise, jargon-free summary of the results (auto-generated on each audit run).
+
+---
+
+> **Reference section ahead.** `dsmonitor init` already writes a working config file, so you don't have to read everything below on your first pass — usually you only adjust values like paths and URLs. The "(required)" labels in §7 mean "the field must exist in the config", not "you must write it from scratch".
+
+## 7. Configuration Guide — All Fields of `dsmonitor.config.ts`
 
 A single config file controls every measurement option. The subsections below walk through `UIHealthConfig` in order.
 
-### 6.1 `projectRoot` (required)
+### 7.1 `projectRoot` (required)
 
 Root path of the analysis target. When the config lives at `dsmonitor/dsmonitor.config.ts`, `".."` is the natural value.
 
@@ -1243,11 +1338,11 @@ Root path of the analysis target. When the config lives at `dsmonitor/dsmonitor.
 projectRoot: "..",
 ```
 
-### 6.2 `projectName` (optional)
+### 7.2 `projectName` (optional)
 
 Name shown in the dashboard header / footer. If omitted, dsmonitor reads `package.json`'s `name`. If neither exists, `"Unknown Project"` is shown.
 
-### 6.3 `stylingPolicy` (required)
+### 7.3 `stylingPolicy` (required)
 
 The project's styling policy — which approaches are `allowed`, which is `preferred`, and which are `forbidden`. Four ready-made presets ship under `presets/`; pick the closest one (ESM `import` since 0.7.3).
 
@@ -1265,7 +1360,7 @@ import stylingPolicy from "dsmonitor/presets/scss-project.js";
 
 If none fit, hand-roll a policy: `import type { StylingPolicy } from "dsmonitor"`.
 
-### 6.4 `scan` (required)
+### 7.4 `scan` (required)
 
 Analysis targets and ignore patterns.
 
@@ -1284,7 +1379,7 @@ scan: {
 - `ignore` — glob patterns to skip. Add `**/build/**` for CRA, `**/dist/**` for Vite.
 - `codeExts` / `styleExts` — file extensions. Drop `.js` / `.jsx` for TS-only projects.
 
-### 6.5 `globalStyleSources` (required)
+### 7.5 `globalStyleSources` (required)
 
 Glob patterns for the files that define globally-allowed styles. All CSS selectors defined in matched files build the "global index".
 
@@ -1294,7 +1389,7 @@ A component's className lands in `allowedGlobal` if any of its classes are in th
 globalStyleSources: ["styles/**/*.{scss,css}"],
 ```
 
-### 6.6 `designSystem` (required)
+### 7.6 `designSystem` (required)
 
 Tells dsmonitor where the DS components live AND how they are imported. `officialPaths` and `officialAliases` describe the same DS in two different "languages" and usually carry different values.
 
@@ -1312,7 +1407,7 @@ designSystem: {
 
 Equal values for the two fields imply an alias-free setup (only relative imports). Think of `officialPaths` as the answer to "where are the files?" and `officialAliases` as the answer to "how are they imported?".
 
-### 6.7 `hardcodedValues` (required)
+### 7.7 `hardcodedValues` (required)
 
 Regex sets for hardcoded-value detection.
 
@@ -1335,7 +1430,7 @@ hardcodedValues: {
 - `scssVariableUsagePatterns` — regex for variable references (CSS `var()`, SCSS `$`).
 - `scssVariableDefFiles` — definition files to exclude from hardcoded detection (e.g. Tailwind `@theme` hex values inside `app/globals.css`).
 
-### 6.8 `migrationTargets` / `migrationMinClassLength` (required)
+### 7.8 `migrationTargets` / `migrationMinClassLength` (required)
 
 A table mapping native HTML tags to DS components. dsmonitor uses it to flag places where native tags are still in use as migration candidates.
 
@@ -1376,7 +1471,7 @@ migrationMinClassLength: 3,
 
 > Configurations using the legacy `nativeTags: ["input"]` form (0.5.x and earlier) continue to work in 0.6.0. The change is compatibility-preserving and does not alter what is detected for an existing config.
 
-#### 6.8.1 `migrationCandidates.excludeOfficialPaths` (0.7.2+)
+#### 7.8.1 `migrationCandidates.excludeOfficialPaths` (0.7.2+)
 
 Fixes the false-positive where a DS source file (e.g. `Button.tsx` using a `<button>` internally) is wrongly flagged as a migration candidate.
 
@@ -1398,7 +1493,7 @@ How this compares to `scan.ignore`:
 
 > Setups that used a glob (`officialPaths: ["src/laon-web-ui/**"]`) before 0.7.2 silently misbehaved — the prefix matcher could never hit the glob, so DS files leaked into the candidate list. 0.7.2 normalizes the glob root AND applies the new default `true`, so candidate counts may go down for those setups (intended). Set `excludeOfficialPaths: false` to keep the legacy behavior.
 
-### 6.9 `framework` (required)
+### 7.9 `framework` (required)
 
 Picks the framework adapter for code analysis. Currently only `"react"` is supported (Vue / Svelte adapters are planned).
 
@@ -1406,7 +1501,7 @@ Picks the framework adapter for code analysis. Currently only `"react"` is suppo
 framework: { id: "react" },
 ```
 
-### 6.10 `metrics` (required)
+### 7.10 `metrics` (required)
 
 Per-area on / off toggles. Set anything irrelevant to your stack to `false` — the corresponding dashboard cards will be hidden too.
 
@@ -1430,7 +1525,7 @@ metrics: {
 - `scssVariableCompliance` — SCSS variable usage / hardcoded ratio. Tailwind projects are usually near 0% — set to `false` there.
 - `figmaAnalysis` — Figma measurement. Requires both `figma` field and `FIGMA_API_TOKEN`.
 
-### 6.11 `figma` (optional)
+### 7.11 `figma` (optional)
 
 Figma measurement settings. Only used when `metrics.figmaAnalysis = true`.
 
@@ -1471,8 +1566,8 @@ figma: {
 ```
 
 - `validationLevel` — currently only `"lite"` is supported (Variables API needs Enterprise plan; we measure Styles + Components counts only).
-- `designSystemFiles` — DS file list. Each entry: `{ url, label, primary?, comment? }`. When there are 2+ DS files, exactly one must have `primary: true` (see 6.11.1).
-- `domainFiles` — actual UI mockup files. Three patterns: A / B / C (see 6.11.2).
+- `designSystemFiles` — DS file list. Each entry: `{ url, label, primary?, comment? }`. When there are 2+ DS files, exactly one must have `primary: true` (see 7.11.1).
+- `domainFiles` — actual UI mockup files. Three patterns: A / B / C (see 7.11.2).
 - `unknownInstances.topN` — how many top "unknown-source instances" to surface.
 - `unknownInstances.allowUnknownSource` — include unregistered sources (e.g. legacy outsourced DS) in the result.
 - `codeTokens.parsers` — array of code-token parser configs. Leave it empty and the token matrix `code` column count is 0. Three parsers are supported (register as many as you need):
@@ -1495,7 +1590,7 @@ When the same name is emitted by more than one parser, the earliest registration
 - During audit, any missing path emits a single `⚠ codeTokens.parsers (...) — file_not_found` line on stderr, is accumulated under `figma.tokenMatrix.warnings` in the baseline JSON, and is surfaced as a yellow banner at the top of the token matrix subsection on the dashboard.
 - For a one-shot check, run `npx dsmonitor doctor` — it verifies config, environment variables, and every path at once.
 
-#### 6.11.1 DS file labels and primary
+#### 7.11.1 DS file labels and primary
 
 Labels are free-form (`"v1"`, `"v2"`, `"main"`, `"legacy"`, `"ds-new"`, etc.) — the dashboard displays them verbatim.
 
@@ -1513,7 +1608,7 @@ In 0.1.x, the `ds-new` label was auto-primary. 0.2.0+ requires explicit specific
 + { url: "...", label: "ds-new", primary: true },
 ```
 
-#### 6.11.2 Domain file input patterns
+#### 7.11.2 Domain file input patterns
 
 Domain files accept any of three patterns, and you can mix patterns B and C in a single domain (dsmonitor validates that all URLs belong to the same file).
 
@@ -1547,7 +1642,7 @@ Domain files accept any of three patterns, and you can mix patterns B and C in a
 
 Paste Figma "Copy link" URLs verbatim — no need to extract `fileKey` by hand, and `node-id=2-2` in URLs is auto-converted to `2:2` for the REST API.
 
-### 6.12 `lighthouse` (optional)
+### 7.12 `lighthouse` (optional)
 
 Lighthouse measurement settings.
 
@@ -1569,7 +1664,7 @@ lighthouse: {
 - `baseUrl` — measurement base URL. Switch environments by changing this single value. Fallback: `process.env.LIGHTHOUSE_BASE_URL ?? "http://localhost:3000"`.
 - `pages` — list of pages to measure: `{ path, name? }`. Empty array falls back to `["/"]`.
 - `runs` — repeats per URL. Default 3 (medians produce a meaningful representative). 1 is fast but loses representativeness.
-- `auth` — auth strategy. Details in 6.12.1.
+- `auth` — auth strategy. Details in 7.12.1.
 - `advanced` — untyped passthrough deep-merged into LHCI `ci.collect.settings`. Common uses:
   - `skipAudits: ["uses-http2"]` — common on internal networks.
   - `chromeFlags: ["--no-sandbox"]` — Docker / CI.
@@ -1583,7 +1678,7 @@ dsmonitor injects sensible defaults (overridable via `advanced`):
 - `onlyCategories: ["performance", "accessibility", "best-practices", "seo"]`.
 - `disableStorageReset: true` when `auth.type !== "none"` (so sessions / JWTs installed by the adapter survive between runs).
 
-#### 6.12.1 Lighthouse authentication
+#### 7.12.1 Lighthouse authentication
 
 `lighthouse.auth` is a 3-way discriminated union.
 
@@ -1660,7 +1755,7 @@ export default adapter;
 
 The full guide (writing flow, env-var conventions, TypeScript → JavaScript conversion, validating with `dsmonitor doctor`) lives at [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md).
 
-### 6.13 `thresholds` (required)
+### 7.13 `thresholds` (required)
 
 Per-metric good / warn thresholds. `direction: "higher"` means higher is better, `"lower"` means lower is better.
 
@@ -1679,7 +1774,7 @@ thresholds: {
 
 `componentMatch` thresholds apply to the Figma DS component ↔ code className match ratio (optional, only meaningful when Figma is enabled).
 
-### 6.14 `softBaseline` (optional)
+### 7.14 `softBaseline` (optional)
 
 Visualizes the ESLint forbidden-class soft baseline. Non-blocking — only reports the diff between current violations and the baseline.
 
@@ -1693,7 +1788,7 @@ softBaseline: {
 - A missing file just prints "baseline missing" and exits (good for new projects).
 - This file is **different** from the `lint-baseline.json` consumed by `dsmonitor/eslint` (the per-file severity override map). Don't confuse them.
 
-### 6.15 `report` (required)
+### 7.15 `report` (required)
 
 Where the baseline JSON is written and its filename prefix.
 
@@ -1704,7 +1799,7 @@ report: {
 },
 ```
 
-### 6.16 `measurementHistory` / `reportStatus` (optional)
+### 7.16 `measurementHistory` / `reportStatus` (optional)
 
 Time-series metadata that helps readers interpret the report.
 
@@ -1735,9 +1830,9 @@ reportStatus: {
 - `measurementHistory` — change log for the measurement tool itself. Logging it here lets readers trace why a number suddenly shifted.
 - `reportStatus` — phase badges shown at the top of baseline.md. Manual transition (upcoming → current → completed).
 
-## 7. Per-stack Configuration Sketches
+## 8. Per-stack Configuration Sketches
 
-### 7.1 Next.js + TypeScript + React + SCSS
+### 8.1 Next.js + TypeScript + React + SCSS
 
 ```ts
 import stylingPolicy from "dsmonitor/presets/scss-project.js"; // → config 안: stylingPolicy,
@@ -1753,7 +1848,7 @@ figma: {
 },
 ```
 
-### 7.2 Next.js + TypeScript + React + Tailwind
+### 8.2 Next.js + TypeScript + React + Tailwind
 
 ```ts
 import stylingPolicy from "dsmonitor/presets/tailwind-project.js"; // → config 안: stylingPolicy,
@@ -1771,7 +1866,7 @@ figma: {
 
 Leaving `scssVariableCompliance: true` in a Tailwind project will always report 0%, which is meaningless. Also, hex values inside `@theme` in `globals.css` are caught by `colorPatterns` as noise — list that file in `scssVariableDefFiles`.
 
-### 7.3 Next.js + TypeScript + React + CSS Modules
+### 8.3 Next.js + TypeScript + React + CSS Modules
 
 ```ts
 import stylingPolicy from "dsmonitor/presets/css-modules-project.js"; // → config 안: stylingPolicy,
@@ -1787,7 +1882,7 @@ figma: {
 },
 ```
 
-### 7.4 Vite + React + Tailwind
+### 8.4 Vite + React + Tailwind
 
 ```ts
 scan: {
@@ -1797,14 +1892,14 @@ scan: {
     "**/build/**",  // when mixed with CRA
   ],
 },
-// stylingPolicy / hardcodedValues / etc. are the same as 7.2.
+// stylingPolicy / hardcodedValues / etc. are the same as 8.2.
 ```
 
 dsmonitor does not depend on the build tool. Vite / CRA / Next.js — just point `scan.ignore` at your output directory.
 
 `presets/configs/` ships starter templates (`next-pages-scss.ts`, `next-app-css-modules.ts`, `vite-react-tailwind.ts`).
 
-## 8. How Figma Matching Works
+## 9. How Figma Matching Works
 
 The Figma measurement has three threads.
 
@@ -1821,7 +1916,7 @@ Classification:
 - **CSS only** — defined in CSS but not used in JSX/TSX (potential dead style).
 - **Figma only** — Figma component exists but no code className matches (migration priority).
 
-## 9. ESLint Plugin
+## 10. ESLint Plugin
 
 The dsmonitor stylingPolicy can be enforced as ESLint rules too.
 
@@ -1877,7 +1972,21 @@ Soft baseline JSON shape:
 
 CI integration patterns: [docs/eslint-ci-integration.md](./docs/eslint-ci-integration.md).
 
-## 10. Writing Sidecar Plugins
+## 11. Sidecar Plugins
+
+> This is an extension feature — first-timers can skip it. It is independent of dsmonitor's core measurement.
+
+You can surface external measurements (unit tests, bundle size, accessibility audits, etc.) in the dashboard by writing a single JSON file in a known location.
+
+- Location: `dsmonitor/reports/plugins/{id}/{date}.json` (sorted alphabetically by id).
+- Auto-discovery: `npx dsmonitor dashboard` scans the folder automatically. No extra command.
+- Validation: missing fields, mismatched id, or invalid JSON triggers a red alert in the dashboard.
+- Staleness: a plugin whose `measuredAt` is older than 7 days gets a gray badge.
+- One Summary Layer 04+ cell and a dedicated plugin tab are added automatically per plugin.
+
+See [docs/plugin-development.md](./docs/plugin-development.md) for the plugin authoring guide.
+
+### 11.1 Writing a sidecar plugin
 
 Surface external measurements (unit tests, bundle size, accessibility audits, etc.) in the dashboard by writing a JSON file to the known location.
 
@@ -1917,39 +2026,26 @@ const output: DSMonitorPluginOutput = {
 
 Full guide and deeper examples: [docs/plugin-development.md](./docs/plugin-development.md).
 
-## 11. Output Locations
+## 12. Environment Variables
 
-| File                                                      | Content                                                                                    |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | Measurement result (official baseline). Produced by `--baseline`.                          |
-| `dsmonitor/reports/YYYY-MM-DD.json`                       | Non-baseline (recommend gitignored).                                                       |
-| `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance-level raw — per-frame nodeId / componentName / dsLabel / contextPath.       |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4-tab dashboard (Summary / Code / Lighthouse / Figma) + plugin tabs added dynamically.      |
-| `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | Migration CSV (`export-migration`).                                                        |
-| `dsmonitor/reports/plugins/{id}/{date}.json`              | Sidecar plugin measurement.                                                                |
-| `dsmonitor/docs/baseline.md`                              | Markdown report (auto-generated, do not edit).                                             |
-| `dsmonitor/docs/overview-for-stakeholders.md`             | Concise summary aimed at non-developers.                                                    |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/manifest.json`   | LHCI manifest.                                                                              |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/summary.json`    | Per-page 4-score summary.                                                                   |
-| `dsmonitor/lighthouse/reports/YYYY-MM-DD/*-report.html`   | Individual Lighthouse HTML reports (open in a browser).                                     |
-
-## 12. Reading the Reports
-
-The dashboard has five tabs (Figma / Lighthouse tabs hide themselves when disabled).
-
-- **Summary** — single-screen overview of every metric, color-coded good / warn / bad.
-- **Code** — code measurement details: forbidden class, DS coverage, TS migration, migration candidates, orphan class, etc.
-- **Figma** — DS counts, token matrix, unknown-source instances, DS component matching, migration priority.
-- **Lighthouse** — per-page 4 scores plus trend.
-- **Plugin** — external measurements written under `dsmonitor/reports/plugins/`.
-
-The markdown report (`dsmonitor/docs/baseline.md`) is ready to paste into a PR, Slack, or internal wiki. It is auto-generated, so don't edit it — the next measurement run overwrites it.
+| Variable                              | Purpose                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `FIGMA_API_TOKEN`                     | Figma REST API token. Required when `figmaAnalysis = true`.                                     |
+| `LIGHTHOUSE_BASE_URL`                 | Lighthouse measurement base URL.                                                                |
+| `LIGHTHOUSE_LOGIN_URL`                | basic auth — login page path or absolute URL.                                                   |
+| `LIGHTHOUSE_TEST_ID`                  | basic auth — test account ID.                                                                   |
+| `LIGHTHOUSE_TEST_PW`                  | basic auth — test account password.                                                             |
+| `LIGHTHOUSE_BASIC_SELECTOR_ID_INPUT`  | basic auth — ID input selector override (optional).                                             |
+| `LIGHTHOUSE_BASIC_SELECTOR_PW_INPUT`  | basic auth — password input selector override (optional).                                       |
+| `LIGHTHOUSE_BASIC_SELECTOR_SUBMIT`    | basic auth — submit button selector override (optional).                                        |
+| `VITAUI_ENV_FILE`                     | Legacy — explicit `.env.local` path. Deprecated since 0.2.0; prefer `--env <path>`.             |
+| `VITAUI_LINT_BASELINE`                | Legacy — explicit soft lint baseline path. Prefer `--baseline <path>`.                          |
 
 ## 13. Troubleshooting / FAQ
 
 **Q. The Figma token matrix shows `codeCount = 0`.**
 
-A. Almost always a path mismatch in `codeTokens.parsers`. Since 0.7.0, audit prints a single `⚠ codeTokens.parsers ...` line on stderr, the baseline JSON accumulates them under `figma.tokenMatrix.warnings`, and the dashboard surfaces a yellow banner at the top of the "Token Matrix" subsection. Run `npx dsmonitor doctor` for a single-shot diagnostic, then adjust the paths per §6.11.
+A. Almost always a path mismatch in `codeTokens.parsers`. Since 0.7.0, audit prints a single `⚠ codeTokens.parsers ...` line on stderr, the baseline JSON accumulates them under `figma.tokenMatrix.warnings`, and the dashboard surfaces a yellow banner at the top of the "Token Matrix" subsection. Run `npx dsmonitor doctor` for a single-shot diagnostic, then adjust the paths per §7.11.
 
 **Q. `tailwind.config` is not auto-detected, or the extension is different.**
 
@@ -1987,7 +2083,7 @@ A. Since 0.7.2, `migrationCandidates.excludeOfficialPaths` defaults to `true`, s
 
 **Q. How do I run Lighthouse against a page that requires login?**
 
-A. Set `dsmonitor.config.ts`'s `lighthouse.auth` to `{ type: "custom", adapter: "./..." }` and write an adapter file. Five common scenarios (HTTP Basic, Form login, SSO, JWT injection, OAuth 2.0) come with ready-to-copy examples under `docs/auth-adapter-examples/`. Since 0.7.1 you can also `import type { LighthouseAuthAdapter } from "dsmonitor"` for IDE autocomplete and compile-time checks. See §6.12.1 and [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) for the full walkthrough.
+A. Set `dsmonitor.config.ts`'s `lighthouse.auth` to `{ type: "custom", adapter: "./..." }` and write an adapter file. Five common scenarios (HTTP Basic, Form login, SSO, JWT injection, OAuth 2.0) come with ready-to-copy examples under `docs/auth-adapter-examples/`. Since 0.7.1 you can also `import type { LighthouseAuthAdapter } from "dsmonitor"` for IDE autocomplete and compile-time checks. See §7.12.1 and [`docs/auth-adapter-examples/README.md`](./docs/auth-adapter-examples/README.md) for the full walkthrough.
 
 **Q. dsmonitor can't find `dsmonitor.config.ts`.**
 
@@ -2033,22 +2129,20 @@ A. The 2-hop match (componentId → stable key → DS label) failed at hop 2. Co
 
 A. Make sure you installed both `dsmonitor` and `eslint-plugin-dsmonitor`. ESLint legacy config requires a `eslint-plugin-{name}` package on disk, which is why a wrapper package is published separately.
 
-## 14. Environment Variables
+### Glossary
 
-| Variable                              | Purpose                                                                                         |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `FIGMA_API_TOKEN`                     | Figma REST API token. Required when `figmaAnalysis = true`.                                     |
-| `LIGHTHOUSE_BASE_URL`                 | Lighthouse measurement base URL.                                                                |
-| `LIGHTHOUSE_LOGIN_URL`                | basic auth — login page path or absolute URL.                                                   |
-| `LIGHTHOUSE_TEST_ID`                  | basic auth — test account ID.                                                                   |
-| `LIGHTHOUSE_TEST_PW`                  | basic auth — test account password.                                                             |
-| `LIGHTHOUSE_BASIC_SELECTOR_ID_INPUT`  | basic auth — ID input selector override (optional).                                             |
-| `LIGHTHOUSE_BASIC_SELECTOR_PW_INPUT`  | basic auth — password input selector override (optional).                                       |
-| `LIGHTHOUSE_BASIC_SELECTOR_SUBMIT`    | basic auth — submit button selector override (optional).                                        |
-| `VITAUI_ENV_FILE`                     | Legacy — explicit `.env.local` path. Deprecated since 0.2.0; prefer `--env <path>`.             |
-| `VITAUI_LINT_BASELINE`                | Legacy — explicit soft lint baseline path. Prefer `--baseline <path>`.                          |
+| Term | Meaning |
+| ---- | ------- |
+| baseline JSON | The file holding one full measurement run (`dsmonitor/reports/baseline-<date>.json`). The dashboard and reports are rendered from it. |
+| forbidden class | A CSS class the styling policy bans (e.g. Bootstrap · Tailwind utilities slated for cleanup). |
+| orphan class | A class used as a className in JSX/TSX but defined in no CSS file (possible missing definition). |
+| DS coverage | Share of files that actually import and use design-system (DS) components. |
+| migration candidate | A spot still using a native HTML tag (e.g. `<button>`) that could become a DS component. |
+| 2-hop matching | Tracing which DS a Figma instance came from in two steps (componentId → stable key → DS label). |
+| ratchet | ESLint behavior that keeps existing violations as warnings and blocks only new ones, for gradual cleanup. |
+| token matrix | A table cross-referencing code tokens (color · spacing variables, etc.) against the DS Styles in Figma to see what exists on both sides. |
 
-## 15. Further Reading
+## 14. Further Reading
 
 - [docs/figma-config-guide.md](./docs/figma-config-guide.md) — In-depth Figma configuration guide.
 - [docs/eslint-rules.md](./docs/eslint-rules.md) — ESLint rule details and ratchet behavior.
@@ -2059,12 +2153,12 @@ A. Make sure you installed both `dsmonitor` and `eslint-plugin-dsmonitor`. ESLin
 - [docs/measurement-flow.md](./docs/measurement-flow.md) — Measurement flow diagram.
 - [docs/methodology.md](./docs/methodology.md) — Measurement methodology (currently a placeholder).
 
-## 16. Acknowledgments
+## 15. Acknowledgments
 
 - **[chenjingdev](https://github.com/chenjingdev)** — Planning collaboration.
 - **[june0-K](https://github.com/june0-K)** — Planning collaboration.
 - **[servantcdh](https://github.com/servantcdh)** — Plugin system collaboration.
 
-## 17. License
+## 16. License
 
 MIT — [LICENSE](./LICENSE)
