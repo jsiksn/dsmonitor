@@ -109,21 +109,58 @@ export function runDoctor(
     }
   }
 
+  // ─── stylingPolicy 의미 검증 (0.9.0) ───────────────────────────────
+  // 옛 흐름: 경로 존재만 검사 — preferred 가 allowed 에 없는 잘못된 설정이
+  // doctor 를 통과하고 실제 측정 단계에서야 드러났음.
+  {
+    const policy = cfg.stylingPolicy;
+    const allowedIds = policy.allowed.map((a) => a.id);
+    if (!allowedIds.includes(policy.preferred)) {
+      push({
+        severity: "error",
+        category: "stylingPolicy",
+        message: `preferred "${policy.preferred}" 가 allowed 목록에 없습니다 (allowed: ${allowedIds.join(", ") || "없음"})`,
+        hint: "stylingPolicy.preferred 는 allowed[].id 중 하나여야 합니다. preset 을 그대로 쓰면 자동으로 일치합니다.",
+      });
+    } else {
+      push({
+        severity: "ok",
+        category: "stylingPolicy",
+        message: `preferred "${policy.preferred}" — allowed 목록에 존재`,
+      });
+    }
+  }
+
   // ─── globalStyleSources ────────────────────────────────────────────
-  // glob 패턴 검증은 풀스캔이 무거우므로, 패턴의 첫 root 부분만 디렉토리 존재로 가늠합니다.
+  // 0.9.0 — 옛 root 부분 존재 가늠 → glob 실매치 검사 (codeTokens.parsers 와 같은 방식).
   for (const pattern of cfg.globalStyleSources) {
-    const rootPart = pattern.split("/**")[0].split("/*")[0];
-    if (rootPart && exists(rootPart)) {
+    if (isGlobPattern(pattern)) {
+      const matches = fg.sync(pattern, { cwd: absRoot, dot: false });
+      if (matches.length > 0) {
+        push({
+          severity: "ok",
+          category: "globalStyleSources",
+          message: `${pattern} (glob match ${matches.length}건)`,
+        });
+      } else {
+        push({
+          severity: "warn",
+          category: "globalStyleSources",
+          message: `${pattern} (glob match 0건)`,
+          hint: "globalStyleSources 가 실제 styles 위치를 가리키는지 확인하세요.",
+        });
+      }
+    } else if (exists(pattern)) {
       push({
         severity: "ok",
         category: "globalStyleSources",
-        message: `${pattern}`,
+        message: `${pattern} (found)`,
       });
-    } else if (rootPart) {
+    } else {
       push({
         severity: "warn",
         category: "globalStyleSources",
-        message: `${pattern} — root "${rootPart}" not found`,
+        message: `${pattern} (not found)`,
         hint: "globalStyleSources 가 실제 styles 위치를 가리키는지 확인하세요.",
       });
     }
@@ -148,21 +185,36 @@ export function runDoctor(
   }
 
   // ─── designSystem.officialPaths ────────────────────────────────────
+  // 0.9.0 — 옛 root 부분 존재 가늠 → glob 실매치 검사.
   for (const p of cfg.designSystem.officialPaths) {
-    const rootPart = p.split("/**")[0].split("/*")[0];
-    if (!rootPart) continue;
-    if (!exists(rootPart)) {
-      push({
-        severity: "error",
-        category: "designSystem.officialPaths",
-        message: `${p} — root "${rootPart}" not found`,
-        hint: "DS 본체 파일이 실제로 위치한 디렉토리로 정정하세요. (officialPaths = 파일시스템 경로 / officialAliases = import alias)",
-      });
-    } else {
+    if (isGlobPattern(p)) {
+      const matches = fg.sync(p, { cwd: absRoot, dot: false });
+      if (matches.length > 0) {
+        push({
+          severity: "ok",
+          category: "designSystem.officialPaths",
+          message: `${p} (glob match ${matches.length}건)`,
+        });
+      } else {
+        push({
+          severity: "error",
+          category: "designSystem.officialPaths",
+          message: `${p} (glob match 0건)`,
+          hint: "DS 본체 파일이 실제로 위치한 디렉토리로 정정하세요. (officialPaths = 파일시스템 경로 / officialAliases = import alias)",
+        });
+      }
+    } else if (exists(p)) {
       push({
         severity: "ok",
         category: "designSystem.officialPaths",
-        message: `${p} (root found)`,
+        message: `${p} (found)`,
+      });
+    } else {
+      push({
+        severity: "error",
+        category: "designSystem.officialPaths",
+        message: `${p} (not found)`,
+        hint: "DS 본체 파일이 실제로 위치한 디렉토리로 정정하세요. (officialPaths = 파일시스템 경로 / officialAliases = import alias)",
       });
     }
   }
@@ -229,12 +281,17 @@ export function runDoctor(
   // ─── figma.designSystemFiles / domainFiles URL 형식 ────────────────
   if (cfg.figma) {
     const checkUrl = (url: string, where: string): void => {
+      // 허용 형식은 분석기 (figma/urlParser) 수용 범위와 동일: /design/ + 구 /file/.
+      // 0.9.0 — hint 보강: FigJam (/board/) · Slides 링크는 측정 대상이 아님을 명시
+      //   (허용 폭을 넓히면 분석기에서 실패할 URL 이 doctor 를 통과하게 되므로 X).
       if (!/^https:\/\/(?:www\.)?figma\.com\/(?:design|file)\//.test(url)) {
         push({
           severity: "error",
           category: "figma.url",
           message: `${where}: ${url}`,
-          hint: "Figma 'Copy link' URL 그대로 붙여 넣으세요. https://www.figma.com/design/<fileKey>/... 형식.",
+          hint:
+            "Figma 'Copy link' URL 그대로 붙여 넣으세요. https://www.figma.com/design/<fileKey>/... 형식. " +
+            "FigJam (/board/) · Slides 링크는 측정 대상이 아닙니다 — 디자인 파일 링크가 필요합니다.",
         });
       }
     };

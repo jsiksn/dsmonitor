@@ -71,6 +71,9 @@ const TAILWIND_CONFIG_CANDIDATES = [
   "tailwind.config.js",
   "tailwind.config.mjs",
   "tailwind.config.cjs",
+  // 0.9.0 — TS module 변형 확장자 추가 (파서 loadConfigModule 은 이미 지원).
+  "tailwind.config.mts",
+  "tailwind.config.cts",
 ];
 
 const CSS_GLOBALS_CANDIDATES = [
@@ -192,9 +195,11 @@ export async function runInit(): Promise<void> {
       stdio: "inherit",
     });
     if (result.status !== 0) {
-      console.warn("\n⚠ @lhci/cli 자동 install 실패 — 직접 명령:");
-      console.warn("    npm install --save-dev @lhci/cli");
-      console.warn("  (yarn / pnpm 환경은 자체 명령 활용. 본 0.1.x = npm only.)");
+      // 0.9.0 — 패키지 매니저별 직접 명령 안내 (자동 install 은 npm 한정).
+      console.warn("\n⚠ @lhci/cli 자동 install 실패 — 패키지 매니저에 맞는 명령으로 직접 설치하세요:");
+      console.warn("    npm  : npm install --save-dev @lhci/cli");
+      console.warn("    yarn : yarn add --dev @lhci/cli");
+      console.warn("    pnpm : pnpm add --save-dev @lhci/cli");
     } else {
       console.log("✓ @lhci/cli install 끝");
     }
