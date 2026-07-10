@@ -88,19 +88,23 @@ export async function parseTailwindConfig(
   }
 
   const tailwindCfg = mod?.default?.default ?? mod?.default ?? mod;
-  const theme = tailwindCfg?.theme;
-  if (!theme || typeof theme !== "object") return [];
+  const theme = collectTheme(tailwindCfg);
+  if (!theme) return [];
 
   const targets =
     categories === undefined ? DEFAULT_CATEGORIES : categories;
-  const keys = targets.length === 0 ? Object.keys(theme) : targets;
+  const keys =
+    targets.length === 0
+      ? [...new Set([...Object.keys(theme.base), ...Object.keys(theme.extend)])]
+      : targets;
 
   const seenNames = new Set<string>();
   const results: CodeTokenEntry[] = [];
 
   for (const cat of keys) {
-    const base = resolveCategoryValue(theme[cat]);
-    const extend = resolveCategoryValue(theme.extend?.[cat]);
+    if (cat === "extend") continue;
+    const base = resolveCategoryValue(theme.base[cat]);
+    const extend = resolveCategoryValue(theme.extend[cat]);
 
     // base + extend 병합 — extend 가 같은 이름을 override 합니다 (Tailwind 동작과 동일).
     const merged = mergeNested(base, extend);
@@ -121,6 +125,49 @@ export async function parseTailwindConfig(
   return results;
 }
 
+/**
+ * 0.9.0 — `presets` 배열 theme 병합.
+ *
+ * Tailwind 병합 규칙과 동일 취지: preset 이 먼저 깔리고 사용자 config 가 override.
+ * preset 이 다시 presets 를 가지면 재귀 (앞선 preset 이 먼저 깔림).
+ * theme / theme.extend 를 분리 누적 — 카테고리 단위 병합은 기존 mergeNested 그대로.
+ */
+function collectTheme(cfg: any): {
+  base: Record<string, unknown>;
+  extend: Record<string, unknown>;
+} | null {
+  if (!cfg || typeof cfg !== "object") return null;
+  const base: Record<string, unknown> = {};
+  const extend: Record<string, unknown> = {};
+
+  const apply = (c: any) => {
+    if (!c || typeof c !== "object") return;
+    if (Array.isArray(c.presets)) {
+      for (const p of c.presets) apply(p);
+    }
+    const t = c.theme;
+    if (!t || typeof t !== "object") return;
+    for (const [k, v] of Object.entries(t)) {
+      if (k === "extend") continue;
+      base[k] = v;
+    }
+    if (t.extend && typeof t.extend === "object") {
+      for (const [k, v] of Object.entries(t.extend)) {
+        // extend 는 카테고리 값끼리 깊은 병합 (뒤에 적용되는 쪽 = 사용자 config 우선).
+        const prev = resolveCategoryValue(extend[k]);
+        const next = resolveCategoryValue(v);
+        extend[k] = prev || next ? mergeNested(prev, next) : v;
+      }
+    }
+  };
+  apply(cfg);
+
+  if (Object.keys(base).length === 0 && Object.keys(extend).length === 0) {
+    return null;
+  }
+  return { base, extend };
+}
+
 async function loadConfigModule(absPath: string): Promise<any> {
   const isTs =
     absPath.endsWith(".ts") ||
@@ -134,14 +181,25 @@ async function loadConfigModule(absPath: string): Promise<any> {
 }
 
 /**
- * Tailwind 의 카테고리 값은 plain object 또는 함수 (`({ colors }) => ({...})`).
- * 함수형이면 빈 인자로 호출해 결과를 가져옵니다. 호출 실패 / 비-object 결과는 undefined.
+ * Tailwind 의 카테고리 값은 plain object 또는 함수 (`({ colors, theme }) => ({...})`).
+ *
+ * 0.9.0 — 옛 빈 인자 `{}` 호출은 `theme(...)` helper 를 쓰는 함수형 정의에서
+ * TypeError 로 조용히 undefined 가 되던 한계. 최소 stub 을 전달:
+ *   - theme(path, defaultValue) → defaultValue (없으면 {}) — 정적 해석이라
+ *     실제 theme resolve 는 하지 않고 기본값만 취함.
+ *   - colors / breakpoints → 빈 객체.
+ * stub 으로도 실패하는 정의는 옛 흐름 그대로 undefined (경고 없음 — 선택 카테고리).
  */
 function resolveCategoryValue(raw: unknown): Record<string, unknown> | undefined {
   if (!raw) return undefined;
   if (typeof raw === "function") {
+    const stub = {
+      theme: (_path: string, defaultValue?: unknown) => defaultValue ?? {},
+      colors: {},
+      breakpoints: (v: unknown) => v ?? {},
+    };
     try {
-      const result = (raw as (...args: any[]) => unknown)({});
+      const result = (raw as (...args: any[]) => unknown)(stub);
       return isPlainObject(result) ? (result as Record<string, unknown>) : undefined;
     } catch {
       return undefined;
@@ -184,9 +242,15 @@ function* flatten(
     }
   } else if (Array.isArray(value)) {
     // Tailwind 의 fontSize 등은 `["1rem", { lineHeight: "1.5rem" }]` 같은 tuple.
-    // 첫 element 만 value 로 emit, 나머지는 nested entry 가 있으면 그대로 flatten.
+    // 첫 element 는 본 값으로 emit.
     if (value.length > 0) {
       yield [prefix, value[0]];
+    }
+    // 0.9.0 — 2번째 요소가 객체면 sub-token 으로 flatten (옛 흐름은 누락).
+    //   예: fontSize.xl = ["1.25rem", { lineHeight: "1.75rem" }]
+    //       → fontSize.xl.lineHeight = "1.75rem"
+    if (value.length > 1 && isPlainObject(value[1])) {
+      yield* flatten(prefix, value[1]);
     }
   } else {
     yield [prefix, value];

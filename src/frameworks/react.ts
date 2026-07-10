@@ -20,22 +20,106 @@ function walk(node: any, visitor: (n: any, parent: any) => void, parent: any = n
   }
 }
 
+/**
+ * className 표현식에서 클래스 문자열로 볼 수 있는 리터럴만 수집 (0.9.0 정밀화).
+ *
+ * 옛 흐름 (~0.8.x): 표현식 안 **모든** 문자열 리터럴을 무차별 수집 —
+ * `t("common.title")` 같은 i18n 키, `s === "active"` 비교 문자열까지 클래스
+ * 토큰으로 오집계되어 고아 클래스 / 금지 카운트를 부풀렸음.
+ *
+ * 0.9.0 규칙 (노드 타입별 명시 처리, 그 외 기본 skip):
+ *   - Literal(string) / TemplateLiteral 고정 부분 → 수집
+ *   - 클래스 유틸 호출 (CLASS_UTILITY_CALLEES) 의 인자만 재귀 — 그 외 호출 skip
+ *   - 삼항 (?:) → 결과 두 가지만 재귀 (비교 test 는 skip)
+ *   - 논리 (&& / || / ??) → 양쪽 재귀
+ *   - 이항 → `+` (연결) 만 양쪽 재귀, 비교 연산 skip
+ *   - 객체 리터럴 → 문자열 key 만 수집 (clsx 조건 객체 — 값은 조건이라 skip)
+ *   - 배열 → 요소 재귀
+ *   - computed member (`styles["card"]`) → 문자열 property 수집 (CSS modules 키)
+ */
+const CLASS_UTILITY_CALLEES = new Set([
+  "clsx",
+  "classnames",
+  "classNames",
+  "cn",
+  "cx",
+  "twMerge",
+  "twJoin",
+  "cva",
+]);
+
 function collectStringLiterals(node: any, out: string[]): void {
   if (!node || typeof node !== "object") return;
-  if (node.type === "Literal" && typeof node.value === "string") {
-    out.push(node.value);
-    return;
-  }
-  if (node.type === "TemplateLiteral") {
-    for (const q of node.quasis || []) {
-      if (q?.value?.cooked) out.push(q.value.cooked);
+  switch (node.type) {
+    case "Literal":
+      if (typeof node.value === "string") out.push(node.value);
+      return;
+    case "TemplateLiteral":
+      for (const q of node.quasis || []) {
+        if (q?.value?.cooked) out.push(q.value.cooked);
+      }
+      for (const e of node.expressions || []) collectStringLiterals(e, out);
+      return;
+    case "CallExpression": {
+      const callee = node.callee;
+      const name =
+        callee?.type === "Identifier"
+          ? callee.name
+          : callee?.type === "MemberExpression" &&
+              callee.property?.type === "Identifier"
+            ? callee.property.name
+            : null;
+      if (name && CLASS_UTILITY_CALLEES.has(name)) {
+        for (const arg of node.arguments || []) collectStringLiterals(arg, out);
+      }
+      return;
     }
-    for (const e of node.expressions || []) collectStringLiterals(e, out);
-    return;
+    case "ConditionalExpression":
+      collectStringLiterals(node.consequent, out);
+      collectStringLiterals(node.alternate, out);
+      return;
+    case "LogicalExpression":
+      collectStringLiterals(node.left, out);
+      collectStringLiterals(node.right, out);
+      return;
+    case "BinaryExpression":
+      if (node.operator === "+") {
+        collectStringLiterals(node.left, out);
+        collectStringLiterals(node.right, out);
+      }
+      return;
+    case "ObjectExpression":
+      for (const p of node.properties || []) {
+        if (
+          p?.type === "Property" &&
+          p.key?.type === "Literal" &&
+          typeof p.key.value === "string"
+        ) {
+          out.push(p.key.value);
+        }
+      }
+      return;
+    case "ArrayExpression":
+      for (const el of node.elements || []) collectStringLiterals(el, out);
+      return;
+    case "MemberExpression":
+      if (
+        node.computed &&
+        node.property?.type === "Literal" &&
+        typeof node.property.value === "string"
+      ) {
+        out.push(node.property.value);
+      }
+      return;
+    case "TSAsExpression":
+    case "TSNonNullExpression":
+    case "ParenthesizedExpression":
+      collectStringLiterals(node.expression, out);
+      return;
+    default:
+      // 명시 처리 외 노드는 skip — 무차별 walk 로 인한 오집계 방지.
+      return;
   }
-  walk(node, (n) => {
-    if (n.type === "Literal" && typeof n.value === "string") out.push(n.value);
-  });
 }
 
 function extractClassString(attr: any): string {

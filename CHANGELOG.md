@@ -8,6 +8,37 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.9.0] — 2026-07-10
+
+> **측정 결과 변화 안내** — 본 release 의 파서 개선으로 일부 지표 수치가 옛 baseline 과 달라질 수 있습니다 (아래 각 항목에 방향 명시). 시계열 비교 시 0.9.0 전후 구분을 권장합니다.
+>
+> **EN — Measurement change notice**: parser improvements in this release can shift some metric values relative to older baselines (direction noted per item below). For time-series comparisons, treat pre/post-0.9.0 separately.
+
+### 변경 / Changed
+
+- **한 —** DS ↔ 코드 토큰 매칭에 이름 정규화가 도입됩니다 — Tailwind v3 dot-path (`colors.primary.500`) 와 v4 CSS 변수형 (`--color-primary-500`) 을 같은 논리 토큰으로 매칭 (colors / spacing / fontSize / fontFamily / fontWeight / lineHeight / letterSpacing / borderRadius / boxShadow / screens 카테고리 한정 — 그 외 이름은 옛 완전 일치 그대로). 표시 이름은 첫 등장 원 이름 보존. **영향: 토큰 매칭률이 오르는 방향** (옛 흐름은 같은 논리 토큰이 이름 체계 차이로 미매칭).
+- **EN —** Name normalization is introduced for DS ↔ code token matching — Tailwind v3 dot-paths (`colors.primary.500`) and v4 CSS-variable names (`--color-primary-500`) now match as the same logical token (limited to the colors / spacing / fontSize / fontFamily / fontWeight / lineHeight / letterSpacing / borderRadius / boxShadow / screens categories — other names keep the old exact-match behavior). Display names keep the first-seen original. **Effect: token match rates can only go up** (previously the same logical token failed to match across naming schemes).
+- **한 —** `className={...}` 표현식의 문자열 수집이 정밀화됩니다. 옛 흐름은 표현식 안 **모든** 문자열 리터럴을 수집 — `t("common.title")` 같은 i18n 키, `s === "active"` 비교 문자열이 클래스로 오집계. 0.9.0 부터 노드 타입별 명시 규칙: 클래스 유틸 호출 (clsx / classnames / cn / cx / twMerge / twJoin / cva) 인자만 재귀, 삼항은 결과 가지만, `+` 연결·논리 연산·배열·clsx 조건 객체의 key·CSS modules computed key 는 수집, 그 외 skip. **영향: 고아 클래스 / 금지 클래스 카운트가 줄어드는 방향** (오집계 제거).
+- **EN —** String collection inside `className={...}` expressions is now precise. Previously **every** string literal in the expression was collected — i18n keys like `t("common.title")` and comparison strings like `s === "active"` were miscounted as classes. From 0.9.0, explicit per-node rules apply: only class-utility call arguments (clsx / classnames / cn / cx / twMerge / twJoin / cva) recurse; ternaries contribute only their result branches; `+` concatenation, logical operators, arrays, clsx condition-object keys, and CSS-modules computed keys are collected; everything else is skipped. **Effect: orphan-class / forbidden-class counts can only go down** (miscounts removed).
+- **한 —** CSS 변수 선언 스캔 보강 — 주석 (블록 + SCSS 라인) 안 선언 오집계 방지, 마지막 선언의 세미콜론 생략 허용, 세미콜론 누락 값이 `}` 를 넘어 다음 rule 로 번지지 않음 (여러 줄 값 `calc(...)` 은 그대로 지원). **영향: 주석 처리된 변수가 빠져 토큰 수가 줄거나, 세미콜론 생략 변수가 잡혀 늘 수 있음.**
+- **EN —** CSS custom-property scanning hardened — declarations inside comments (block + SCSS line) are no longer collected, a trailing declaration may omit its semicolon, and a missing semicolon no longer lets a value bleed past `}` into the next rule (multi-line `calc(...)` values still supported). **Effect: token counts may drop (commented-out vars excluded) or rise (semicolon-less vars now caught).**
+- **한 —** tailwind config 해석 보강 — `presets` 배열의 theme 병합 (사용자 config 우선), 함수형 카테고리에 최소 theme helper stub 전달 (`theme(path, 기본값)` → 기본값), fontSize 류 tuple 의 2번째 객체를 sub-token 으로 flatten (`fontSize.xl.lineHeight`). **영향: 옛 흐름에서 누락되던 토큰이 추가되는 방향.**
+- **EN —** tailwind config interpretation improved — `presets` array themes are merged (user config wins), functional categories receive a minimal theme-helper stub (`theme(path, default)` → default), and the second tuple element of fontSize-style values is flattened into sub-tokens (`fontSize.xl.lineHeight`). **Effect: tokens previously missed are now added.**
+
+### 추가 / Added
+
+- **한 —** doctor 확장 — (1) `stylingPolicy.preferred` 가 `allowed` 목록에 있는지 의미 검증 (옛 흐름: 잘못된 설정이 doctor 를 통과하고 측정 단계에서야 드러남), (2) `globalStyleSources` / `designSystem.officialPaths` 의 glob 패턴을 실매치 건수로 검사 (옛 root 부분 존재 가늠 대체 — 디렉토리는 있는데 매치 0건인 케이스를 잡음), (3) Figma URL 오류 hint 에 FigJam(/board/)·Slides 링크가 측정 대상이 아님을 명시 (허용 형식 자체는 분석기 수용 범위와 일치 유지).
+- **EN —** doctor extensions — (1) semantic validation that `stylingPolicy.preferred` exists in `allowed` (previously an invalid setting passed doctor and only surfaced during measurement), (2) `globalStyleSources` / `designSystem.officialPaths` glob patterns are now checked by actual match count (replacing the old root-segment existence guess — catches "directory exists but zero matches"), (3) the Figma URL error hint now states that FigJam (/board/) and Slides links are not measurable (the accepted format itself stays aligned with the analyzer).
+- **한 —** init 확장 — tailwind config 자동 감지 후보에 `.mts` / `.cts` 추가 (파서는 이미 지원), `@lhci/cli` 자동 설치 실패 시 npm / yarn / pnpm 별 직접 설치 명령 안내.
+- **EN —** init extensions — `.mts` / `.cts` added to the tailwind-config auto-detection candidates (the parser already supported them), and on `@lhci/cli` auto-install failure the guidance now lists the direct commands for npm / yarn / pnpm.
+
+### 참고 / Notes
+
+- baseline JSON shape 변경 없음 — 위 변화는 전부 값 (카운트 / 매칭) 차원.
+- No baseline-JSON-shape changes — all effects above are value-level (counts / matches).
+- 테스트 66개 (0.8.10 대비 +28 — 정규화 / className 수집 / CSS 변수 스캔 / tailwind config / doctor 신규 suite) + typecheck + build 통과.
+- 66 tests (+28 vs 0.8.10 — new suites for normalization / className collection / CSS-var scanning / tailwind config / doctor) + typecheck + build pass.
+
 ## [0.8.10] — 2026-07-10
 
 ### 추가 / Added

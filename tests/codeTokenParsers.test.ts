@@ -73,6 +73,42 @@ describe("tailwind 파서", () => {
     expect(names).toContain("colors.surface");
     expect(names).toContain("spacing.md");
   });
+
+  // 0.9.0 — presets 병합 + 함수형 카테고리 stub + fontSize tuple sub-token.
+  it("presets 배열의 theme 병합 (사용자 config 가 우선)", async () => {
+    const tokens = await loadCodeTokens(
+      [{ type: "tailwind", config: "styles/tailwind.config.advanced.js" }],
+      FIXTURE_ROOT,
+      []
+    );
+    const byName = new Map(tokens.map((t) => [t.name, t.value]));
+    // preset 에만 있는 토큰
+    expect(byName.get("colors.brand")).toBe("#ff0000");
+    // preset + 사용자 config 겹침 — 사용자 값 우선
+    expect(byName.get("colors.primary.500")).toBe("#6c91f5");
+  });
+
+  it("함수형 카테고리 — theme helper stub 으로 호출", async () => {
+    const tokens = await loadCodeTokens(
+      [{ type: "tailwind", config: "styles/tailwind.config.advanced.js" }],
+      FIXTURE_ROOT,
+      []
+    );
+    const byName = new Map(tokens.map((t) => [t.name, t.value]));
+    // theme("colors.white", "#ffffff") → 두 번째 인자 (기본값) 반환
+    expect(byName.get("colors.surface")).toBe("#ffffff");
+  });
+
+  it("fontSize tuple — 첫 요소 + 2번째 객체 sub-token", async () => {
+    const tokens = await loadCodeTokens(
+      [{ type: "tailwind", config: "styles/tailwind.config.advanced.js", categories: ["fontSize"] }],
+      FIXTURE_ROOT,
+      []
+    );
+    const byName = new Map(tokens.map((t) => [t.name, t.value]));
+    expect(byName.get("fontSize.xl")).toBe("1.25rem");
+    expect(byName.get("fontSize.xl.lineHeight")).toBe("1.75rem");
+  });
 });
 
 describe("loadCodeTokens 로더", () => {

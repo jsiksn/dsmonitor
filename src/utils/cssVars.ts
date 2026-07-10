@@ -5,9 +5,13 @@
  * codeTokens/parsers/cssVariables.ts 에 복제 (주석은 "재사용" 이라 했으나 실제 복사).
  *
  * 앵커: 줄 시작 또는 화이트스페이스 / `{` / `;` 직후 — `var(--foo)` 같은 참조는
- * 앞에 `(` 가 와서 안 걸림. 값은 `;` 직전까지.
- * (알려진 한계 — 주석 안 선언 오집계 / 마지막 선언 세미콜론 생략 미매치.
- *  보강은 2단계 파서 개선 (0.9.0) 범위.)
+ * 앞에 `(` 가 와서 안 걸림.
+ *
+ * 0.9.0 보강:
+ *   - 주석 제거 전처리 (블록 + SCSS 라인 주석) — 주석 안 선언 오집계 방지.
+ *     offset 보존 위해 주석을 같은 길이의 공백으로 치환 (줄바꿈 유지).
+ *   - 값 종결: `;` 또는 블록 끝 `}` 직전 — 마지막 선언의 세미콜론 생략 허용,
+ *     세미콜론 누락 시 값이 `}` 를 넘어 다음 rule 로 번지지 않음.
  */
 
 export interface CssVarDecl {
@@ -18,11 +22,22 @@ export interface CssVarDecl {
   offset: number;
 }
 
+/** 주석을 같은 길이 공백으로 치환 (줄바꿈 보존 → offset / 줄 번호 유지). */
+function blankComments(content: string): string {
+  return content.replace(
+    /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,
+    (m) => m.replace(/[^\n]/g, " ")
+  );
+}
+
 export function scanCssVarDecls(content: string): CssVarDecl[] {
-  const re = /(^|[\s{;])(--[\w-]+)\s*:\s*([^;]+);/g;
+  const scanned = blankComments(content);
+  // 종결: `;` / `}` 직전 / 문자열 끝. m 플래그 없음 — `$` 가 줄 끝이 아니라
+  // 문자열 끝만 의미 (여러 줄 값 `calc(...)` 이 줄 끝에서 잘리지 않게).
+  const re = /(^|[\s{;])(--[\w-]+)\s*:\s*([^;{}]+?)\s*(?:;|(?=\})|$)/g;
   const out: CssVarDecl[] = [];
   let m: RegExpExecArray | null;
-  while ((m = re.exec(content)) !== null) {
+  while ((m = re.exec(scanned)) !== null) {
     out.push({
       name: m[2],
       value: m[3].trim().replace(/\s+/g, " "),
