@@ -18,13 +18,13 @@ DSMonitor 는 **측정 도구** 입니다 (개선 도구가 아닙니다). 분�
 
 | 시작하기 | 심화 레퍼런스 |
 |----------|----------------|
-| [1. 측정 항목](#1-측정-항목) | [7. 설정 가이드](#7-설정-가이드--dsmonitorconfigts-의-모든-필드) |
-| [2. 설치](#2-설치) | [8. 환경별 설정 예](#8-환경별-설정-예) |
-| [3. 빠른 시작](#3-빠른-시작) | [9. Figma 매칭 동작 원리](#9-figma-매칭-동작-원리) |
-| [4. CLI 명령어](#4-cli-명령어) | [10. ESLint plugin](#10-eslint-plugin) |
-| [5. 출력물 위치](#5-출력물-위치) | [11. 사이드카 plugin](#11-사이드카-plugin) |
-| [6. 보고서 활용](#6-보고서-활용-가이드) | [12. 환경변수](#12-환경변수) |
-| | [13. 트러블슈팅 / FAQ](#13-트러블슈팅--faq) |
+| [지원 기술 스택](#지원-기술-스택--supported-tech-stacks) | [7. 설정 가이드](#7-설정-가이드--dsmonitorconfigts-의-모든-필드) |
+| [1. 측정 항목](#1-측정-항목) | [8. 환경별 설정 예](#8-환경별-설정-예) |
+| [2. 설치](#2-설치) | [9. Figma 매칭 동작 원리](#9-figma-매칭-동작-원리) |
+| [3. 빠른 시작](#3-빠른-시작) | [10. ESLint plugin](#10-eslint-plugin) |
+| [4. CLI 명령어](#4-cli-명령어) | [11. 사이드카 plugin](#11-사이드카-plugin) |
+| [5. 출력물 위치](#5-출력물-위치) | [12. 환경변수](#12-환경변수) |
+| [6. 보고서 활용](#6-보고서-활용-가이드) | [13. 트러블슈팅 / FAQ](#13-트러블슈팅--faq) |
 
 ## 지원 기술 스택 / Supported Tech Stacks
 
@@ -40,19 +40,6 @@ DSMonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 �
 | Performance 측정     | Lighthouse (선택)                                                     |
 
 위 조합에 해당하지 않는 환경 (예: Vue / Svelte 프로젝트) 은 본 시점 미지원이며, 호환성 검토는 별도로 진행이 필요합니다.
-
-DSMonitor supports the following technology stack combinations. When you are evaluating DSMonitor for a new project, this table is the first place to check compatibility.
-
-| Area                     | Support                                                              |
-|--------------------------|----------------------------------------------------------------------|
-| Framework (frontend)     | React (Vue / Svelte etc. not supported)                              |
-| Meta-framework           | Next.js (App Router / Pages Router), Vite                            |
-| Language                 | TypeScript, JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`)                 |
-| Styling                  | Tailwind, Bootstrap, SCSS, CSS Modules (4 presets included)          |
-| Design integration       | Figma (optional)                                                     |
-| Performance measurement  | Lighthouse (optional)                                                |
-
-Stacks not listed above (e.g. Vue / Svelte projects) are currently unsupported; a separate compatibility review is required before adoption.
 
 ---
 
@@ -228,7 +215,7 @@ npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 | `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | 측정 결과 (정식 baseline). `--baseline` 모드로 생성.                                        |
 | `dsmonitor/reports/YYYY-MM-DD.json`                       | non-baseline (gitignored 권장).                                                            |
 | `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance level raw — frame 별 nodeId / componentName / dsLabel / contextPath.       |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4 탭 dashboard (Summary / Code / Lighthouse / Figma) + plugin 탭 동적 추가. 브라우저로 열어 확인합니다 (macOS `open …/dashboard-*.html`, Windows `start`, 또는 탐색기에서 더블클릭).                  |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 5 탭 dashboard (Summary / Code / Lighthouse / Figma / Plugin — plugin 탭은 결과가 있을 때 동적 추가). 브라우저로 열어 확인합니다 (macOS `open …/dashboard-*.html`, Windows `start`, 또는 탐색기에서 더블클릭).                  |
 | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV (`export-migration` 출력).                                                 |
 | `dsmonitor/reports/plugins/{id}/{date}.json`              | 사이드카 plugin 의 측정 결과.                                                                |
 | `dsmonitor/docs/baseline.md`                              | markdown 리포트 (자동 생성, 직접 수정 금지).                                                |
@@ -1121,13 +1108,30 @@ DSMonitor is a **measurement tool** (not an improvement tool). Results are emitt
 
 | Getting started | Reference |
 |-----------------|-----------|
-| [1. Measurement Areas](#1-measurement-areas) | [7. Configuration Guide](#7-configuration-guide--all-fields-of-dsmonitorconfigts) |
-| [2. Installation](#2-installation) | [8. Per-stack Configuration Sketches](#8-per-stack-configuration-sketches) |
-| [3. Quick Start](#3-quick-start) | [9. How Figma Matching Works](#9-how-figma-matching-works) |
-| [4. CLI Commands](#4-cli-commands) | [10. ESLint Plugin](#10-eslint-plugin-1) |
-| [5. Output Locations](#5-output-locations) | [11. Sidecar Plugins](#11-sidecar-plugins) |
-| [6. Reading the Reports](#6-reading-the-reports) | [12. Environment Variables](#12-environment-variables) |
-| | [13. Troubleshooting / FAQ](#13-troubleshooting--faq) |
+| [Supported Tech Stacks](#supported-tech-stacks) | [7. Configuration Guide](#7-configuration-guide--all-fields-of-dsmonitorconfigts) |
+| [1. Measurement Areas](#1-measurement-areas) | [8. Per-stack Configuration Sketches](#8-per-stack-configuration-sketches) |
+| [2. Installation](#2-installation) | [9. How Figma Matching Works](#9-how-figma-matching-works) |
+| [3. Quick Start](#3-quick-start) | [10. ESLint Plugin](#10-eslint-plugin-1) |
+| [4. CLI Commands](#4-cli-commands) | [11. Sidecar Plugins](#11-sidecar-plugins) |
+| [5. Output Locations](#5-output-locations) | [12. Environment Variables](#12-environment-variables) |
+| [6. Reading the Reports](#6-reading-the-reports) | [13. Troubleshooting / FAQ](#13-troubleshooting--faq) |
+
+## Supported Tech Stacks
+
+DSMonitor supports the following technology stack combinations. When you are evaluating DSMonitor for a new project, this table is the first place to check compatibility.
+
+| Area                     | Support                                                              |
+|--------------------------|----------------------------------------------------------------------|
+| Framework (frontend)     | React (Vue / Svelte etc. not supported)                              |
+| Meta-framework           | Next.js (App Router / Pages Router), Vite                            |
+| Language                 | TypeScript, JavaScript (`.ts`, `.tsx`, `.js`, `.jsx`)                 |
+| Styling                  | Tailwind, Bootstrap, SCSS, CSS Modules (4 presets included)          |
+| Design integration       | Figma (optional)                                                     |
+| Performance measurement  | Lighthouse (optional)                                                |
+
+Stacks not listed above (e.g. Vue / Svelte projects) are currently unsupported; a separate compatibility review is required before adoption.
+
+---
 
 ## 1. Measurement Areas
 
@@ -1299,7 +1303,7 @@ Exports a CSV of instances within a specific Figma frame — useful as source da
 | `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | Measurement result (official baseline). Produced by `--baseline`.                          |
 | `dsmonitor/reports/YYYY-MM-DD.json`                       | Non-baseline (recommend gitignored).                                                       |
 | `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance-level raw — per-frame nodeId / componentName / dsLabel / contextPath.       |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 4-tab dashboard (Summary / Code / Lighthouse / Figma) + plugin tabs added dynamically. Open it in a browser (macOS `open …/dashboard-*.html`, Windows `start`, or double-click in the file explorer).      |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 5-tab dashboard (Summary / Code / Lighthouse / Figma / Plugin — plugin tabs are added dynamically when results exist). Open it in a browser (macOS `open …/dashboard-*.html`, Windows `start`, or double-click in the file explorer).      |
 | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | Migration CSV (`export-migration`).                                                        |
 | `dsmonitor/reports/plugins/{id}/{date}.json`              | Sidecar plugin measurement.                                                                |
 | `dsmonitor/docs/baseline.md`                              | Markdown report (auto-generated, do not edit).                                             |

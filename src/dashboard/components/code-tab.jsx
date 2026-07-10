@@ -925,7 +925,7 @@ function TsByDir({ t }) {
 //   scope 개요         : 파일 집계 / DS 커버리지
 //   마이그레이션      : 마이그레이션 후보 파일 / TypeScript 마이그레이션
 //   CSS 컴플라이언스 : 금지 CSS 클래스 / 스타일링 방식 분포
-//   변수 + 색상      : SCSS 변수 준수율 / 하드코딩 색상
+//   변수 + 색상      : 변수 준수율 / 하드코딩 색상
 const CODE_CARD_SECTIONS = [
   TotalsSection,        // 1 파일 집계
   DsCoverageSection,    // 2 DS 커버리지
@@ -933,7 +933,7 @@ const CODE_CARD_SECTIONS = [
   TsSection,            // 4 TypeScript 마이그레이션
   ForbiddenSection,     // 5 금지 CSS 클래스
   StylingMethodSection, // 6 스타일링 방식 분포
-  ScssSection,          // 7 SCSS 변수 준수율
+  ScssSection,          // 7 변수 준수율
   HardcodedSection,     // 8 하드코딩 색상
 ];
 

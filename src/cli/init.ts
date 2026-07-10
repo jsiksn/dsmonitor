@@ -368,8 +368,9 @@ function renderAuthLiteral(authType: LighthouseAuthType): string {
 
 function renderFigmaBlock(detected: DetectedPaths): string {
   const codeTokensBody = renderCodeTokensBody(detected);
+  // 0.8.9 — 옛 `apiToken` 필드 제거: FigmaConfig 스키마에 없고 분석기는
+  //   FIGMA_API_TOKEN 환경변수를 직접 읽음 — init 산출물만의 죽은 필드였음.
   return `figma: {
-    apiToken: process.env.FIGMA_API_TOKEN ?? "",
     validationLevel: "lite",
 
     // ═══ DS 파일 / Design System Files ═══════════════════════════

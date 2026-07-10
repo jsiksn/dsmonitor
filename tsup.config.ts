@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, readdirSync, chmodSync, existsSync, statSync }
 import { resolve, join, dirname, relative } from "node:path";
 
 /**
- * dsmonitor 패키지 빌드 설정 (v0.1.0).
+ * dsmonitor 패키지 빌드 설정.
  *
  * - format = ESM only (사용자 의뢰 A-3)
  * - entry = index (types) / cli / plugins/types

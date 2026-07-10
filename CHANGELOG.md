@@ -8,6 +8,41 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.9] — 2026-07-10
+
+### 정정 / Fixed
+
+- **한 —** markdown 리포트의 핵심 지표 라벨 "SCSS 변수 준수율" 이 "변수 준수율" 로 정정됩니다 (dashboard 는 0.8.2 에서 정정 완료 — 두 산출물 표기 일치). CLI 콘솔 요약의 "SCSS variable usages / SCSS compliance" 도 "Variable usages / Variable compliance" 로 동기화. code-tab.jsx 주석의 옛 명칭 2곳 정리 (표시 영향 없음).
+- **EN —** The markdown report's key-metric label "SCSS 변수 준수율" is corrected to "변수 준수율" (the dashboard was already fixed in 0.8.2 — the two outputs now match). The CLI console summary lines "SCSS variable usages / SCSS compliance" are synced to "Variable usages / Variable compliance". Two stale comments in code-tab.jsx are also cleaned up (no display impact).
+- **한 —** `npx dsmonitor --help` 가 구현됩니다 (`-h` / `help` 동일) — 명령 목록 출력 후 정상 종료. 옛 흐름은 init 완료 안내가 `--help` 를 권하는데 실제로는 "Unknown command" 로 종료 코드 2 가 나던 어긋남. Unknown command 안내의 명령 목록에도 누락되어 있던 `init` / `doctor` 가 추가되고, 두 곳이 같은 목록 상수를 공유합니다.
+- **EN —** `npx dsmonitor --help` is now implemented (`-h` / `help` behave the same) — prints the command list and exits 0. Previously the init completion notes recommended `--help` while the CLI answered "Unknown command" with exit code 2. The Unknown-command listing also gains the previously missing `init` / `doctor` entries, and both paths now share a single list constant.
+- **한 —** `dsmonitor init` 이 생성하는 config 의 figma 블록에서 `apiToken` 필드가 제거됩니다. `FigmaConfig` 스키마에 없고 분석기는 `FIGMA_API_TOKEN` 환경변수를 직접 읽으므로 사용되지 않던 필드 — README·정적 템플릿과도 어긋나던 init 산출물만의 이질 항목.
+- **EN —** The `apiToken` field is removed from the figma block that `dsmonitor init` generates. It never existed on the `FigmaConfig` schema and the analyzer reads the `FIGMA_API_TOKEN` environment variable directly — a dead field unique to the init output, out of step with the README and the static template.
+- **한 —** README 영어 정본에 "Supported Tech Stacks" 섹션이 추가됩니다 (0.8.7 에 기록된 한/영 비대칭 해소 — 옛 흐름은 한국어 쪽 결합 블록에만 존재). 한/영 양쪽 목차에 항목이 추가되고, §5 출력물 표의 "4 탭" 표기가 §6 과 같은 "5 탭 (Summary / Code / Lighthouse / Figma / Plugin)" 셈법으로 통일됩니다.
+- **EN —** The English reference gains its own "Supported Tech Stacks" section (resolving the KR/EN asymmetry noted in 0.8.7 — previously the content lived only inside the Korean-side combined block). Both tables of contents gain an entry, and the §5 output table's "4-tab" phrasing is unified with §6 as "5 tabs (Summary / Code / Lighthouse / Figma / Plugin)".
+- **한 —** CHANGELOG 0.1.0 entry 의 날짜 placeholder ("2026-XX-XX") 가 npm 발행 이력으로 확인한 실제 날짜 "2026-05-04" 로 채워집니다. config 템플릿의 옛 참조 ("cli.js 안 countMatches" — 현재 소스에 없는 파일명·심볼) 와 tsup 헤더 주석의 "v0.1.0" 고정 표기도 정리.
+- **EN —** The 0.1.0 CHANGELOG date placeholder ("2026-XX-XX") is filled with the actual publish date "2026-05-04" (confirmed from the npm publish history). A stale reference in the config template ("countMatches in cli.js" — a file/symbol that no longer exists) and the fixed "v0.1.0" note in the tsup header comment are also cleaned up.
+
+### 변경 / Changed
+
+- **한 —** **(breaking — overview 템플릿 한정)** overview 리포터의 고정 placeholder 키 6개가 제거됩니다 — `migrationInputCount` / `migrationSelectCount` / `migrationButtonCount` / `migrationTableCount` / `bootstrapClassCount` / `tailwindClassCount`. 검수 대상 이름은 사용자 config (`migrationTargets`) 가 정하므로 특정 이름을 코드에 고정할 근거가 없던 잔재 (다른 프로젝트에선 항상 0). 대체 placeholder:
+  - `{{migrationByTarget.<이름>}}` — config 에 등록한 이름이 곧 placeholder 이름 (예: 옛 `{{migrationInputCount}}` → `{{migrationByTarget.Input}}`).
+  - `{{forbiddenById.<id>}}` — 금지 id 별 카운트 (예: 옛 `{{bootstrapClassCount}}` → `{{forbiddenById.bootstrap-utilities}}`).
+  - `{{migrationByTargetList}}` / `{{forbiddenByIdList}}` — 등록된 항목 전체를 카운트 내림차순 "- 이름 N건" 줄 목록으로 나열. 형식을 dsmonitor 가 정하므로 값 placeholder 와 같은 데이터에 혼용하지 않기를 권장.
+  옛 키를 쓰는 템플릿은 조용히 오표기되지 않고 `{{키?}}` 표시 + 콘솔 warning 으로 드러납니다. placeholder 키 문자에 hyphen 이 허용되도록 치환 regex 도 확장 (`forbiddenById.bootstrap-utilities` 참조 가능).
+- **EN —** **(breaking — overview templates only)** Six fixed overview placeholder keys are removed — `migrationInputCount` / `migrationSelectCount` / `migrationButtonCount` / `migrationTableCount` / `bootstrapClassCount` / `tailwindClassCount`. The inspected component names are defined by the user config (`migrationTargets`), so hard-coding specific names had no basis (always 0 on other projects). Replacements:
+  - `{{migrationByTarget.<name>}}` — the name you registered in config is the placeholder name (e.g. old `{{migrationInputCount}}` → `{{migrationByTarget.Input}}`).
+  - `{{forbiddenById.<id>}}` — per-forbidden-id counts (e.g. old `{{bootstrapClassCount}}` → `{{forbiddenById.bootstrap-utilities}}`).
+  - `{{migrationByTargetList}}` / `{{forbiddenByIdList}}` — list every registered item as "- name N건" lines, count-descending. Since dsmonitor controls this format, avoid mixing it with value placeholders for the same data.
+  Templates still using the old keys fail loudly rather than silently — rendered as `{{key?}}` plus a console warning. The replacement regex now also accepts hyphens in keys (so `forbiddenById.bootstrap-utilities` works).
+
+### 참고 / Notes
+
+- 측정 로직 / baseline JSON shape / dashboard 동작 모두 변경 없음 — 리포터 표기·overview placeholder·문서·CLI 안내만 정정.
+- No changes to measurement logic, baseline JSON shape, or dashboard behavior — reporter wording, overview placeholders, docs, and CLI guidance only.
+- 검증: `npm run typecheck` + `npm run build` 통과, `--help` exit 0 / 명령 목록 확인, fixture baseline 으로 overview (신규 placeholder 치환 + 옛 키 `{{키?}}` 경고) 와 markdown (라벨 "변수 준수율") 생성 확인, `apiToken` 문자열 소스 전체 부재 확인.
+- Verified: `npm run typecheck` + `npm run build` pass; `--help` exits 0 with the command list; a fixture baseline confirms overview rendering (new placeholders substituted, old keys surfaced as `{{key?}}` with a warning) and the markdown label "변수 준수율"; the `apiToken` string is absent from all sources.
+
 ## [0.8.8] — 2026-07-10
 
 ### 정정 / Fixed
@@ -1007,7 +1042,7 @@
 
 [0.1.1]: https://github.com/jsiksn/dsmonitor/releases/tag/v0.1.1
 
-## [0.1.0] — 2026-XX-XX
+## [0.1.0] — 2026-05-04
 
 > ⓘ 본 entry의 `vitaui` = legacy name (0.1.1 안에서 `dsmonitor`로 rename 완료). historical 기록 그대로 보존.
 >

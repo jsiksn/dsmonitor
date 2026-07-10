@@ -82,7 +82,7 @@ const config: UIHealthConfig = {
   },
 
   // ────── 하드코딩 색상 ──────
-  // 정보 형식 핵심: 모두 RegExp 배열 (cli.js 안 countMatches 일치).
+  // 정보 형식 핵심: 모두 RegExp 배열.
   // - colorPatterns: SCSS/CSS 하드코딩 색상 탐지 패턴.
   // - scssVariableUsagePatterns: 변수 참조 탐지 (CSS var() + SCSS $).
   // - scssVariableDefFiles: 하드코딩 검출에서 제외할 변수 정의 원본 파일 경로.
