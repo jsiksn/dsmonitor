@@ -15,46 +15,17 @@
  */
 
 import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
 import path from "node:path";
-import fg from "fast-glob";
 import type {
   CodeTokenEntry,
   CodeTokenParser,
   CodeTokenParserConfig,
   CodeTokenParserWarning,
 } from "../../../types";
-
-/**
- * 0.7.3 — files entry 안 glob 문자 (*, ?, {, [) 포함 시 `fast-glob` 으로 확장.
- * literal path 는 옛 흐름 그대로 (existsSync 검사 + fs.readFile).
- * glob 확장 결과 0건은 warning, ≥1건은 본 결과를 그대로 활용.
- */
-function isGlob(pattern: string): boolean {
-  return /[*?{}\[\]]/.test(pattern);
-}
-
-function expandFiles(absRoot: string, files: string[]): { resolved: string[]; misses: string[] } {
-  const resolved: string[] = [];
-  const misses: string[] = [];
-  for (const entry of files) {
-    if (isGlob(entry)) {
-      const matches = fg.sync(entry, { cwd: absRoot, dot: false });
-      if (matches.length === 0) {
-        misses.push(entry);
-      } else {
-        resolved.push(...matches);
-      }
-    } else {
-      if (!existsSync(path.resolve(absRoot, entry))) {
-        misses.push(entry);
-      } else {
-        resolved.push(entry);
-      }
-    }
-  }
-  return { resolved, misses };
-}
+// 0.8.10 — glob 확장 + CSS 변수 스캔을 공유 유틸로 이동 (옛 로컬 복제 — scss 파서 /
+//   scssTokens.ts 와 동일 구현이었음).
+import { countLines, scanCssVarDecls } from "../../../utils/cssVars";
+import { expandFiles } from "../../../utils/glob";
 
 export const cssVariablesParser: CodeTokenParser = {
   type: "cssVariables",
@@ -121,26 +92,16 @@ export function parseCssVariablesInFile(
 ): CodeTokenEntry[] {
   const results: Map<string, CodeTokenEntry> = new Map();
 
-  // 앵커: 줄 시작 또는 화이트스페이스 / `{` / `;` 직후. `var(--foo)` 같은 참조는
-  // 앞에 `(` 가 와서 안 걸립니다.
-  const cssVarRe = /(^|[\s{;])(--[\w-]+)\s*:\s*([^;]+);/g;
-  let m: RegExpExecArray | null;
-  while ((m = cssVarRe.exec(content)) !== null) {
-    const name = m[2];
-    if (results.has(name)) continue;
-    const value = m[3].trim().replace(/\s+/g, " ");
-    const line = countLines(content, m.index + m[1].length);
-    results.set(name, { name, value, file: relPath, line });
+  // 스캔 규칙 (앵커 / 참조 배제) 은 utils/cssVars.ts 참조.
+  for (const decl of scanCssVarDecls(content)) {
+    if (results.has(decl.name)) continue;
+    results.set(decl.name, {
+      name: decl.name,
+      value: decl.value,
+      file: relPath,
+      line: countLines(content, decl.offset),
+    });
   }
 
   return [...results.values()];
-}
-
-function countLines(content: string, offset: number): number {
-  let n = 1;
-  const end = Math.min(offset, content.length);
-  for (let i = 0; i < end; i++) {
-    if (content.charCodeAt(i) === 10) n++;
-  }
-  return n;
 }

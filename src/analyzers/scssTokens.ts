@@ -24,6 +24,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { CodeTokenEntry } from "../types";
+// 0.8.10 — CSS 변수 스캔 + countLines 를 공유 유틸로 이동 (cssVariables 파서와 복제였음).
+import { countLines, scanCssVarDecls } from "../utils/cssVars";
 
 /**
  * 여러 def 파일을 파싱해 토큰 목록 반환.
@@ -73,16 +75,16 @@ export function parseScssFile(
   const results: Map<string, CodeTokenEntry> = new Map();
 
   // ───── Pass 1: CSS 커스텀 프로퍼티 `--name: value;` ─────
-  // 앵커: 줄 시작 또는 화이트스페이스 (`var(--foo)` 같은 참조 배제).
-  // 값: `;` 직전까지 non-greedy. 여러 줄 값(`calc(...)` 등) 은 드물지만 허용.
-  const cssVarRe = /(^|[\s{;])(--[\w-]+)\s*:\s*([^;]+);/g;
-  let m: RegExpExecArray | null;
-  while ((m = cssVarRe.exec(content)) !== null) {
-    const name = m[2];
-    const value = m[3].trim().replace(/\s+/g, " ");
-    if (results.has(name)) continue;
-    const line = countLines(content, m.index + m[1].length);
-    results.set(name, { name, value, file: relPath, line });
+  // 0.8.10 — 스캔 규칙은 공유 유틸 (utils/cssVars.ts) 로 이동 (cssVariables 파서와
+  //   동일 구현 복제였음). 앵커 / 참조 배제 규칙 설명도 그쪽 참조.
+  for (const decl of scanCssVarDecls(content)) {
+    if (results.has(decl.name)) continue;
+    results.set(decl.name, {
+      name: decl.name,
+      value: decl.value,
+      file: relPath,
+      line: countLines(content, decl.offset),
+    });
   }
 
   // ───── Pass 2: SCSS 맵 + @each 동적 변수 ─────
@@ -222,12 +224,3 @@ function findEachBlocks(content: string): EachBlock[] {
   return out;
 }
 
-/** 파일 시작부터 offset 위치까지의 줄번호 (1-based). */
-function countLines(content: string, offset: number): number {
-  let n = 1;
-  const end = Math.min(offset, content.length);
-  for (let i = 0; i < end; i++) {
-    if (content.charCodeAt(i) === 10) n++;
-  }
-  return n;
-}

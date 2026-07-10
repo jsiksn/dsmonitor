@@ -15,6 +15,8 @@ import type {
   TokenMatrix,
 } from "../../types";
 import { deriveVariablesSignal } from "./figma-variables-signal";
+// 0.8.10 — round() 공유 유틸로 이동 (옛 4곳 복제).
+import { round } from "../../utils/round";
 import type {
   FigmaDomainSummaryEntry,
   FigmaFrameRankingEntry,
@@ -316,7 +318,3 @@ function computeRatio(
   };
 }
 
-function round(v: number, digits: number): number {
-  const f = Math.pow(10, digits);
-  return Math.round(v * f) / f;
-}

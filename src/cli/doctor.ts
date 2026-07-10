@@ -15,11 +15,8 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import fg from "fast-glob";
 import type { UIHealthConfig } from "../types";
-
-/** 0.7.3 — codeTokens.parsers.files 의 glob entry 지원용. */
-function isGlobPattern(pattern: string): boolean {
-  return /[*?{}\[\]]/.test(pattern);
-}
+// 0.8.10 — glob 판정을 공유 유틸로 이동 (옛 로컬 isGlobPattern — 파서 2곳과 동일 구현).
+import { isGlob as isGlobPattern } from "../utils/glob";
 
 type Severity = "ok" | "warn" | "error";
 
@@ -251,8 +248,10 @@ export function runDoctor(
           if ("url" in page && page.url) {
             checkUrl(page.url, `domainFiles[${dom.label}].pages`);
           }
-          if ("frames" in page && Array.isArray((page as any).frames)) {
-            for (const fr of (page as any).frames) {
+          // 0.8.10 — any cast 제거: FigmaPageSelection union 이 frames?: undefined
+          //   분기를 명시하므로 직접 접근 가능.
+          if (Array.isArray(page.frames)) {
+            for (const fr of page.frames) {
               if (fr.url) checkUrl(fr.url, `domainFiles[${dom.label}].frames`);
             }
           }

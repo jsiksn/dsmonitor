@@ -46,6 +46,9 @@ export type StylingPolicy = {
   forbidden: ForbiddenPatternSpec[];
 };
 
+// ESLint 룰 옵션의 직렬화 형식 (eslint/rules/no-forbidden-classes.js 가 파싱).
+// 0.8.10 — 옛 helper 함수 (serializeForbidden / toRegExp) 는 소스 어디에서도
+// 참조·문서화되지 않은 죽은 export 라 제거. 형식 정의 타입만 보존.
 export type SerializedRegex = { source: string; flags?: string };
 
 export type SerializedForbiddenPattern = {
@@ -55,25 +58,3 @@ export type SerializedForbiddenPattern = {
   classPatterns: SerializedRegex[];
   importModules?: string[];
 };
-
-/** ESLint 룰 옵션 전달 시 RegExp → {source, flags}로 직렬화 (ESLint schema 호환). */
-export function serializeForbidden(
-  forbidden: ForbiddenPatternSpec[]
-): SerializedForbiddenPattern[] {
-  return forbidden.map((f) => ({
-    id: f.id,
-    label: f.label,
-    severity: f.severity,
-    classPatterns: f.classPatterns.map((r) => ({
-      source: r.source,
-      flags: r.flags || "",
-    })),
-    importModules: f.importModules,
-  }));
-}
-
-/** SerializedRegex | RegExp → RegExp */
-export function toRegExp(r: SerializedRegex | RegExp): RegExp {
-  if (r instanceof RegExp) return r;
-  return new RegExp(r.source, r.flags || "");
-}

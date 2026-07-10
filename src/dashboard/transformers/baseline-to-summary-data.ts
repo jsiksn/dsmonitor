@@ -7,36 +7,13 @@
 
 import type { CodebaseReport, UIHealthConfig } from "../../types";
 import { judge } from "../../utils/evaluate";
+// 0.8.10 — FORBIDDEN 정의 단일 원천 (forbidden-meta.ts). 옛 로컬 복제 제거 —
+//   code-tab.jsx 는 shell.ts 가 inject 하는 window.__FORBIDDEN_META 로 같은 정의 소비.
+import { FORBIDDEN_BY_PRESET, FORBIDDEN_LABELS } from "../forbidden-meta";
 import { deriveVariablesSignal } from "./figma-variables-signal";
 import type { FigmaTabData, LighthouseTabData, SummaryTabData } from "./types";
-
-/**
- * 0.8.5 — summary 탭 "금지 CSS 클래스" 카드 라벨 매핑 + preset 매트릭스.
- *   code-tab.jsx 안 FORBIDDEN_LABELS / FORBIDDEN_BY_PRESET 와 같은 흐름 (babel-inline jsx
- *   는 ESM import X 라 TS transformer 와 jsx 가 자연스럽게 중복. 다음 release 통합 결정 가능).
- *
- * 0.8.8 — `scss-imports` (tailwind preset 정의) 가 어느 preset 목록에도 없는 것은
- *   **의도** (버그 아님): 감지 규칙이 비어 있어 항상 0 이고, 단순 import 경로 검출은
- *   pure-@apply 허용 방침 (codebase.ts matrix) 과 충돌해 오검출 위험. 매트릭스 연계
- *   구현 (0.9.0+ 논의) 전까지 여기 / code-tab.jsx 양쪽 모두 미등재 유지.
- */
-const FORBIDDEN_LABELS: Record<string, string> = {
-  "bootstrap-utilities":   "Bootstrap utility",
-  "tailwind-classes":      "Tailwind utility",
-  "apply-mixed":           "@apply-mixed",
-  "tailwind-via-wrapper":  "Tailwind via wrapper",
-  "raw-css":               "raw CSS",
-  "inline-styles":         "inline styles",
-  "global-css":            "global CSS imports",
-  "scss-imports":          "SCSS imports",
-};
-
-const FORBIDDEN_BY_PRESET: Record<string, string[]> = {
-  scss:          ["bootstrap-utilities", "tailwind-classes", "apply-mixed", "tailwind-via-wrapper"],
-  tailwind:      ["bootstrap-utilities", "apply-mixed", "raw-css"],
-  bootstrap:     ["tailwind-classes", "inline-styles"],
-  "css-modules": ["bootstrap-utilities", "tailwind-classes", "global-css"],
-};
+// 0.8.10 — round() 공유 유틸로 이동 (옛 4곳 복제).
+import { round } from "../../utils/round";
 
 export function buildSummaryData(args: {
   report: CodebaseReport;
@@ -60,7 +37,7 @@ export function buildSummaryData(args: {
 
   // 0.8.5 — preset 매트릭스 적용한 forbidden 배열 미리 build. JSX 는 단순 map 흐름.
   const preferredId = report.stylingMethodDistribution.preferredId;
-  const forbiddenIds = FORBIDDEN_BY_PRESET[preferredId] ?? [];
+  const forbiddenIds = (FORBIDDEN_BY_PRESET[preferredId] ?? []).map((s) => s.id);
   // 0.8.6 — 카운트 내림차순 sort. code 탭 ForbiddenSection / StylingMethodSection 정렬 흐름 일관.
   const forbiddenByPreset = forbiddenIds
     .map((id) => ({
@@ -207,7 +184,3 @@ function fmtTimeS(v: number): string {
   return `${(v / 1000).toFixed(2)} s`;
 }
 
-function round(v: number, digits: number): number {
-  const f = Math.pow(10, digits);
-  return Math.round(v * f) / f;
-}

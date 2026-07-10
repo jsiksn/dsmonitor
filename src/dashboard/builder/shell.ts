@@ -21,6 +21,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 import type { DashboardData } from "../transformers/types";
+// 0.8.10 — FORBIDDEN 정의 단일 원천을 jsx 쪽에 inject (code-tab.jsx 의 옛 복제 상수 대체).
+import { buildForbiddenMeta } from "../forbidden-meta";
+import { todayStampUtc } from "../../utils/dateStamp";
 
 // v0.1.0: ESM 호환 — __dirname 누락. fileURLToPath(import.meta.url) 활용.
 const __filename = fileURLToPath(import.meta.url);
@@ -57,7 +60,7 @@ function readDsMonitorMeta(): { version: string; buildDate: string } {
       if (pkg.name === "dsmonitor" && typeof pkg.version === "string") {
         return {
           version: pkg.version,
-          buildDate: new Date().toISOString().slice(0, 10),
+          buildDate: todayStampUtc(),
         };
       }
     } catch {
@@ -84,6 +87,8 @@ export function buildHtmlShell(data: DashboardData): string {
   const pluginsJson = safeJson(data.plugins ?? []);
   // 0.8.4 — dashboard footer 안 dsmonitor 패키지 version + buildDate 자동 일관.
   const dsMonitorMetaJson = safeJson(readDsMonitorMeta());
+  // 0.8.10 — FORBIDDEN 라벨 + preset 매트릭스 (forbidden-meta.ts 단일 원천).
+  const forbiddenMetaJson = safeJson(buildForbiddenMeta());
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -112,6 +117,7 @@ ${styles}
   <script id="lighthouse-tab-data" type="application/json">${lhJson}</script>
   <script id="plugins-data" type="application/json">${pluginsJson}</script>
   <script id="dsmonitor-meta" type="application/json">${dsMonitorMetaJson}</script>
+  <script id="forbidden-meta" type="application/json">${forbiddenMetaJson}</script>
 
   <script>
     window.__PROJECT_NAME = JSON.parse(document.getElementById("project-name-data").textContent);
@@ -121,6 +127,7 @@ ${styles}
     window.__LH_DATA = JSON.parse(document.getElementById("lighthouse-tab-data").textContent);
     window.__PLUGINS_DATA = JSON.parse(document.getElementById("plugins-data").textContent);
     window.__DSMONITOR_META = JSON.parse(document.getElementById("dsmonitor-meta").textContent);
+    window.__FORBIDDEN_META = JSON.parse(document.getElementById("forbidden-meta").textContent);
   </script>
 
   <script type="text/babel" data-presets="env,react">

@@ -8,6 +8,35 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.10] — 2026-07-10
+
+### 추가 / Added
+
+- **한 —** 테스트 인프라가 도입됩니다 — vitest + `npm test` 스크립트 + `tests/` (38개 테스트). 커버 대상: thresholds 판정 유틸 (evaluate/judge 경계값), overview placeholder 치환 (이름 자유 키 · hyphen 키 · unknown `{{key?}}` · 목록 블록 정렬), 토큰 매트릭스 매칭 (buildTokenMatrix), 코드 토큰 파서 3종 (scss / cssVariables / tailwind — fixture 파일 기반), dashboard transformer (judge · forbiddenByPreset 정렬 · tsTopJsDirs), dashboard jsx 5종 문법 검사 (esbuild parse — 0.8.8 때 수동 검증하던 것을 상시화). 이후 릴리즈의 회귀 안전망.
+- **EN —** Test infrastructure is introduced — vitest + an `npm test` script + `tests/` (38 tests). Coverage: the threshold judgment util (evaluate/judge boundaries), overview placeholder substitution (free-name keys · hyphen keys · unknown `{{key?}}` · list-block ordering), token-matrix matching (buildTokenMatrix), the three code-token parsers (scss / cssVariables / tailwind, fixture-file based), the dashboard transformers (judge · forbiddenByPreset ordering · tsTopJsDirs), and jsx syntax checks for all five dashboard components (esbuild parse — automating what 0.8.8 verified manually). A regression safety net for future releases.
+
+### 변경 / Changed
+
+- **한 —** FORBIDDEN 라벨 + preset 매트릭스 정의가 단일 원천 (`src/dashboard/forbidden-meta.ts`) 으로 통합됩니다. 옛 흐름: 같은 정의가 transformer (TS) 와 code-tab.jsx (babel-inline) 두 곳에 복제 — 한쪽만 갱신하면 summary 탭과 code 탭 표시가 어긋나는 부류 (0.8.3~0.8.6 반복 정정) 가 재발할 수 있었음. 이제 shell 이 `window.__FORBIDDEN_META` 로 inject 하고 jsx 는 그것만 소비 — 정의 중복 자체가 사라짐. 표시 결과 변화 없음 (전후 산출물 diff 0 확인).
+- **EN —** The FORBIDDEN labels + preset matrix now live in a single source (`src/dashboard/forbidden-meta.ts`). Previously the same definitions were duplicated in the TS transformer and the babel-inline code-tab.jsx — updating only one side could desynchronize the summary and code tabs (the class of bug fixed repeatedly in 0.8.3–0.8.6). The shell now injects `window.__FORBIDDEN_META` and the jsx only consumes it — the duplication itself is gone. No display change (before/after output diff is empty).
+- **한 —** 산재하던 복제 구현이 공유 유틸 (`src/utils/`) 로 추출됩니다 — `round()` (4곳), glob 확장 `isGlob`/`expandFiles` (파서 2곳 + doctor), CSS 변수 선언 스캔 + `countLines` (2곳), 날짜 stamp (로컬/UTC 두 의미 보존 — 통일은 동작 변경이라 보류), "최신 파일 찾기" readdir 패턴 (3곳). 호출처 교체만 — 로직 변화 없음.
+- **EN —** Scattered duplicate implementations are extracted into shared utils (`src/utils/`) — `round()` (4 copies), glob expansion `isGlob`/`expandFiles` (2 parsers + doctor), CSS custom-property scanning + `countLines` (2 copies), date stamps (both local and UTC meanings preserved — unifying them would change behavior, deferred), and the "find latest file" readdir pattern (3 copies). Call-site swaps only — no logic change.
+- **한 —** baseline 류 JSON 읽기에 파싱 방어가 일관 적용됩니다 (`src/utils/readJson.ts` — cli 3곳 / migration CSV / dashboard render). 옛 흐름은 손상 JSON 시 raw SyntaxError 스택 노출 — 이제 파일 경로 + 손상 안내 + 재측정 권고 메시지. `[dsmonitor]` prefix 의 의도된 에러는 CLI 종료 시 message 만 출력 (예기치 못한 에러는 옛 그대로 전체 출력).
+- **EN —** JSON reads of baseline-style files gain consistent parse protection (`src/utils/readJson.ts` — 3 CLI sites / migration CSV / dashboard render). Previously a corrupted JSON surfaced a raw SyntaxError stack — now a message with the file path, a corruption note, and a re-measure suggestion. Intentional `[dsmonitor]`-prefixed errors print message-only on CLI exit (unexpected errors keep the full output).
+- **한 —** 죽은 코드 정리 — 미참조 export 제거 (`serializeForbidden`/`toRegExp` (직렬화 타입은 보존), `listFrameworks`, `listRegisteredParserTypes`), `printSummary(r: any)` → `CodebaseReport`, doctor 의 `(page as any)` cast 제거 (union 타입 직접 접근).
+- **EN —** Dead-code cleanup — unreferenced exports removed (`serializeForbidden`/`toRegExp` (the serialization types remain), `listFrameworks`, `listRegisteredParserTypes`), `printSummary(r: any)` → `CodebaseReport`, and the `(page as any)` cast in doctor replaced with direct union-typed access.
+
+### 정정 / Fixed
+
+- **한 —** dashboard 접근성 보강 — (1) 탭 ↔ 콘텐츠 연결 (`aria-controls`/`role="tabpanel"`/`aria-labelledby`) + 좌우 화살표 키로 탭 이동 (roving tabindex), (2) 모든 접기/펼치기 버튼에 `aria-expanded` (code/figma/lighthouse 탭 4종), (3) 소형 회색 텍스트 대비 보정 — `--ink-3` 4.24:1 → 5.35:1, `--ink-4` 2.34:1 → 4.82:1 (WCAG AA 4.5:1 기준, 색조 유지·명도만 하강), (4) `prefers-reduced-motion` 존중.
+- **EN —** Dashboard accessibility — (1) tab ↔ panel wiring (`aria-controls`/`role="tabpanel"`/`aria-labelledby`) plus arrow-key tab navigation (roving tabindex), (2) `aria-expanded` on every disclosure toggle (4 components across the code/figma/lighthouse tabs), (3) small gray text contrast fixes — `--ink-3` 4.24:1 → 5.35:1 and `--ink-4` 2.34:1 → 4.82:1 (WCAG AA 4.5:1; hue kept, lightness lowered), (4) `prefers-reduced-motion` respected.
+
+### 참고 / Notes
+
+- 측정 로직 / baseline JSON shape 변경 없음. 동작 불변 확인: 같은 fixture baseline 으로 리팩토링 전 (0.8.9) / 후 산출물 비교 — dashboard 데이터 JSON · markdown 리포트 · overview 문서 전부 동일.
+- No measurement-logic or baseline-JSON-shape changes. Behavior invariance verified: outputs from the same fixture baseline before (0.8.9) and after the refactor are identical — dashboard data JSON, markdown report, and overview document.
+- `npm test` (38) + `npm run typecheck` + `npm run build` 통과 / pass.
+
 ## [0.8.9] — 2026-07-10
 
 ### 정정 / Fixed

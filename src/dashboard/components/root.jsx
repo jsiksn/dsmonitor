@@ -78,10 +78,32 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
       ...(window.__FIGMA_DATA ? [{ id: "figma",      label: "Figma",      count: figmaCardCount != null ? `${figmaCardCount} 섹션` : null }] : []),
       ...pluginTabs,
     ];
+    // 0.8.10 — 접근성: tab ↔ tabpanel 연결 (id / aria-controls) + 좌우 화살표 이동.
+    //   roving tabindex — 활성 탭만 Tab 키 focus 대상, 탭 간 이동은 화살표 키.
+    const onKeyDown = (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      const idx = tabs.findIndex(t => t.id === tab);
+      const next = e.key === "ArrowRight"
+        ? (idx + 1) % tabs.length
+        : (idx - 1 + tabs.length) % tabs.length;
+      setTab(tabs[next].id);
+      document.getElementById(`tab-${tabs[next].id}`)?.focus();
+    };
     return (
-      <nav className="tabs" role="tablist">
+      <nav className="tabs" role="tablist" aria-label="측정 결과 탭">
         {tabs.map(t => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} className="tab" onClick={() => setTab(t.id)}>
+          <button
+            key={t.id}
+            id={`tab-${t.id}`}
+            role="tab"
+            aria-selected={tab === t.id}
+            aria-controls="tabpanel"
+            tabIndex={tab === t.id ? 0 : -1}
+            className="tab"
+            onClick={() => setTab(t.id)}
+            onKeyDown={onKeyDown}
+          >
             {t.label}
             {t.count && <span className="count">{t.count}</span>}
             {t.error && <span className="tag below" style={{marginLeft:6, fontSize:9, padding:"1px 4px"}}><span className="tdot" />오류</span>}
@@ -486,7 +508,8 @@ const PROJECT_NAME = window.__PROJECT_NAME ?? "Unknown Project";
       <div className="shell">
         <Header />
         <Tabs tab={tab} setTab={setTab} />
-        <main style={{marginTop: 8}}>
+        {/* 0.8.10 — 접근성: tabpanel 역할 + 활성 탭과 라벨 연결. */}
+        <main id="tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`} style={{marginTop: 8}}>
           {tab === "summary" && <Summary />}
           {tab === "code" && <CodeTab />}
           {tab === "lighthouse" && <LighthouseTab />}

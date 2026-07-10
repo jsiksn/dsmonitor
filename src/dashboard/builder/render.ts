@@ -27,6 +27,7 @@ import type {
   LighthouseSummaryFile,
   LighthouseTabData,
 } from "../transformers/types";
+import { readJsonFile } from "../../utils/readJson";
 import { buildHtmlShell } from "./shell";
 
 export interface RenderOptions {
@@ -42,8 +43,8 @@ export interface RenderOptions {
 }
 
 export async function renderDashboard(opts: RenderOptions): Promise<void> {
-  const raw = await fs.readFile(opts.inputPath, "utf8");
-  const report = JSON.parse(raw) as CodebaseReport;
+  // 0.8.10 — JSON 파싱 방어 (손상 baseline 시 raw 스택 대신 친절 안내).
+  const report = await readJsonFile<CodebaseReport>(opts.inputPath, "baseline");
 
   // ─── lighthouse 자동 검색 ───
   const lhRoot =

@@ -16,6 +16,8 @@ import type { DetectSpec } from "../policy";
 import type { FrameworkAdapter, FileSignals } from "../frameworks/types";
 import { collectCodeFiles, collectStyleFiles } from "../utils/walker";
 import { getFrameworkAdapter } from "../frameworks";
+// 0.8.10 — round() 공유 유틸로 이동 (옛 4곳 복제).
+import { round } from "../utils/round";
 
 type Cfg = UIHealthConfig & { __absRoot: string };
 
@@ -758,10 +760,6 @@ function analyzeMigrationCandidates(
   };
 }
 
-function round(v: number, digits: number): number {
-  const f = Math.pow(10, digits);
-  return Math.round(v * f) / f;
-}
 
 const PREFERRED_COMPLIANCE_EXCLUDED_REASON =
   "orphanClass 는 정의 못 찾은 className, noClass 는 스타일 미사용 — 정상 스타일링 방식 분포 측정 대상 아님";

@@ -1,14 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { CodebaseReport, UIHealthConfig } from "../types";
-
-function today(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+// 0.8.10 — 날짜 stamp 공유 유틸로 이동. 본 파일은 옛 로컬 today() 와 같은
+//   로컬 타임존 의미 (todayStampLocal) 유지 — cli 쪽 UTC stamp 와 의미가 달라
+//   통일은 동작 변경이라 보류 (utils/dateStamp.ts 주석 참조).
+import { todayStampLocal as today } from "../utils/dateStamp";
 
 export async function writeReport(
   report: CodebaseReport,

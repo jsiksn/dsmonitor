@@ -1,0 +1,6 @@
+:root {
+  --color-primary-500: #6c91f5;
+  --color-surface: #ffffff;
+  --spacing-md: 16px;
+  --alias-primary: var(--color-primary-500);
+}

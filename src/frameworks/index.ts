@@ -23,8 +23,7 @@ export function getFrameworkAdapter(id: string): FrameworkAdapter {
   return a;
 }
 
-export function listFrameworks(): string[] {
-  return Object.keys(ADAPTERS);
-}
+// 0.8.10 — 미참조 export listFrameworks() 제거 (어댑터 목록은 getFrameworkAdapter
+//   에러 메시지가 이미 노출).
 
 export type { FrameworkAdapter };

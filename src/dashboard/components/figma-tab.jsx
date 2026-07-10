@@ -59,7 +59,8 @@ function FDisclosure({ summary, count, children, defaultOpen }) {
   const [open, setOpen] = useStateF(!!defaultOpen);
   return (
     <div className={`disc${open ? " open" : ""}`}>
-      <button className="disc-toggle" onClick={() => setOpen(o => !o)}>
+      {/* 0.8.10 — 접근성: 펼침 상태를 스크린리더에 노출. */}
+      <button className="disc-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
         <span className="caret">{open ? "▾" : "▸"}</span>
         <span>{summary}</span>
         {count != null && <span className="disc-count mono">{count}</span>}
@@ -83,7 +84,7 @@ function MeasurementScope({ d }) {
         <span className="dim sep">·</span>
         <span>도메인 파일 <span className="mono">{ms.domainFiles}</span>개 ({ms.domainNames.join(" / ")})</span>
         <span className="dim sep">·</span>
-        <button className="scope-toggle" onClick={() => setOpen(o => !o)}>
+        <button className="scope-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
           <span className="caret">{open ? "▾" : "▸"}</span>
           측정 대상 프레임 {ms.frames.length}개 보기
         </button>

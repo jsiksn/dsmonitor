@@ -22,6 +22,8 @@
  * 검증 시 별도 mode (folder / className 분기) 검토.
  */
 
+// 0.8.10 — round() 공유 유틸로 이동 (옛 4곳 복제).
+import { round } from "../../utils/round";
 import type {
   ClassIndex,
   FigmaComponentMatch,
@@ -190,7 +192,3 @@ export function dsInputsFromCounts(
   }));
 }
 
-function round(v: number, digits: number): number {
-  const f = Math.pow(10, digits);
-  return Math.round(v * f) / f;
-}
