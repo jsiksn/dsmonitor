@@ -14,6 +14,7 @@ import type {
   FigmaReport,
   TokenMatrix,
 } from "../../types";
+import { deriveVariablesSignal } from "./figma-variables-signal";
 import type {
   FigmaDomainSummaryEntry,
   FigmaFrameRankingEntry,
@@ -109,6 +110,8 @@ export function baselineToFigmaData(
     nonPrimaryLabels
   );
 
+  const variablesSignal = deriveVariablesSignal(figma);
+
   return {
     stamp,
     primaryLabel,
@@ -128,6 +131,9 @@ export function baselineToFigmaData(
     domainSummary,
     // B 그룹 단계 3 (2026-04-29): 컴포넌트 매칭 — baseline 안 미존재 시 null.
     componentMatch: figma.componentMatch ?? null,
+    // 0.8.8 — Variables 조회 신호 (옛 "plan 제약" 리터럴 대체 근거).
+    variablesRestricted: variablesSignal.restricted,
+    variablesCount: variablesSignal.count,
   };
 }
 

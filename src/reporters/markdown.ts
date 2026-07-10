@@ -10,6 +10,8 @@ import type {
   TokenMatrix,
   TokenMatrixCell,
 } from "../types";
+// 0.8.8 — evaluate 를 공유 유틸로 이동 (dashboard transformer 와 판정 로직 단일화).
+import { evaluate } from "../utils/evaluate";
 
 type Status = "good" | "warn" | "bad" | "info";
 
@@ -19,17 +21,6 @@ const BADGE: Record<Status, string> = {
   bad: "❌",
   info: "ℹ️",
 };
-
-function evaluate(value: number, t: Threshold): Status {
-  if (t.direction === "higher") {
-    if (value >= t.good) return "good";
-    if (value >= t.warn) return "warn";
-    return "bad";
-  }
-  if (value <= t.good) return "good";
-  if (value <= t.warn) return "warn";
-  return "bad";
-}
 
 function thresholdHint(t: Threshold, formatter: (n: number) => string): string {
   if (t.direction === "higher") {

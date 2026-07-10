@@ -107,13 +107,19 @@ function MatrixSection({ urls, averages }) {
 }
 
 // ---------- Sections 2–5 — Category breakdown ----------
-function CategorySection({ title, field, metric, urls, average, hint, runs }) {
+function CategorySection({ title, field, metric, urls, average, runs }) {
   const sorted = [...urls].sort((a, b) => a[metric] - b[metric]);
   const lowest = sorted[0];
   const highest = sorted[sorted.length - 1];
   const badge = lhBadgeFromScore(average);
   const min = Math.min(...urls.map(u => u[metric]));
   const max = Math.max(...urls.map(u => u[metric]));
+  // 0.8.8 — 옛 시안 잔재 hint prop (점수와 무관한 소견 리터럴) 제거.
+  //   데이터로 검증되는 사실만 hint 로 표시: 전 URL 동일 점수 케이스.
+  const hint =
+    urls.length > 1 && min === max
+      ? `${urls.length} URL 모두 동일 점수 (${(min * 100).toFixed(1)}).`
+      : null;
   return (
     <section className={`lh-sect${badge.kind === "below" ? " below-threshold" : ""}`}>
       <LhSectionHead title={title} field={field} badge={badge} />
@@ -287,25 +293,24 @@ function LighthouseTabDetail() {
 
       <MatrixSection urls={d.urls} averages={d.averages} />
 
-      <CategorySection
-        title="Accessibility" field="lighthouse.a11y" metric="a11y"
-        urls={d.urls} average={d.averages.a11y} runs={d.numberOfRuns}
-        hint="↑ 컴포넌트 교체가 label · aria 개선으로 이어질 것으로 예상."
-      />
+      {/* 0.8.8 — 상세 섹션 순서를 매트릭스 열 순서 (Perf / A11y / BP / SEO) 와 통일.
+          옛 흐름: A11y 가 첫 번째라 같은 탭 안에서 지표 순서가 어긋났음.
+          hint 리터럴 (시안 소견) 은 CategorySection 내부 실계산으로 대체. */}
       <CategorySection
         title="Performance" field="lighthouse.perf" metric="perf"
         urls={d.urls} average={d.averages.perf} runs={d.numberOfRuns}
-        hint="전체적으로 안정. 회귀 감시 용도로 관찰."
+      />
+      <CategorySection
+        title="Accessibility" field="lighthouse.a11y" metric="a11y"
+        urls={d.urls} average={d.averages.a11y} runs={d.numberOfRuns}
       />
       <CategorySection
         title="Best Practices" field="lighthouse.bp" metric="bp"
         urls={d.urls} average={d.averages.bp} runs={d.numberOfRuns}
-        hint={`${d.urls.length} URL 모두 동일 점수 — 회귀 감시 용도.`}
       />
       <CategorySection
         title="SEO" field="lighthouse.seo" metric="seo"
         urls={d.urls} average={d.averages.seo} runs={d.numberOfRuns}
-        hint="회귀 감시 용도."
       />
 
       <CwvSection sample={d.cwvSample} totalUrls={d.totalUrls} />

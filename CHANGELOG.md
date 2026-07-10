@@ -8,6 +8,35 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.8.8] — 2026-07-10
+
+### 정정 / Fixed
+
+- **한 —** dashboard "변수 준수율" 카드가 측정값과 무관하게 항상 "기준 95% 도달" (초록) 로 표시되던 오표기가 정정됩니다. 옛 흐름은 code 탭 ScssSection 의 status 가 리터럴 고정 — 준수율이 기준 미만이어도 "도달" 로 노출. 0.8.8 부터 `cfg.thresholds.scssVariableCompliance` 판정으로 상태 pill · 숫자 색상 · 목표 표기 · 막대 마크 위치가 모두 동적 결정됩니다.
+- **EN —** The dashboard "변수 준수율" (variable compliance) card no longer shows a hard-coded "기준 95% 도달" (met, green) status regardless of the measured value. Through 0.8.7 the code-tab ScssSection status was a literal, so even a below-threshold compliance rendered as "met". From 0.8.8 the status pill, number color, goal text, and bar mark position are all derived from `cfg.thresholds.scssVariableCompliance`.
+- **한 —** dashboard 전반의 상태 배지 · 목표 수치 리터럴이 `cfg.thresholds` 기반 동적 판정으로 정정됩니다. 옛 흐름은 Summary 탭 코드 3카드 항상 "기준 미달", Lighthouse 카드 배지 · code 탭 각 섹션 status · "목표 ≥ 80%" 류 목표 표기가 전부 시안 시점 리터럴 — thresholds 설정과 무관했고, markdown 리포터 (동적 판정) 와 같은 baseline 에서 판정이 어긋날 수 있었습니다. 0.8.8 부터 판정 로직이 공유 유틸 (`src/utils/evaluate.ts`) 로 단일화되어 markdown 리포트와 dashboard 가 같은 기준으로 판정을 내립니다. Summary Lighthouse 카드는 Lighthouse 표준 임계 (≥90 / ≥75) 를 상세 탭 (lhBadgeFromScore) 과 동일 적용 — 탭 간 배지 일치.
+- **EN —** Hard-coded status badges and goal numbers across the dashboard are replaced with dynamic judgments from `cfg.thresholds`. Previously the three Summary code cards always showed "기준 미달" (below), Lighthouse card badges and every code-tab section status plus goal texts like "목표 ≥ 80%" were literals from the original design handoff — ignoring the configured thresholds and potentially contradicting the markdown report (which judges dynamically) on the same baseline. From 0.8.8 the judgment logic is unified in a shared util (`src/utils/evaluate.ts`) so the markdown report and the dashboard judge identically. Summary Lighthouse cards apply the standard Lighthouse thresholds (≥90 / ≥75), matching the detail tab's lhBadgeFromScore — consistent badges across tabs.
+- **한 —** Lighthouse 탭 상세 섹션 순서가 매트릭스 열 순서 (Performance → Accessibility → Best Practices → SEO) 와 통일됩니다. 옛 흐름은 Accessibility 가 첫 번째라 같은 탭 안에서 지표 순서가 어긋났습니다.
+- **EN —** The Lighthouse tab detail sections now follow the matrix column order (Performance → Accessibility → Best Practices → SEO). Previously Accessibility came first, so the metric order disagreed within the same tab.
+- **한 —** 옛 시안 잔재 문구 (특정 프로젝트 상황 리터럴) 가 제거되거나 데이터 기반 표기로 교체됩니다 — (1) Summary Lighthouse layer 설명의 고정 페이지 수 문구 → 측정된 URL 수 · run 수, (2) TypeScript 카드의 특정 디렉토리명 나열 → `tsMigration.byDir` 기반 JS 잔여 상위 디렉토리, (3) "Variables 는 plan 제약으로 미포함" → Figma 스캔 신호 기반 조건부 안내 (403 warning 시 안내 · 조회 성공 시 변수 수 표시), (4) figma 탭 stamp fallback 의 시안 날짜 → "—", (5) "전체적으로 안정" · "컴포넌트 교체가 label · aria 개선으로 이어질 것으로 예상" 류 소견 문구 → 판정 기반 중립 문구 (기준값 · 측정값 · 상세 위치만, met/below 틀 고정 + 값 삽입), (6) Lighthouse 탭 hint 리터럴 → 데이터로 검증되는 사실만 표시 (전 URL 동일 점수 케이스 계산).
+- **EN —** Design-handoff relic strings (literals describing one specific project) are removed or replaced with data-driven text — (1) the fixed page-count phrase in the Summary Lighthouse layer description → measured URL count · run count, (2) the specific directory names in the TypeScript card → top remaining-JS directories derived from `tsMigration.byDir`, (3) "Variables excluded due to plan restriction" → a conditional note driven by actual Figma scan signals (shown on a 403 warning; variable count shown on success), (4) the design-era fallback date in the figma tab stamp → "—", (5) editorial sentences like "overall stable" and "component replacement is expected to improve labels/aria" → neutral judgment-based text (threshold, measured value, and where to look only; fixed met/below templates with inserted values), (6) Lighthouse tab hint literals → only facts verifiable from data (the all-URLs-same-score case, actually computed).
+
+### 변경 / Changed
+
+- **한 —** Figma Variables 조회 성공 시 `designSystemCounts[].variables` 가 실제 변수 수로 채워집니다 (옛 흐름: 항상 null). null = 미조회 (Enterprise plan 403 — warnings 에 "Variables:" prefix 경고 병행 기록) / number = 조회됨 (0 포함). figma 탭 "측정 범위" 표기도 이 신호 따라 "Styles만" / "Styles + Variables" 로 동적 결정됩니다.
+- **EN —** On a successful Figma Variables fetch, `designSystemCounts[].variables` is now populated with the actual variable count (previously always null). null = not fetched (Enterprise-plan 403, with a "Variables:"-prefixed warning recorded) / number = fetched (0 included). The figma tab "측정 범위" (measurement scope) label also follows this signal — "Styles만" vs "Styles + Variables".
+- **한 —** dashboard inject 데이터에 판정 필드가 추가됩니다 — `__CODE_DATA.judge` / `__SUMMARY_DATA.code.judge` (status · good · warn · direction), `__SUMMARY_DATA.code.tsTopJsDirs`, figma 데이터의 `variablesRestricted` / `variablesCount`. dashboard HTML 전용 derived 필드라 baseline JSON shape 는 그대로입니다 (위 `variables` 값 채움 외 변화 없음).
+- **EN —** Judgment fields are added to the dashboard-injected data — `__CODE_DATA.judge` / `__SUMMARY_DATA.code.judge` (status · good · warn · direction), `__SUMMARY_DATA.code.tsTopJsDirs`, and `variablesRestricted` / `variablesCount` on the figma data. These are dashboard-HTML-only derived fields; the baseline JSON shape is unchanged (aside from the `variables` value now being filled as above).
+- **한 —** config thresholds 에 대응 지표가 없는 figma 비율 카드 (토큰 매칭률 · Instance 비중) 는 근거 없는 "기준 미달" 리터럴 배지를 제거하고 방향 표기 ("목표 ↑") 만 유지합니다. 고유 목표 0 이 정의에서 나오는 건수 지표 (DS 외부 Instance · 마이그레이션 후보) 는 건수 기반 판정 (0건 = 도달) 으로 전환 — Summary 와 상세 탭이 같은 규칙을 공유합니다.
+- **EN —** Figma ratio cards with no corresponding config threshold (token match rate · instance share) drop the unfounded literal "기준 미달" badge and keep only the direction indicator ("목표 ↑"). Count metrics whose zero goal follows from their definition (instances outside the DS · migration candidates) switch to count-based judgment (0 = met) — Summary and detail tabs share the same rule.
+
+### 참고 / Notes
+
+- `scss-imports` (tailwind preset) 가 dashboard 매트릭스에 미등재인 것은 의도임을 명시하는 주석이 3곳 (preset 정의부 · code-tab.jsx · baseline-to-summary-data.ts 매트릭스 정의부) 에 추가됩니다 — 감지 규칙이 비어 있어 항상 0 이고, 단순 import 경로 검출은 pure-@apply 허용 방침과 충돌 (오검출 위험). 매트릭스 연계 구현은 0.9.0+ 논의 이월.
+- Comments are added in three places (the preset definition, code-tab.jsx, and the baseline-to-summary-data.ts matrix) stating that `scss-imports` (tailwind preset) being absent from the dashboard matrix is intentional — its detection rules are empty (always 0), and naive import-path detection would conflict with the pure-@apply allowance (false positives). A matrix-linked implementation is deferred to the 0.9.0+ discussion.
+- 검증: `npm run typecheck` + `npm run build` 통과, dashboard jsx 5종 esbuild parse 통과, fixture baseline 으로 느슨한 / 엄격한 thresholds 2회 생성해 judge status 가 good ↔ bad 로 바뀌는 것 + 시안 잔재 문구 부재 확인.
+- Verified: `npm run typecheck` + `npm run build` pass, all five dashboard jsx files parse with esbuild, and two dashboard builds from a fixture baseline (loose vs strict thresholds) confirm judge statuses flip good ↔ bad and no relic strings remain.
+
 ## [0.8.7] — 2026-06-23
 
 ### 변경 / Changed

@@ -737,12 +737,13 @@ export type FigmaConfig = {
 /**
  * DS 파일 1개의 측정 결과.
  *
- * `variables` 는 Phase 0.5 에선 **항상 null** (file_variables:read scope 미보유).
- * Phase B 에서 토큰 scope 확보 후 채움.
+ * `variables` — 0.8.8 부터 실제 조회 결과 반영:
+ *   number = Variables API 조회 성공 (0 포함) / null = 미조회 (Enterprise plan
+ *   미보유 403 — warnings 에 "Variables:" prefix 경고가 함께 기록됨).
  */
 export type FigmaDesignSystemCount = {
   label: string;
-  /** Phase B 이월. 현재는 항상 null. */
+  /** Variables 수. null = 미조회 (403). 0.8.7 까지는 항상 null. */
   variables: number | null;
   /** `d.styles` dict 크기. styleType (TEXT/FILL/EFFECT/GRID) 별 분해값. */
   styles: number;

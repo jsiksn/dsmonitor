@@ -148,7 +148,12 @@ export async function scanDesignSystem(
   const styleMapEntries = [...mergedStyles.values()];
 
   // Variables API — 조건부 호출. Enterprise plan 미보유 시 403 (warning).
-  const variableMapEntries = await scanLocalVariables(fileKey, label, token, warnings);
+  const scannedVariables = await scanLocalVariables(fileKey, label, token, warnings);
+  const variableMapEntries = scannedVariables ?? [];
+  // 0.8.8 — 조회 성공 시 count.variables 채움 (옛 null 고정 보완).
+  //   null = 미조회 (403) / number = 조회됨 (0 포함) — dashboard 가 이 신호로
+  //   Variables 안내를 조건부 표시.
+  count.variables = scannedVariables === null ? null : scannedVariables.length;
 
   return {
     count,
@@ -162,8 +167,11 @@ export async function scanDesignSystem(
 /**
  * `/v1/files/:key/variables/local` 시도.
  *   - 200: normalize 해서 반환
- *   - 403: warnings 에 기록 후 빈 배열 반환 (에러 아님 — Enterprise 미보유 예상)
+ *   - 403: warnings 에 기록 후 null 반환 (에러 아님 — Enterprise 미보유 예상)
  *   - 기타 FigmaApiError: rethrow (상위 figma.ts 에서 errors 로 분류)
+ *
+ * 0.8.8 — 반환 타입 `[] → null` 구분 추가: 403 (미조회) 은 null, 조회 성공에
+ * 변수 0개는 []. 옛 흐름은 두 케이스가 같은 [] 라 count.variables 를 채울 수 없었음.
  *
  * 401 은 figmaFetch 가 이미 rethrow 상태 — 이 함수까지 오지 않음.
  */
@@ -172,7 +180,7 @@ async function scanLocalVariables(
   label: string,
   token: string,
   warnings: string[]
-): Promise<FigmaVariableEntry[]> {
+): Promise<FigmaVariableEntry[] | null> {
   try {
     const resp = await fetchLocalVariables(fileKey, token);
     const vars = resp?.meta?.variables ?? {};
@@ -192,9 +200,9 @@ async function scanLocalVariables(
         `Variables: Enterprise plan 필요 ("${label}"). /v1/files/:key/variables/local 접근 거부 (HTTP 403). ` +
           `plan 업그레이드 + 토큰 재발급 시 자동 활성화.`
       );
-      return [];
+      return null;
     }
-    // 404 는 파일 없음이라 DS 스캔 자체가 이미 실패했어야 함 — 방어적으로 빈 배열.
+    // 404 는 파일 없음이라 DS 스캔 자체가 이미 실패했어야 함 — 방어적으로 null.
     // 나머지는 rethrow (상위에서 errors 로 분류).
     throw e;
   }
@@ -249,7 +257,7 @@ function countFromMaps(
 
   return {
     label,
-    // Variables 는 Phase B 이월 — file_variables:read scope 미보유.
+    // 초기값 null — scanDesignSystem 이 Variables 조회 성공 시 덮어씀 (0.8.8).
     variables: null,
     styles: styles.size,
     stylesByType,
