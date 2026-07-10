@@ -67,10 +67,8 @@ register(scssParser);
 register(cssVariablesParser);
 register(tailwindParser);
 
-/** 테스트/디버깅용. 등록된 파서 타입 목록. */
-export function listRegisteredParserTypes(): string[] {
-  return [...registry.keys()];
-}
+// 0.8.10 — 미참조 export listRegisteredParserTypes() 제거 ("테스트용" 이었으나
+//   실제 테스트 (tests/codeTokenParsers.test.ts) 는 loadCodeTokens 를 직접 검증).
 
 // ───── 통합 로더 ──────────────────────────────────────────────────
 

@@ -228,7 +228,7 @@ function CwvSection({ sample, totalUrls }) {
         })}
       </div>
       <div className="lh-cwv-foot">
-        <button className="lh-toggle" onClick={() => setOpen(o => !o)}>
+        <button className="lh-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
           {open ? "▾ 임계 기준 접기" : "▸ 임계 기준 풀 테이블 보기"}
         </button>
       </div>

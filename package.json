@@ -1,6 +1,6 @@
 {
   "name": "dsmonitor",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "UI Health Monitoring Framework — 코드베이스 / 스타일 / 디자인 일관성을 정량 측정하는 도구. UI Health Monitoring Framework — quantifies codebase / style / design consistency.",
   "type": "module",
   "main": "./dist/index.js",
@@ -76,20 +76,21 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "prepublishOnly": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@typescript-eslint/parser": "^8.0.0",
+    "dotenv": "^16.0.0",
     "fast-glob": "^3.3.2",
     "postcss": "^8.4.47",
     "postcss-scss": "^4.0.9",
-    "dotenv": "^16.0.0",
-    "tsx": "^4.0.0",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "tsx": "^4.0.0"
   },
   "peerDependencies": {
-    "eslint": ">=8",
     "@lhci/cli": ">=0.13",
+    "eslint": ">=8",
     "typescript": ">=5.0"
   },
   "peerDependenciesMeta": {
@@ -106,7 +107,8 @@
   "devDependencies": {
     "@types/node": "^20.14.10",
     "@types/prompts": "^2.4.9",
+    "tsup": "^8.0.0",
     "typescript": "^5.5.4",
-    "tsup": "^8.0.0"
+    "vitest": "^4.1.10"
   }
 }

@@ -12,6 +12,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { findLatestName } from "../../utils/latest";
 import type {
   LighthouseCwvEntry,
   LighthouseSummaryFile,
@@ -155,12 +156,9 @@ function readLhr(filePath: string): {
  * 디렉토리명 형식: YYYY-MM-DD. 없으면 null.
  */
 export function findLatestLighthouseDir(lhRoot: string): string | null {
-  if (!fs.existsSync(lhRoot)) return null;
-  const dirs = fs
-    .readdirSync(lhRoot, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(d.name))
-    .map((d) => d.name);
-  if (dirs.length === 0) return null;
-  dirs.sort().reverse();
-  return path.join(lhRoot, dirs[0]);
+  // 0.8.10 — readdir + 정렬 패턴을 공유 유틸 (utils/latest) 로 교체.
+  const name = findLatestName(lhRoot, (n) => /^\d{4}-\d{2}-\d{2}$/.test(n), {
+    dirsOnly: true,
+  });
+  return name ? path.join(lhRoot, name) : null;
 }

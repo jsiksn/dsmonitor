@@ -59,7 +59,8 @@ function Disclosure({ summary, count, children, defaultOpen }) {
   const [open, setOpen] = useState(!!defaultOpen);
   return (
     <div className={`disc${open ? " open" : ""}`}>
-      <button className="disc-toggle" onClick={() => setOpen(o => !o)}>
+      {/* 0.8.10 — 접근성: 펼침 상태를 스크린리더에 노출. */}
+      <button className="disc-toggle" aria-expanded={open} onClick={() => setOpen(o => !o)}>
         <span className="caret">{open ? "▾" : "▸"}</span>
         <span>{summary}</span>
         {count != null && <span className="disc-count mono">{count}</span>}
@@ -110,49 +111,14 @@ function Section({ id, field, title, status, direction, children }) {
 }
 
 // ---------- 1. forbiddenClassCount ----------
-// 0.8.1 — preset id (영문) → 한글 라벨 매핑. dist-row 안 한글 주 / 영문 mono 작게 병기.
-// 0.8.3 — ForbiddenSection + StylingMethodSection 공통 활용. 8 entry 로 확장.
-const FORBIDDEN_LABELS = {
-  "bootstrap-utilities":   "Bootstrap utility",
-  "tailwind-classes":      "Tailwind utility",
-  "apply-mixed":           "@apply-mixed",
-  "tailwind-via-wrapper":  "Tailwind via wrapper",
-  "raw-css":               "raw CSS",
-  "inline-styles":         "inline styles",
-  "global-css":            "global CSS imports",
-  "scss-imports":          "SCSS imports",
-};
-
-// 0.8.3 — preset 별 의미 있는 forbidden sub-key 매트릭스.
-//   preset.forbidden id + matrix 추가 sub-key 흐름 그대로 반영.
-//   카운트 0 row 도 노출 (preset 정의 존중 + 미래 확장 흐름).
-//   알 수 없는 preset 시점에 forbidden row 0 — preset 추가 시점에 본 매핑 갱신 필요.
-// 0.8.8 — `scss-imports` (tailwind preset 정의) 미등재는 **의도** (버그 아님):
-//   감지 규칙 자체가 비어 있어 항상 0 이고, 단순 import 경로 검출은 pure-@apply
-//   허용 방침 (codebase.ts matrix) 과 충돌해 오검출 위험. 매트릭스 연계 구현
-//   (0.9.0+ 논의) 전까지 여기 / baseline-to-summary-data.ts 양쪽 모두 미등재 유지.
-const FORBIDDEN_BY_PRESET = {
-  scss: [
-    { id: "bootstrap-utilities" },
-    { id: "tailwind-classes" },
-    { id: "apply-mixed",          title: "@apply 유입 + raw CSS 혼합 — tailwind 의존 끌어옴" },
-    { id: "tailwind-via-wrapper", title: "pure-@apply wrapper class — tailwind 의존" },
-  ],
-  tailwind: [
-    { id: "bootstrap-utilities" },
-    { id: "apply-mixed",          title: "@apply + raw CSS 혼합 — utility-first 위반" },
-    { id: "raw-css",              title: "pure-css 클래스 — utility-first 위반" },
-  ],
-  bootstrap: [
-    { id: "tailwind-classes" },
-    { id: "inline-styles" },
-  ],
-  "css-modules": [
-    { id: "bootstrap-utilities" },
-    { id: "tailwind-classes" },
-    { id: "global-css" },
-  ],
-};
+// 0.8.10 — FORBIDDEN 라벨 + preset 매트릭스는 forbidden-meta.ts 단일 원천.
+//   shell.ts 가 window.__FORBIDDEN_META = { labels, byPreset } 로 inject.
+//   옛 흐름 (0.8.3~0.8.9): 같은 정의가 이 파일에 복제되어 있어 한쪽만 갱신하면
+//   summary 탭과 어긋나는 버그가 재발할 수 있었음. scss-imports 미등재 의도 등
+//   정의 관련 주석도 forbidden-meta.ts 참조.
+const FORBIDDEN_META = window.__FORBIDDEN_META ?? { labels: {}, byPreset: {} };
+const FORBIDDEN_LABELS = FORBIDDEN_META.labels;
+const FORBIDDEN_BY_PRESET = FORBIDDEN_META.byPreset;
 
 function ForbiddenSection({ d, smd }) {
   const total = d.forbidden.total;

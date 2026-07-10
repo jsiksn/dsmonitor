@@ -1,0 +1,15 @@
+:root {
+  --point-color-0: #123456;
+  --point-color-1: #654321;
+}
+
+$grays: (
+  gray-100: #f8f9fa,
+  gray-900: #212529,
+);
+
+@each $key, $value in $grays {
+  :root {
+    #{"--" + $key}: #{$value};
+  }
+}

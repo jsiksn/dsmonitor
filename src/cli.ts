@@ -11,6 +11,10 @@ import { findLatestReportJson, generateMarkdown } from "./reporters/markdown";
 import { generateOverview } from "./reporters/overview";
 import { exportMigrationCsv } from "./reporters/migrationCsv";
 import { attachAbsRoot } from "./utils/walker";
+// 0.8.10 — 공유 유틸 (JSON 파싱 방어 / 날짜 stamp / 최신 파일 탐색).
+import { readJsonFile } from "./utils/readJson";
+import { todayStampUtc } from "./utils/dateStamp";
+import { findLatestName } from "./utils/latest";
 import { renderDashboard } from "./dashboard";
 import type {
   UIHealthConfig,
@@ -256,8 +260,8 @@ async function main() {
         process.exit(1);
       }
       console.log(`[dsmonitor] --only figma — base: ${baseInput}`);
-      const raw = await fs.readFile(baseInput, "utf8");
-      const report = JSON.parse(raw) as CodebaseReport;
+      // 0.8.10 — JSON 파싱 방어 (utils/readJson — 손상 파일 시 친절 안내).
+      const report = await readJsonFile<CodebaseReport>(baseInput, "baseline");
       const fT0 = Date.now();
       let instancesFile: FigmaInstancesFile | undefined;
       try {
@@ -391,8 +395,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       : path.resolve(path.dirname(configPath), "docs/baseline.md");
     console.log(`[dsmonitor] input:  ${resolvedInput}`);
     console.log(`[dsmonitor] output: ${resolvedOutput}`);
-    const raw = await fs.readFile(resolvedInput, "utf8");
-    const report = JSON.parse(raw) as CodebaseReport;
+    const report = await readJsonFile<CodebaseReport>(resolvedInput, "baseline");
     await generateMarkdown(report, cfg, {
       inputPath: resolvedInput,
       outputPath: resolvedOutput,
@@ -436,7 +439,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       );
       process.exit(2);
     }
-    const stamp = new Date().toISOString().slice(0, 10);
+    const stamp = todayStampUtc();
     const resolvedOutput = outputPath
       ? path.resolve(outputPath)
       : path.resolve(reportsDir, `dashboard-${stamp}.html`);
@@ -476,7 +479,7 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
       );
       process.exit(2);
     }
-    const stamp = new Date().toISOString().slice(0, 10);
+    const stamp = todayStampUtc();
     const safeFrame = frame.replace(/[^a-zA-Z0-9_-]/g, "_");
     const safeDs = ds.replace(/[^a-zA-Z0-9_-]/g, "_");
     const resolvedOutput = outputPath
@@ -525,16 +528,11 @@ function readArg(argv: string[], key: string): string | undefined {
  * findLatestReportJson 과 같은 흐름 — prefix "figma-instances" 만 우선.
  */
 function findLatestInstancesJson(reportsDir: string): string | null {
-  if (!existsSync(reportsDir)) return null;
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const fs2 = require("node:fs") as typeof import("node:fs");
-  const all = fs2
-    .readdirSync(reportsDir)
-    .filter((f) => /^figma-instances-\d{4}-\d{2}-\d{2}\.json$/.test(f))
-    .map((f) => path.join(reportsDir, f));
-  if (all.length === 0) return null;
-  all.sort((a, b) => (a < b ? 1 : -1));
-  return all[0];
+  // 0.8.10 — readdir + 정렬 패턴을 공유 유틸 (utils/latest) 로 교체 (옛 require 우회 제거).
+  const name = findLatestName(reportsDir, (f) =>
+    /^figma-instances-\d{4}-\d{2}-\d{2}\.json$/.test(f)
+  );
+  return name ? path.join(reportsDir, name) : null;
 }
 
 /**
@@ -756,8 +754,7 @@ async function runReportChain(
   const outputPath = path.resolve(configDir, "docs/baseline.md");
   console.log(`[dsmonitor]   input:  ${baselineJsonPath}`);
   console.log(`[dsmonitor]   output: ${outputPath}`);
-  const raw = await fs.readFile(baselineJsonPath, "utf8");
-  const report = JSON.parse(raw) as CodebaseReport;
+  const report = await readJsonFile<CodebaseReport>(baselineJsonPath, "baseline");
   await generateMarkdown(report, cfg, {
     inputPath: baselineJsonPath,
     outputPath,
@@ -794,7 +791,7 @@ async function runDashboardChain(
 ): Promise<void> {
   const configDir = path.dirname(configPath);
   const reportsDir = path.resolve(configDir, cfg.report.outputDir);
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = todayStampUtc();
   const outputPath = path.resolve(reportsDir, `dashboard-${stamp}.html`);
   console.log(`[dsmonitor]   input:  ${baselineJsonPath}`);
   console.log(`[dsmonitor]   output: ${outputPath}`);
@@ -834,7 +831,8 @@ async function writeInstancesFile(
   );
 }
 
-function printSummary(r: any) {
+// 0.8.10 — any 제거 (필드 오타 시 컴파일 시점 검출).
+function printSummary(r: CodebaseReport) {
   const d = r.stylingMethodDistribution;
   const allowedLine = Object.entries(d.allowed)
     .map(([k, v]) => `${k}=${v}`)
@@ -881,6 +879,13 @@ Migration candidates:
 }
 
 main().catch((e) => {
-  console.error(e);
+  // 0.8.10 — "[dsmonitor]" prefix 의 의도된 사용자 대면 에러는 message 만 출력
+  //   (raw 스택 노출 X — readJson 방어 등). 그 외 예기치 못한 에러는 옛 흐름 그대로
+  //   전체 출력 (디버깅 정보 보존).
+  if (e instanceof Error && e.message.startsWith("[dsmonitor]")) {
+    console.error(e.message);
+  } else {
+    console.error(e);
+  }
   process.exit(1);
 });

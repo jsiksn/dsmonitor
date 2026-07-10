@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
-import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { findLatestName } from "../utils/latest";
 import type {
   CodebaseReport,
   UIHealthConfig,
@@ -47,24 +47,17 @@ export function findLatestReportJson(
   reportsDir: string,
   baselinePrefix?: string
 ): string | null {
-  if (!existsSync(reportsDir)) return null;
-  const all = readdirSync(reportsDir)
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => path.join(reportsDir, f));
-  if (all.length === 0) return null;
-
+  // 0.8.10 — readdir + 정렬 패턴을 공유 유틸 (utils/latest) 로 교체. prefix 우선 /
+  //   전체 *.json fallback 의 2단 흐름은 그대로.
   if (baselinePrefix) {
     const re = new RegExp(`^${escapeRegex(baselinePrefix)}-\\d{4}-\\d{2}-\\d{2}\\.json$`);
-    const matched = all.filter((f) => re.test(path.basename(f)));
-    if (matched.length > 0) {
-      matched.sort((a, b) => (a < b ? 1 : -1));
-      return matched[0];
-    }
+    const matched = findLatestName(reportsDir, (f) => re.test(f));
+    if (matched) return path.join(reportsDir, matched);
   }
 
   // Fallback — 옛 동작.
-  all.sort((a, b) => (a < b ? 1 : -1));
-  return all[0];
+  const any = findLatestName(reportsDir, (f) => f.endsWith(".json"));
+  return any ? path.join(reportsDir, any) : null;
 }
 
 function escapeRegex(s: string): string {

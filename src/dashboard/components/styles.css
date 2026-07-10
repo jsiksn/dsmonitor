@@ -7,8 +7,11 @@
     --border-strong: #d5d3ca;
     --ink: #1a1a17;
     --ink-2: #47463f;
-    --ink-3: #7a786f;
-    --ink-4: #a8a69a;
+    /* 0.8.10 — 소형 회색 텍스트 대비 보정 (WCAG AA 4.5:1 기준).
+       옛 값: --ink-3 #7a786f (4.24:1) / --ink-4 #a8a69a (2.34:1) — --bg 위 미달.
+       새 값: --ink-3 5.35:1 / --ink-4 4.82:1 (--bg 기준). 색조는 유지, 명도만 하강. */
+    --ink-3: #6a685f;
+    --ink-4: #716f66;
 
     /* v0.9 note 17: --good / --bad 명도 + 채도 보정. 명도 차이 60↔58 → 66↔52 (14)
        로 색맹/색약 사용자도 즉시 구분. -bg / -ink 는 그대로 (별도 토큰 영향 작음). */
@@ -276,6 +279,10 @@
   /* stack bar */
   .stack-bar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; gap: 1px; background: var(--border); margin: 12px 0 4px; }
   .stack-seg { transition: opacity 0.15s; }
+  /* 0.8.10 — 움직임 줄이기 설정 존중 (접근성). */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
   .stack-seg:hover { opacity: 0.85; }
 
   /* track bar (for SCSS, DS, TS) */

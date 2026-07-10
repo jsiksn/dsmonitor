@@ -23,6 +23,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { readJsonFile } from "../utils/readJson";
 import type {
   FigmaInstanceEntry,
   FigmaInstancesFile,
@@ -175,8 +176,11 @@ export async function exportMigrationCsv(
   instancesPath: string,
   opts: MigrationExportOptions
 ): Promise<{ outputPath: string; rowCount: number }> {
-  const raw = await fs.readFile(instancesPath, "utf8");
-  const instancesFile = JSON.parse(raw) as FigmaInstancesFile;
+  // 0.8.10 — JSON 파싱 방어 (손상 파일 시 친절 안내 — utils/readJson).
+  const instancesFile = await readJsonFile<FigmaInstancesFile>(
+    instancesPath,
+    "figma-instances"
+  );
 
   const rows = collectMigrationRows(instancesFile, {
     frame: opts.frame,

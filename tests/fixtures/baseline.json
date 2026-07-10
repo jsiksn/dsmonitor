@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-07-10T00:00:00.000Z",
+  "projectRoot": "/fixture",
+  "totals": { "codeFiles": 100, "styleFiles": 10, "tsFiles": 60, "jsFiles": 40, "dsComponentFiles": 5, "nonDsComponentFiles": 95 },
+  "hardcodedColors": { "total": 30, "byFile": [{ "file": "a.tsx", "count": 30, "samples": ["#fff"] }] },
+  "scssVariableCompliance": { "compliance": 0.85, "variableUsages": 850, "hardcodedLiterals": 150 },
+  "stylingMethodDistribution": {
+    "preferredId": "tailwind",
+    "preferredCompliance": {
+      "value": 0.7,
+      "numerator": { "total": 70, "items": ["tailwind", "allowedGlobal"], "counts": { "tailwind": 60, "allowedGlobal": 10 } },
+      "denominator": { "total": 100, "items": ["tailwind", "allowedGlobal", "forbidden.bootstrap-utilities"], "counts": { "tailwind": 60, "allowedGlobal": 10, "forbidden.bootstrap-utilities": 30 } },
+      "excluded": { "items": ["orphanClass", "noClass"], "counts": { "orphanClass": 3, "noClass": 7 } }
+    },
+    "forbiddenFileCount": 30,
+    "forbiddenFileRatio": 0.3,
+    "allowed": { "tailwind": 60 },
+    "forbidden": { "bootstrap-utilities": 30, "apply-mixed": 0, "raw-css": 0, "scss-imports": 0 },
+    "allowedGlobal": 10,
+    "orphanClass": 3,
+    "noClass": 7,
+    "totalFiles": 100,
+    "orphanSamples": []
+  },
+  "forbiddenClassCount": {
+    "total": 120,
+    "byId": { "bootstrap-utilities": 100, "apply-mixed": 15, "raw-css": 5, "scss-imports": 0 },
+    "topFiles": [{ "file": "b.tsx", "total": 40, "byId": { "bootstrap-utilities": 40 } }]
+  },
+  "tsMigration": {
+    "tsFiles": 60,
+    "jsFiles": 40,
+    "ratio": 0.6,
+    "byDir": [
+      { "dir": "pages", "tsFiles": 5, "jsFiles": 25, "totalFiles": 30, "ratio": 0.1667 },
+      { "dir": "components", "tsFiles": 40, "jsFiles": 10, "totalFiles": 50, "ratio": 0.8 },
+      { "dir": "store", "tsFiles": 15, "jsFiles": 5, "totalFiles": 20, "ratio": 0.75 }
+    ]
+  },
+  "dsCoverage": { "coverage": 0.65, "filesUsingDs": 39, "totalConsumerFiles": 60, "topDsImports": [] },
+  "migrationCandidates": { "totalOccurrences": 12, "totalFilesAffected": 6, "byTarget": { "Button": 12 }, "topFiles": [{ "file": "c.tsx", "occurrences": 12, "targets": ["Button"] }], "samples": [] },
+  "classDefinitions": { "files": [] }
+}
