@@ -8,6 +8,21 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.9.1] — 2026-07-10
+
+### 추가 / Added
+
+- **한 —** `docs/roadmap.md` 신설 — 이월된 추가개발 후보 3건 (scss-imports 매트릭스 연계 / Bootstrap `@extend`·`@include` 검출 / 대시보드 인라인 번들) 의 배경·현재 상태·구현 방향·선행 조각 기록 (한국어 단일 — 살아있는 계획 문서라 한/영 동기화 비용 회피). 옛 흐름은 이월 결정이 흩어진 코드 주석에만 남아 리포지토리 문서로는 찾을 수 없었음. 2026-07 조사 배치 이력 표 (0.8.8~0.9.0) 포함.
+- **EN —** `docs/roadmap.md` added — records the three deferred development candidates (scss-imports matrix-linked detection / Bootstrap `@extend`·`@include` detection / dashboard inline bundle) with background, current state, direction, and prerequisites (Korean only — a living planning document, avoiding the KR/EN sync cost). Previously the deferral decisions lived only in scattered code comments. Includes a one-line history of the 2026-07 audit batches (0.8.8–0.9.0).
+- **한 —** README 에 알려진 한계 안내 추가 (한/영 1:1) — 지원 기술 스택 아래 "SCSS `@extend`/`@include` 경유 Bootstrap 사용은 현재 미측정", §5 dashboard 행에 "열 때 인터넷 연결 필요 (CDN — 폐쇄망 미지원)". 둘 다 roadmap 링크 병기. Further Reading 목록에도 roadmap 추가.
+- **EN —** Known-limitation notes added to the README (KR/EN 1:1) — under Supported Tech Stacks: "Bootstrap usage via SCSS `@extend`/`@include` is currently not measured", and on the §5 dashboard row: "requires an internet connection when opened (CDN — air-gapped networks unsupported)". Both link to the roadmap, which is also listed under Further Reading.
+
+### 참고 / Notes
+
+- docs-only release — 코드 동작 변경 없음. 코드 주석 3곳 (preset scss-imports / forbidden-meta / codebase matrix) 의 이월 표기를 roadmap 참조로 연결 (옛 "0.9.0+ 논의" 낡은 표기 정정 포함).
+- Docs-only release — no behavior change. Three code comments (preset scss-imports / forbidden-meta / codebase matrix) now point to the roadmap (fixing the stale "0.9.0+ discussion" phrasing).
+- `npm test` (66) + `npm run typecheck` + `npm run build` 통과 / pass.
+
 ## [0.9.0] — 2026-07-10
 
 > **측정 결과 변화 안내** — 본 release 의 파서 개선으로 일부 지표 수치가 옛 baseline 과 달라질 수 있습니다 (아래 각 항목에 방향 명시). 시계열 비교 시 0.9.0 전후 구분을 권장합니다.

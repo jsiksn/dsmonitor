@@ -50,8 +50,8 @@ module.exports = {
       //   단순 import 경로 검출 (importPathPatterns) 은 pure-@apply 허용 방침과 충돌:
       //   tailwind-project 는 @apply wrapper 용 SCSS import 가 정상이라 (codebase.ts
       //   matrix — pure-@apply 정상 / apply-mixed·raw-css 금지), 경로만으로 금지 판정
-      //   시 오검출. "import 된 SCSS 의 클래스 정의가 pure-@apply 인지" 를 보는
-      //   매트릭스 연계 구현 (0.9.0+ 논의) 전까지 본 상태 유지.
+      //   시 오검출. 매트릭스 연계 구현 (이월된 추가개발 — docs/roadmap.md §1 참조)
+      //   전까지 본 상태 유지.
     },
   ],
 };
