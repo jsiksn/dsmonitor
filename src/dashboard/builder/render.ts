@@ -70,7 +70,9 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
   }
 
   // ─── transformers 실행 ───
-  const code = baselineToCodeData(report);
+  // 0.8.8 — cfg.thresholds 전달: 상태 배지 / 목표 표기를 markdown 리포터와 같은
+  // evaluate() 판정으로 derive (옛 대시보드 리터럴 배지 대체).
+  const code = baselineToCodeData(report, opts.cfg.thresholds);
 
   let figma: DashboardData["figma"] = null;
   if (report.figma && opts.cfg.figma) {
@@ -82,6 +84,7 @@ export async function renderDashboard(opts: RenderOptions): Promise<void> {
     lighthouse,
     figmaWarningsCount: report.figma?.warnings?.length ?? 0,
     figmaTabData: figma,
+    thresholds: opts.cfg.thresholds,
   });
 
   // ─── plugins 자동 검색 (v0.15, 사이드카 plugin) ───

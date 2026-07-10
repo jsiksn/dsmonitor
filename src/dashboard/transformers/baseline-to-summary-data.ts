@@ -5,13 +5,20 @@
  * Summary 탭은 root.jsx 가 window.__SUMMARY_DATA 로 읽음.
  */
 
-import type { CodebaseReport } from "../../types";
+import type { CodebaseReport, UIHealthConfig } from "../../types";
+import { judge } from "../../utils/evaluate";
+import { deriveVariablesSignal } from "./figma-variables-signal";
 import type { FigmaTabData, LighthouseTabData, SummaryTabData } from "./types";
 
 /**
  * 0.8.5 — summary 탭 "금지 CSS 클래스" 카드 라벨 매핑 + preset 매트릭스.
  *   code-tab.jsx 안 FORBIDDEN_LABELS / FORBIDDEN_BY_PRESET 와 같은 흐름 (babel-inline jsx
  *   는 ESM import X 라 TS transformer 와 jsx 가 자연스럽게 중복. 다음 release 통합 결정 가능).
+ *
+ * 0.8.8 — `scss-imports` (tailwind preset 정의) 가 어느 preset 목록에도 없는 것은
+ *   **의도** (버그 아님): 감지 규칙이 비어 있어 항상 0 이고, 단순 import 경로 검출은
+ *   pure-@apply 허용 방침 (codebase.ts matrix) 과 충돌해 오검출 위험. 매트릭스 연계
+ *   구현 (0.9.0+ 논의) 전까지 여기 / code-tab.jsx 양쪽 모두 미등재 유지.
  */
 const FORBIDDEN_LABELS: Record<string, string> = {
   "bootstrap-utilities":   "Bootstrap utility",
@@ -38,8 +45,13 @@ export function buildSummaryData(args: {
   figmaWarningsCount: number;
   /** figma transformer 결과 — primary / non-primary 라벨 정보. null = figma 누락. */
   figmaTabData?: FigmaTabData | null;
+  /**
+   * 0.8.8 — cfg.thresholds. 상태 배지 / 목표 표기를 markdown 리포터와 같은
+   * evaluate() 판정으로 derive (옛 리터럴 배지 대체). 미전달 = 판정 null.
+   */
+  thresholds?: UIHealthConfig["thresholds"];
 }): SummaryTabData {
-  const { report, lighthouse, figmaWarningsCount, figmaTabData } = args;
+  const { report, lighthouse, figmaWarningsCount, figmaTabData, thresholds } = args;
   const figmaReport = report.figma;
 
   const codeStamp = (report.generatedAt || "").slice(0, 10);
@@ -58,6 +70,13 @@ export function buildSummaryData(args: {
     }))
     .sort((a, b) => b.value - a.value);
 
+  // 0.8.8 — JS 잔여 상위 디렉토리 derive. 옛 시안 잔재 "(Top: apps/...)" 리터럴 대체.
+  const tsTopJsDirs = [...(report.tsMigration.byDir ?? [])]
+    .filter((r) => r.jsFiles > 0)
+    .sort((a, b) => b.jsFiles - a.jsFiles)
+    .slice(0, 3)
+    .map((r) => r.dir);
+
   // ─── code 압축 ───
   const code: SummaryTabData["code"] = {
     scssCompliance: report.scssVariableCompliance.compliance,
@@ -73,6 +92,16 @@ export function buildSummaryData(args: {
     dsTotalConsumer: report.dsCoverage.totalConsumerFiles,
     migrationCandidateFiles: report.migrationCandidates.totalFilesAffected,
     migrationCandidateOccurrences: report.migrationCandidates.totalOccurrences,
+    tsTopJsDirs,
+    // 0.8.8 — markdown 리포터와 같은 evaluate() 판정 (utils/evaluate 공유).
+    judge: {
+      dsCoverage: judge(report.dsCoverage.coverage, thresholds?.dsCoverage),
+      tsMigration: judge(report.tsMigration.ratio, thresholds?.tsMigration),
+      forbidden: judge(
+        report.forbiddenClassCount.total,
+        thresholds?.forbiddenClassOccurrences
+      ),
+    },
   };
 
   // ─── lh 압축 ───
@@ -139,6 +168,8 @@ export function buildSummaryData(args: {
     const firstNonPrimary = nonPrimaryLabels[0]
       ? dsStats[nonPrimaryLabels[0]]
       : undefined;
+    // 0.8.8 — Variables 조회 신호 (옛 "plan 제약" 리터럴 대체 근거).
+    const variablesSignal = deriveVariablesSignal(figmaReport);
     figma = {
       primaryLabel,
       nonPrimaryLabels,
@@ -151,6 +182,8 @@ export function buildSummaryData(args: {
       totalInstances: figmaReport.instanceAnalysis?.totalInstances ?? 0,
       instanceSources: figmaReport.instanceSources ?? {},
       warningsCount: figmaWarningsCount,
+      variablesRestricted: variablesSignal.restricted,
+      variablesCount: variablesSignal.count,
     };
   }
 

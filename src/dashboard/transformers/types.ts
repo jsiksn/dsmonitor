@@ -15,6 +15,24 @@ import type {
   TokenMatrixDsStats,
 } from "../../types";
 import type { DashboardPluginEntry } from "../../plugins/types";
+import type { MetricJudgment } from "../../utils/evaluate";
+
+/**
+ * 0.8.8 — cfg.thresholds 기반 판정 묶음.
+ *
+ * transformer 가 evaluate() (markdown 리포터와 공유) 로 계산해 내려보내고,
+ * jsx 는 status 로 상태 pill / 색상, good·direction 으로 "목표 ≥ 80%" 표기를
+ * 렌더합니다. null = config 에 해당 threshold 없음 → jsx 가 상태 pill 숨김.
+ */
+export interface CodeJudgments {
+  dsCoverage: MetricJudgment | null;
+  tsMigration: MetricJudgment | null;
+  scssCompliance: MetricJudgment | null;
+  preferredCompliance: MetricJudgment | null;
+  hardcodedColors: MetricJudgment | null;
+  /** forbiddenClassOccurrences threshold vs forbidden 총 건수. */
+  forbidden: MetricJudgment | null;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // CodeTabData
@@ -43,6 +61,8 @@ export interface CodeTabData {
   ts: CodebaseReport["tsMigration"];
   ds: CodebaseReport["dsCoverage"];
   mig: CodebaseReport["migrationCandidates"];
+  /** 0.8.8 — cfg.thresholds 판정. 옛 리터럴 상태 pill 대체. */
+  judge: CodeJudgments;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -92,6 +112,13 @@ export interface FigmaTabData {
    * baseline.figma.componentMatch 미존재 시 null — figma-tab 가 카드 숨김.
    */
   componentMatch: FigmaComponentMatch | null;
+  /**
+   * 0.8.8 — Variables 조회 신호 (SummaryTabData.figma 와 같은 derive).
+   * figma-tab 의 측정 범위 표기 ("Styles만" vs "Styles + Variables") 와
+   * Variables 안내 note 를 실제 스캔 결과 기반 조건부 표시로 전환.
+   */
+  variablesRestricted: boolean;
+  variablesCount: number | null;
 }
 
 /**
@@ -202,6 +229,17 @@ export interface SummaryTabData {
     dsTotalConsumer: number;
     migrationCandidateFiles: number;
     migrationCandidateOccurrences: number;
+    /**
+     * 0.8.8 — JS 파일이 남은 상위 디렉토리 (jsFiles 내림차순 Top 3).
+     * 옛 시안 잔재 "(Top: apps/ecosystem · ...)" 리터럴 대체 — tsMigration.byDir derive.
+     */
+    tsTopJsDirs: string[];
+    /** 0.8.8 — cfg.thresholds 판정. 옛 리터럴 배지 / 목표 표기 대체. */
+    judge: {
+      dsCoverage: MetricJudgment | null;
+      tsMigration: MetricJudgment | null;
+      forbidden: MetricJudgment | null;
+    };
   };
   lh: {
     urls: number;
@@ -243,6 +281,13 @@ export interface SummaryTabData {
     totalInstances: number;
     instanceSources: Record<string, number>;
     warningsCount: number;
+    /**
+     * 0.8.8 — Variables 조회 신호. 옛 시안 잔재 "plan 제약으로 미포함" 리터럴 대체.
+     *   variablesRestricted: Variables API 403 warning 존재 (Enterprise plan 미보유).
+     *   variablesCount: 조회 성공 시 DS 합산 변수 수. 미조회 = null.
+     */
+    variablesRestricted: boolean;
+    variablesCount: number | null;
   } | null;
 }
 

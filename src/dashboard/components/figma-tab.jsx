@@ -78,7 +78,8 @@ function MeasurementScope({ d }) {
     <div className="ftab-scope">
       <div className="ftab-scope-line">
         <span className="mono dim">측정</span>
-        <span className="mono">{d.stamp || "2026-04-24"}</span>
+        {/* 0.8.8 — 옛 시안 잔재 fallback 날짜 리터럴 제거. */}
+        <span className="mono">{d.stamp || "—"}</span>
         <span className="dim sep">·</span>
         <span>도메인 파일 <span className="mono">{ms.domainFiles}</span>개 ({ms.domainNames.join(" / ")})</span>
         <span className="dim sep">·</span>
@@ -109,18 +110,21 @@ function TokenMatchSection({ d }) {
   const primaryRatio = primaryS.total === 0 ? 0 : primaryS.matchedWithCode / primaryS.total;
   const primaryPct = (primaryRatio * 100).toFixed(1);
 
+  // 0.8.8 — Variables 조회 신호 기반 측정 범위 표기 (옛 "Styles만" 리터럴 대체).
+  const scopeLabel = d.variablesCount != null ? "Styles + Variables" : "Styles만";
   return (
     <FSection
       id="token-match"
       field="figma.tokenMatrix.summary.dsStats"
-      title="DS 토큰 매칭률 (Styles + Variables)"
-      status={{ kind: "below", label: `기준 미달 · ${primaryS.matchedWithCode}/${primaryS.total}` }}
+      title={`DS 토큰 매칭률 (${d.variablesCount != null ? "Styles + Variables" : "Styles"})`}
+      // 0.8.8 — 옛 "기준 미달" 리터럴 제거: config thresholds 에 대응 지표가 없어
+      // 근거 없는 판정 표시 X. 방향 표기 (up-good) 만 유지.
       direction={{ kind: "up-good" }}
     >
       {/* primary big number */}
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{primaryPct}</div>
+          <div className="kv-num mono">{primaryPct}</div>
           <div className="kv-unit">%</div>
           <div className="kv-cap">
             <strong>{primaryLabel}</strong> · 기준 · {primaryS.matchedWithCode} / {primaryS.total}
@@ -129,7 +133,7 @@ function TokenMatchSection({ d }) {
         <div className="kv-side">
           <div className="kv-row">
             <span className="k">측정 범위</span>
-            <span className="v">Styles만</span>
+            <span className="v">{scopeLabel}</span>
           </div>
           <div className="kv-row">
             <span className="k mono">{primaryLabel}</span>
@@ -171,19 +175,21 @@ function TokenMatchSection({ d }) {
               borderRadius: 6,
               background: "var(--bg-sunken)",
               border: "1px solid var(--border)",
-              borderLeft: isPrimary ? "3px solid var(--bad)" : "1px solid var(--border)",
+              // 0.8.8 — primary 강조색을 판정색 (bad, 시안 잔재) 에서 accent 로 —
+              //   threshold 없는 지표라 빨강 = "미달" 오독 방지.
+              borderLeft: isPrimary ? "3px solid var(--accent)" : "1px solid var(--border)",
             }}>
               <div>
                 <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{label}</div>
                 <div style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 500, marginTop: 2 }}>{isPrimary ? "기준" : "참고"}</div>
               </div>
               <div className="bar-track" style={{ margin: 0 }}>
-                <div className="bar-track-fill" style={{ width: `${(s.total === 0 ? 0 : ratio) * 100}%`, background: isPrimary ? "var(--bad)" : "var(--good)" }} />
+                <div className="bar-track-fill" style={{ width: `${(s.total === 0 ? 0 : ratio) * 100}%`, background: isPrimary ? "var(--accent)" : "var(--good)" }} />
               </div>
               <div className="mono" style={{ fontSize: 13, color: "var(--ink-2)", textAlign: "right" }}>
                 {s.matchedWithCode} / {s.total}
               </div>
-              <div className="mono" style={{ fontSize: 16, fontWeight: 600, color: isPrimary ? "var(--bad-ink)" : "var(--good-ink)", textAlign: "right" }}>
+              <div className="mono" style={{ fontSize: 16, fontWeight: 600, textAlign: "right" }}>
                 {pct}%
               </div>
             </div>
@@ -191,9 +197,19 @@ function TokenMatchSection({ d }) {
         })}
       </div>
 
-      <FNote>
-        현재 측정 범위: <strong>Styles만</strong>. Variables API 는 Enterprise plan 미보유로 조회 불가 — 다음 측정 시 plan 변경 시 자동 포함.
-      </FNote>
+      {/* 0.8.8 — Variables 안내를 스캔 신호 기반 조건부 표시 (옛 plan 리터럴 대체).
+          restricted = Variables API 403 warning 존재 / count = 조회 성공 합산.
+          둘 다 아님 (옛 baseline 등 신호 없음) = note 자체 생략. */}
+      {d.variablesRestricted && (
+        <FNote>
+          현재 측정 범위: <strong>{scopeLabel}</strong>. Variables API 는 Enterprise plan 제약으로 조회 불가 (HTTP 403) — plan 변경 후 재측정 시 자동 포함.
+        </FNote>
+      )}
+      {d.variablesCount != null && (
+        <FNote>
+          현재 측정 범위: <strong>{scopeLabel}</strong>. Variables {d.variablesCount.toLocaleString()}건 포함 집계.
+        </FNote>
+      )}
     </FSection>
   );
 }
@@ -382,13 +398,14 @@ function DsInstanceShareSection({ d }) {
       id="ds-instance-share"
       field="figma.instanceSources"
       title="DS 피그마 Instance 비중"
-      status={{ kind: "below", label: "기준 미달 · 목표 ↑" }}
+      // 0.8.8 — 옛 "기준 미달" 리터럴 제거 (threshold 없는 비율 지표 — 근거 없는
+      // 판정 표시 X). 방향 표기만 유지. 숫자색도 판정색 → 중립.
       direction={{ kind: "up-good" }}
     >
       {/* primary big number */}
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{primaryPct}</div>
+          <div className="kv-num mono">{primaryPct}</div>
           <div className="kv-unit">%</div>
           <div className="kv-cap">
             <strong>{primaryLabel}</strong> · 기준 · {primaryCnt.toLocaleString()} / {total.toLocaleString()}
@@ -836,12 +853,16 @@ function UnmatchedSection({ d }) {
       id="unmatched"
       field="figma.instanceAnalysis.unmatchedInstances"
       title="DS 외부 Instance"
-      status={{ kind: "below", label: "기준 미달 · 목표 0" }}
+      // 0.8.8 — 건수 기반 동적 판정 (config threshold 없는 지표지만 "DS 범위 밖" 정의
+      // 상 목표 0 은 고유 — 0건 = 도달). 옛 리터럴 "기준 미달" 고정 대체.
+      status={u > 0
+        ? { kind: "below", label: "기준 미달 · 목표 0" }
+        : { kind: "met", label: "기준 도달 · 목표 0" }}
       direction={{ kind: "down-good" }}
     >
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{u}</div>
+          <div className="kv-num mono" style={{ color: u > 0 ? "var(--bad-ink)" : "var(--good-ink)" }}>{u}</div>
           <div className="kv-unit">건</div>
           <div className="kv-cap">DS 범위 밖에서 생성된 instance</div>
         </div>

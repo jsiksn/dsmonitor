@@ -30,6 +30,31 @@ function StatusPill({ kind, label }) {
   return <span className={`status-pill ${m.cls}`}>{m.text}</span>;
 }
 
+// ---------- 0.8.8 — thresholds 판정 표기 helpers ----------
+// 판정 (good/warn/bad) 은 transformer 가 markdown 리포터와 공유하는 evaluate() 로
+// 계산해 내려줌 (__CODE_DATA.judge.*). jsx 는 렌더만 — 판정 로직을 jsx 에 두지
+// 않음 (옛 시안 리터럴 상태의 화석화 재발 방지). judge null = 상태 pill 숨김.
+function pillFromJudge(j, goalText) {
+  if (!j) return undefined;
+  const kind = j.status === "good" ? "met" : j.status === "warn" ? "note" : "below";
+  const base = j.status === "good" ? "기준 도달" : j.status === "warn" ? "참고" : "기준 미달";
+  return { kind, label: goalText ? `${base} · ${goalText}` : base };
+}
+function ratioGoalText(j) {
+  return j ? `목표 ${j.direction === "higher" ? "≥" : "≤"} ${(j.good * 100).toFixed(0)}%` : "";
+}
+function countGoalText(j) {
+  return j ? `목표 ${j.direction === "higher" ? "≥" : "≤"} ${j.good.toLocaleString()} 건` : "";
+}
+function inkFromJudge(j) {
+  if (!j) return undefined;
+  return j.status === "good" ? "var(--good-ink)" : j.status === "warn" ? "var(--warn-ink)" : "var(--bad-ink)";
+}
+function fillFromJudge(j) {
+  if (!j) return "var(--accent)";
+  return j.status === "good" ? "var(--good)" : j.status === "warn" ? "var(--warn)" : "var(--bad)";
+}
+
 function Disclosure({ summary, count, children, defaultOpen }) {
   const [open, setOpen] = useState(!!defaultOpen);
   return (
@@ -102,6 +127,10 @@ const FORBIDDEN_LABELS = {
 //   preset.forbidden id + matrix 추가 sub-key 흐름 그대로 반영.
 //   카운트 0 row 도 노출 (preset 정의 존중 + 미래 확장 흐름).
 //   알 수 없는 preset 시점에 forbidden row 0 — preset 추가 시점에 본 매핑 갱신 필요.
+// 0.8.8 — `scss-imports` (tailwind preset 정의) 미등재는 **의도** (버그 아님):
+//   감지 규칙 자체가 비어 있어 항상 0 이고, 단순 import 경로 검출은 pure-@apply
+//   허용 방침 (codebase.ts matrix) 과 충돌해 오검출 위험. 매트릭스 연계 구현
+//   (0.9.0+ 논의) 전까지 여기 / baseline-to-summary-data.ts 양쪽 모두 미등재 유지.
 const FORBIDDEN_BY_PRESET = {
   scss: [
     { id: "bootstrap-utilities" },
@@ -143,7 +172,7 @@ function ForbiddenSection({ d, smd }) {
       id="forbidden"
       field="forbiddenClassCount"
       title="금지 CSS 클래스 (활용 횟수)"
-      status={{ kind: "below", label: "기준 미달 · 목표 0" }}
+      status={pillFromJudge(d.judge?.forbidden, countGoalText(d.judge?.forbidden))}
       direction={{ kind: "down-good" }}
     >
       <div className="kv-grid">
@@ -228,7 +257,11 @@ function MigrationSection({ d }) {
       id="migration"
       field="migrationCandidates"
       title="마이그레이션 후보 파일"
-      status={{ kind: "below", label: "기준 미달 · 목표 0" }}
+      // 0.8.8 — config threshold 없는 지표. 후보 = DS 교체 대상이므로 목표 0 자체는
+      // 정의에서 나옴 — 건수 기반으로만 판정 (0건 = 도달).
+      status={m.totalOccurrences > 0
+        ? { kind: "below", label: "기준 미달 · 목표 0" }
+        : { kind: "met", label: "기준 도달 · 목표 0" }}
       direction={{ kind: "down-good" }}
     >
       <div className="kv-grid">
@@ -396,7 +429,7 @@ function StylingMethodSection({ d }) {
       id="smd"
       field="stylingMethodDistribution"
       title="스타일링 방식 분포 (영향 코드 파일 수)"
-      status={{ kind: "below" }}
+      status={pillFromJudge(d.judge?.preferredCompliance, ratioGoalText(d.judge?.preferredCompliance))}
       direction={{ kind: "up-good", label: "preferred ↑ 높을수록 좋음" }}
     >
       <div className="kv-grid">
@@ -418,10 +451,15 @@ function StylingMethodSection({ d }) {
             <span className="k">금지 포함 파일</span>
             <span className="v mono">{s.forbiddenFileCount} ({(s.forbiddenFileRatio * 100).toFixed(1)}%)</span>
           </div>
-          <div className="kv-row">
-            <span className="k">기준 (good / warn)</span>
-            <span className="v mono">≥ 80% / ≥ 50%</span>
-          </div>
+          {/* 0.8.8 — 옛 리터럴 "≥ 80% / ≥ 50%" → cfg.thresholds.preferredCompliance. */}
+          {d.judge?.preferredCompliance && (
+            <div className="kv-row">
+              <span className="k">기준 (good / warn)</span>
+              <span className="v mono">
+                {d.judge.preferredCompliance.direction === "higher" ? "≥" : "≤"} {(d.judge.preferredCompliance.good * 100).toFixed(0)}% / {d.judge.preferredCompliance.direction === "higher" ? "≥" : "≤"} {(d.judge.preferredCompliance.warn * 100).toFixed(0)}%
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -560,16 +598,21 @@ function StylingMethodSection({ d }) {
 function ScssSection({ d }) {
   const s = d.scss;
   const pct = s.compliance * 100;
+  // 0.8.8 — 옛 리터럴 status={{kind:"met", label:"기준 95% 도달"}} 정정.
+  //   측정값이 기준 미만이어도 항상 "도달" (초록) 로 표시되던 오표기 — cfg.thresholds
+  //   판정 (judge.scssCompliance) 으로 동적화. 색상 / 목표 표기 / 마크 위치 동일 흐름.
+  const j = d.judge?.scssCompliance;
+  const goalPct = j ? (j.good * 100).toFixed(0) : null;
   return (
     <Section
       id="scss"
       field="scssVariableCompliance"
       title="변수 준수율"
-      status={{ kind: "met", label: "기준 95% 도달" }}
+      status={pillFromJudge(j, ratioGoalText(j))}
     >
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--good-ink)" }}>{pct.toFixed(1)}</div>
+          <div className="kv-num mono" style={{ color: inkFromJudge(j) }}>{pct.toFixed(1)}</div>
           <div className="kv-unit">%</div>
           <div className="kv-cap">변수 사용 / (변수 + 하드코딩)</div>
         </div>
@@ -582,18 +625,22 @@ function ScssSection({ d }) {
             <span className="k">하드코딩 (hardcodedLiterals)</span>
             <span className="v mono">{s.hardcodedLiterals}</span>
           </div>
-          <div className="kv-row">
-            <span className="k">목표</span>
-            <span className="v mono">≥ 95%</span>
-          </div>
+          {goalPct != null && (
+            <div className="kv-row">
+              <span className="k">목표</span>
+              <span className="v mono">≥ {goalPct}%</span>
+            </div>
+          )}
         </div>
       </div>
       <div className="bar-track">
-        <div className="bar-track-fill" style={{ width: `${pct}%`, background: "var(--good)" }} />
-        <div className="bar-track-mark" style={{ left: "95%" }} title="목표 95%" />
+        <div className="bar-track-fill" style={{ width: `${pct}%`, background: fillFromJudge(j) }} />
+        {goalPct != null && (
+          <div className="bar-track-mark" style={{ left: `${goalPct}%` }} title={`목표 ${goalPct}%`} />
+        )}
       </div>
       <div className="bar-track-legend">
-        <span>0%</span><span className="dim">목표 95%</span><span>100%</span>
+        <span>0%</span><span className="dim">{goalPct != null ? `목표 ${goalPct}%` : ""}</span><span>100%</span>
       </div>
     </Section>
   );
@@ -608,7 +655,7 @@ function HardcodedSection({ d }) {
       id="hardcoded"
       field="hardcodedColors"
       title="하드코딩 색상"
-      status={{ kind: "below", label: "기준 미달 · 목표 0" }}
+      status={pillFromJudge(d.judge?.hardcodedColors, countGoalText(d.judge?.hardcodedColors))}
       direction={{ kind: "down-good" }}
     >
       <div className="kv-grid">
@@ -672,6 +719,8 @@ function DsCoverageSection({ d }) {
       id="ds"
       field="dsCoverage"
       title="DS 커버리지"
+      // 0.8.8 — 상태 pill 추가 (Summary 카드와 같은 judge — 탭 간 판정 일치).
+      status={pillFromJudge(d.judge?.dsCoverage, ratioGoalText(d.judge?.dsCoverage))}
       direction={{ kind: "up-good" }}
     >
       <div className="kv-grid">
@@ -697,7 +746,7 @@ function DsCoverageSection({ d }) {
       </div>
 
       <div className="bar-track">
-        <div className="bar-track-fill" style={{ width: `${ds.coverage * 100}%`, background: "var(--good)" }} />
+        <div className="bar-track-fill" style={{ width: `${ds.coverage * 100}%`, background: fillFromJudge(d.judge?.dsCoverage) }} />
       </div>
 
       <Disclosure summary={`DS 대체 가능 파일 Top 30 — 펼쳐서 자세히 보기`} count={`영향 ${m.totalFilesAffected}개 · ${m.totalOccurrences}건`}>
@@ -760,17 +809,20 @@ function TsSection({ d }) {
   const total = t.tsFiles + t.jsFiles;
   // 0.8.0 — 분모 0 가드 (tsFiles + jsFiles = 0 케이스).
   const pct = total === 0 ? 0 : (t.tsFiles / total) * 100;
+  // 0.8.8 — 옛 리터럴 상태 ("기준 미달 · 90%" 고정) → cfg.thresholds 판정.
+  const j = d.judge?.tsMigration;
+  const goalPct = j ? (j.good * 100).toFixed(0) : null;
   return (
     <Section
       id="ts"
       field="tsMigration"
       title="TypeScript 마이그레이션"
-      status={{ kind: "below", label: `기준 미달 · 90%` }}
+      status={pillFromJudge(j, ratioGoalText(j))}
       direction={{ kind: "up-good" }}
     >
       <div className="kv-grid">
         <div className="kv-big">
-          <div className="kv-num mono" style={{ color: "var(--bad-ink)" }}>{pct.toFixed(1)}</div>
+          <div className="kv-num mono" style={{ color: inkFromJudge(j) }}>{pct.toFixed(1)}</div>
           <div className="kv-unit">%</div>
           <div className="kv-cap">TS 파일 / 전체 코드 파일</div>
         </div>
@@ -787,20 +839,24 @@ function TsSection({ d }) {
             <span className="k">전체</span>
             <span className="v mono">{total}</span>
           </div>
-          <div className="kv-row">
-            <span className="k">기준</span>
-            <span className="v mono">≥ 90%</span>
-          </div>
+          {goalPct != null && (
+            <div className="kv-row">
+              <span className="k">기준</span>
+              <span className="v mono">≥ {goalPct}%</span>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="bar-track">
-        <div className="bar-track-fill" style={{ width: `${pct}%`, background: "var(--bad)" }} />
-        <div className="bar-track-mark" style={{ left: "90%" }} title="기준 90%" />
+        <div className="bar-track-fill" style={{ width: `${pct}%`, background: fillFromJudge(j) }} />
+        {goalPct != null && (
+          <div className="bar-track-mark" style={{ left: `${goalPct}%` }} title={`기준 ${goalPct}%`} />
+        )}
       </div>
       <div className="bar-track-legend">
         <span className="mono dim">{t.tsFiles} ts</span>
-        <span className="mono dim">기준 90%</span>
+        <span className="mono dim">{goalPct != null ? `기준 ${goalPct}%` : ""}</span>
         <span className="mono dim">{t.jsFiles} js</span>
       </div>
 

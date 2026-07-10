@@ -5,12 +5,20 @@
  * baseline 의 필드를 rename / 일부 cap 후 출력.
  */
 
-import type { CodebaseReport } from "../../types";
+import type { CodebaseReport, UIHealthConfig } from "../../types";
+import { judge } from "../../utils/evaluate";
 import type { CodeTabData } from "./types";
 
 const HARDCODED_BYFILE_CAP = 5;
 
-export function baselineToCodeData(report: CodebaseReport): CodeTabData {
+export function baselineToCodeData(
+  report: CodebaseReport,
+  /**
+   * 0.8.8 — cfg.thresholds. code 탭 상태 pill / 목표 표기를 markdown 리포터와
+   * 같은 evaluate() 판정으로 derive (옛 리터럴 상태 대체). 미전달 = 판정 null.
+   */
+  thresholds?: UIHealthConfig["thresholds"]
+): CodeTabData {
   const smd = report.stylingMethodDistribution;
   return {
     totals: report.totals,
@@ -39,5 +47,28 @@ export function baselineToCodeData(report: CodebaseReport): CodeTabData {
     ts: report.tsMigration,
     ds: report.dsCoverage,
     mig: report.migrationCandidates,
+    judge: {
+      dsCoverage: judge(report.dsCoverage.coverage, thresholds?.dsCoverage),
+      tsMigration: judge(report.tsMigration.ratio, thresholds?.tsMigration),
+      scssCompliance: judge(
+        report.scssVariableCompliance.compliance,
+        thresholds?.scssVariableCompliance
+      ),
+      // 옛 baseline 호환 — preferredCompliance 가 number 단독이던 형식 방어 (code-tab 흐름 일치).
+      preferredCompliance: judge(
+        typeof smd.preferredCompliance === "object"
+          ? smd.preferredCompliance.value
+          : (smd.preferredCompliance as number),
+        thresholds?.preferredCompliance
+      ),
+      hardcodedColors: judge(
+        report.hardcodedColors.total,
+        thresholds?.hardcodedColors
+      ),
+      forbidden: judge(
+        report.forbiddenClassCount.total,
+        thresholds?.forbiddenClassOccurrences
+      ),
+    },
   };
 }
