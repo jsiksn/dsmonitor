@@ -288,7 +288,9 @@ function analyzeStyling(
   //                                     pure-css 사용은 정상.
   //   tailwind-project (preferred = tailwind): pure-@apply 사용은 정상,
   //                                              pure-css 사용은 금지 (utility-first 위반).
-  //   bootstrap / css-modules / 그 외 preferred: 본 release 범위 밖 (옛 흐름 그대로 보존).
+  //   bootstrap / css-modules / 그 외 preferred: 매트릭스 미적용 (옛 흐름 그대로 보존).
+  //     활성화는 Bootstrap @extend/@include 검출과 함께 이월된 추가개발 —
+  //     docs/roadmap.md §2 참조.
   const preferred = policy.preferred;
   const useMatrix = preferred === "scss" || preferred === "tailwind";
 

@@ -41,6 +41,10 @@ DSMonitor 는 다음 기술 스택 조합에서 사용 가능합니다. 신규 �
 
 위 조합에 해당하지 않는 환경 (예: Vue / Svelte 프로젝트) 은 본 시점 미지원이며, 호환성 검토는 별도로 진행이 필요합니다.
 
+알려진 측정 한계 (개선 후보는 [docs/roadmap.md](./docs/roadmap.md) 참조):
+
+- SCSS 의 `@extend` / `@include` 를 경유한 Bootstrap 사용은 현재 측정되지 않습니다 (JSX className / import 기반 감지만 지원).
+
 ---
 
 ## 1. 측정 항목
@@ -215,7 +219,7 @@ npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
 | `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | 측정 결과 (정식 baseline). `--baseline` 모드로 생성.                                        |
 | `dsmonitor/reports/YYYY-MM-DD.json`                       | non-baseline (gitignored 권장).                                                            |
 | `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance level raw — frame 별 nodeId / componentName / dsLabel / contextPath.       |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 5 탭 dashboard (Summary / Code / Lighthouse / Figma / Plugin — plugin 탭은 결과가 있을 때 동적 추가). 브라우저로 열어 확인합니다 (macOS `open …/dashboard-*.html`, Windows `start`, 또는 탐색기에서 더블클릭).                  |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 5 탭 dashboard (Summary / Code / Lighthouse / Figma / Plugin — plugin 탭은 결과가 있을 때 동적 추가). 브라우저로 열어 확인합니다 (macOS `open …/dashboard-*.html`, Windows `start`, 또는 탐색기에서 더블클릭). 열 때 인터넷 연결이 필요합니다 (화면 구성 라이브러리를 CDN 에서 로드 — 폐쇄망 미지원, 개선 후보는 [docs/roadmap.md](./docs/roadmap.md)). |
 | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | 마이그레이션 CSV (`export-migration` 출력).                                                 |
 | `dsmonitor/reports/plugins/{id}/{date}.json`              | 사이드카 plugin 의 측정 결과.                                                                |
 | `dsmonitor/docs/baseline.md`                              | markdown 리포트 (자동 생성, 직접 수정 금지).                                                |
@@ -1077,6 +1081,7 @@ A. `dsmonitor` 와 `eslint-plugin-dsmonitor` 두 패키지를 모두 설치했�
 - [docs/auth-adapter-examples/README.md](./docs/auth-adapter-examples/README.md) — Lighthouse custom 인증 어댑터 예제 5종 (HTTP Basic / Form login / SSO / JWT 주입 / OAuth 2.0, 0.7.1+).
 - [docs/measurement-flow.md](./docs/measurement-flow.md) — 측정 흐름 다이어그램.
 - [docs/methodology.md](./docs/methodology.md) — 측정 방법론 (현재 placeholder).
+- [docs/roadmap.md](./docs/roadmap.md) — 이월된 추가개발 후보 (계획·배경, 한국어).
 
 ## 15. 기여자
 
@@ -1130,6 +1135,10 @@ DSMonitor supports the following technology stack combinations. When you are eva
 | Performance measurement  | Lighthouse (optional)                                                |
 
 Stacks not listed above (e.g. Vue / Svelte projects) are currently unsupported; a separate compatibility review is required before adoption.
+
+Known measurement limitations (see [docs/roadmap.md](./docs/roadmap.md) for improvement candidates, Korean):
+
+- Bootstrap usage via SCSS `@extend` / `@include` is currently not measured (detection is JSX-className / import based only).
 
 ---
 
@@ -1303,7 +1312,7 @@ Exports a CSV of instances within a specific Figma frame — useful as source da
 | `dsmonitor/reports/baseline-YYYY-MM-DD.json`              | Measurement result (official baseline). Produced by `--baseline`.                          |
 | `dsmonitor/reports/YYYY-MM-DD.json`                       | Non-baseline (recommend gitignored).                                                       |
 | `dsmonitor/reports/figma-instances-YYYY-MM-DD.json`       | Figma instance-level raw — per-frame nodeId / componentName / dsLabel / contextPath.       |
-| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 5-tab dashboard (Summary / Code / Lighthouse / Figma / Plugin — plugin tabs are added dynamically when results exist). Open it in a browser (macOS `open …/dashboard-*.html`, Windows `start`, or double-click in the file explorer).      |
+| `dsmonitor/reports/dashboard-YYYY-MM-DD.html`             | 5-tab dashboard (Summary / Code / Lighthouse / Figma / Plugin — plugin tabs are added dynamically when results exist). Open it in a browser (macOS `open …/dashboard-*.html`, Windows `start`, or double-click in the file explorer). Requires an internet connection when opened (UI libraries load from a CDN — air-gapped networks unsupported; improvement candidate in [docs/roadmap.md](./docs/roadmap.md)). |
 | `dsmonitor/reports/migration/{frame}-{ds}-YYYY-MM-DD.csv` | Migration CSV (`export-migration`).                                                        |
 | `dsmonitor/reports/plugins/{id}/{date}.json`              | Sidecar plugin measurement.                                                                |
 | `dsmonitor/docs/baseline.md`                              | Markdown report (auto-generated, do not edit).                                             |
@@ -2156,6 +2165,7 @@ A. Make sure you installed both `dsmonitor` and `eslint-plugin-dsmonitor`. ESLin
 - [docs/auth-adapter-examples/README.md](./docs/auth-adapter-examples/README.md) — Five Lighthouse custom-auth adapter examples (HTTP Basic / Form login / SSO / JWT injection / OAuth 2.0, since 0.7.1).
 - [docs/measurement-flow.md](./docs/measurement-flow.md) — Measurement flow diagram.
 - [docs/methodology.md](./docs/methodology.md) — Measurement methodology (currently a placeholder).
+- [docs/roadmap.md](./docs/roadmap.md) — Deferred development candidates (plans & background, Korean).
 
 ## 15. Acknowledgments
 

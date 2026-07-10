@@ -10,7 +10,7 @@
  * `scss-imports` (tailwind preset 정의) 가 어느 preset 목록에도 없는 것은
  * **의도** (버그 아님): 감지 규칙이 비어 있어 항상 0 이고, 단순 import 경로 검출은
  * pure-@apply 허용 방침 (codebase.ts matrix) 과 충돌해 오검출 위험. 매트릭스 연계
- * 구현 (추가개발 이월, 2026-07 결정) 전까지 미등재 유지.
+ * 구현 (이월된 추가개발 — docs/roadmap.md §1, 2026-07 결정) 전까지 미등재 유지.
  */
 
 export interface ForbiddenPresetSpec {
