@@ -124,7 +124,8 @@ export async function generateMarkdown(
       hint: thresholdHint(th.tsMigration, pct),
     },
     {
-      label: "SCSS 변수 준수율",
+      // 0.8.9 — dashboard (0.8.2 정정) 와 표기 동기화. SCSS 한정 지표가 아님.
+      label: "변수 준수율",
       enabled: m.scssVariableCompliance,
       value: pct(report.scssVariableCompliance.compliance),
       status: evaluate(

@@ -136,6 +136,19 @@ function parseArgs(argv: string[]): {
   };
 }
 
+// 0.8.9 — 명령 목록 단일 원천: `--help` 출력 + Unknown command 안내 공용.
+//   옛 흐름: 목록이 Unknown command 안내에만 있었고 init / doctor 누락 + `--help`
+//   미구현 (init 완료 안내가 `npx dsmonitor --help` 를 권하는데 exit 2 로 어긋남).
+const COMMAND_LIST =
+  `    init                                                    — 부트스트랩 (인터랙티브, config 없어도 실행 가능)\n` +
+  `    audit [--only code|figma|lighthouse] [--baseline]       — 측정 (code + figma 통합 또는 부분별, v0.3.1: lighthouse 추가)\n` +
+  `    audit --all [--baseline] [--skip-lighthouse]            — 통합 측정 chain (code + figma + Lighthouse + report + dashboard, v0.3.0)\n` +
+  `    doctor [--json] [--strict]                              — config / 환경변수 진단\n` +
+  `    baseline-lint                                           — ESLint 위반 baseline 생성\n` +
+  `    report [--input <path>] [--output <path>]               — 측정 JSON → markdown 변환\n` +
+  `    dashboard [--input <path>] [--output <path>]            — 측정 JSON → HTML 대시보드\n` +
+  `    export-migration --frame=<comment> [--ds=<label>]       — frame 별 instance CSV (Phase 0.7)`;
+
 async function main() {
   const {
     cmd,
@@ -150,6 +163,12 @@ async function main() {
     doctorJson,
     doctorStrict,
   } = parseArgs(process.argv);
+
+  // 0.8.9 — help: config 탐색 전에 처리 (config 없어도 안내 가능해야 함).
+  if (cmd === "--help" || cmd === "-h" || cmd === "help") {
+    console.log(`[dsmonitor] 사용법: npx dsmonitor <command>\n  Commands:\n${COMMAND_LIST}`);
+    return;
+  }
 
   // v0.1.0: init subcommand — config 없어도 작동 (사용자 환경 dsmonitor/ 부트스트랩).
   if (cmd === "init") {
@@ -483,15 +502,10 @@ by id:                   ${Object.entries(baseline.totals.byId).map(([k, v]) => 
     return;
   }
 
+  // 0.8.9 — 목록을 COMMAND_LIST 단일 원천으로 교체 (init / doctor 누락 정정).
   console.error(
     `[dsmonitor] Unknown command: ${cmd}.\n` +
-      `  Supported:\n` +
-      `    audit [--only code|figma|lighthouse] [--baseline]       — 측정 (code + figma 통합 또는 부분별, v0.3.1: lighthouse 추가)\n` +
-      `    audit --all [--baseline] [--skip-lighthouse]            — 통합 측정 chain (code + figma + Lighthouse + report + dashboard, v0.3.0)\n` +
-      `    baseline-lint                                           — ESLint 위반 baseline 생성\n` +
-      `    report [--input <path>] [--output <path>]               — 측정 JSON → markdown 변환\n` +
-      `    dashboard [--input <path>] [--output <path>]            — 측정 JSON → HTML 대시보드\n` +
-      `    export-migration --frame=<comment> [--ds=<label>]       — frame 별 instance CSV (Phase 0.7)`
+      `  Supported:\n${COMMAND_LIST}`
   );
   process.exit(2);
 }
@@ -840,8 +854,8 @@ DS component files:    ${r.totals.dsComponentFiles}
 non-DS component files:${r.totals.nonDsComponentFiles}
 
 Hardcoded colors:      ${r.hardcodedColors.total}
-SCSS variable usages:  ${r.scssVariableCompliance.variableUsages}
-SCSS compliance:       ${(r.scssVariableCompliance.compliance * 100).toFixed(1)}%
+Variable usages:       ${r.scssVariableCompliance.variableUsages}
+Variable compliance:   ${(r.scssVariableCompliance.compliance * 100).toFixed(1)}%
 
 Styling method distribution (files; non-exclusive):
   allowed:             ${allowedLine}
