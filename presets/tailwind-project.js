@@ -44,14 +44,13 @@ module.exports = {
       id: "scss-imports",
       label: "SCSS / Sass imports",
       severity: "warn",
-      classPatterns: [], // className에는 걸지 않음
+      classPatterns: [], // className에는 걸지 않음 — 선언용 (아래 참조)
       importModules: [],
-      // 0.8.8 — 감지 규칙 의도적 비활성 (항상 0 카운트) + dashboard 매트릭스 미등재.
-      //   단순 import 경로 검출 (importPathPatterns) 은 pure-@apply 허용 방침과 충돌:
-      //   tailwind-project 는 @apply wrapper 용 SCSS import 가 정상이라 (codebase.ts
-      //   matrix — pure-@apply 정상 / apply-mixed·raw-css 금지), 경로만으로 금지 판정
-      //   시 오검출. 매트릭스 연계 구현 (이월된 추가개발 — docs/roadmap.md §1 참조)
-      //   전까지 본 상태 유지.
+      // 0.10.0 — 매트릭스 연계 검출로 측정 시작 (src/analyzers/scssImportLink.ts).
+      //   본 항목은 "선언" 역할: 이 id 가 preset 에 있으면 분석기가 import 된 SCSS 의
+      //   클래스 분류에 연동해 카운트한다 — 금지 분류 (raw CSS·@apply 혼합) 를 담은
+      //   파일의 import 만 레거시. pure-@apply wrapper / 변수 전용 파일 import 는 정상.
+      //   (단순 경로 검출을 쓰지 않는 이유: pure-@apply 허용 방침과 충돌 — 오검출.)
     },
   ],
 };

@@ -39,13 +39,14 @@ describe("buildSummaryData", () => {
       "bootstrap-utilities",
       "apply-mixed",
       "raw-css",
+      "scss-imports",
     ]);
     const values = summary.code.forbiddenByPreset.map((r) => r.value);
     expect(values).toEqual([...values].sort((a, b) => b - a));
   });
 
-  it("scss-imports 는 매트릭스 의도적 미등재 (0.8.8 주석 참조 — 버그 아님)", () => {
-    expect(summary.code.forbiddenByPreset.some((r) => r.id === "scss-imports")).toBe(false);
+  it("scss-imports — 0.10.0 매트릭스 연계 측정과 함께 등재 (옛 의도적 미등재 해제)", () => {
+    expect(summary.code.forbiddenByPreset.some((r) => r.id === "scss-imports")).toBe(true);
   });
 
   it("tsTopJsDirs — jsFiles 내림차순 상위 3 디렉토리 (0.8.8)", () => {

@@ -58,6 +58,20 @@ describe("scss 파서", () => {
     );
     expect(tokens.length).toBeGreaterThan(0);
   });
+
+  // 0.10.0 — 맵 키의 따옴표 제거. 옛 흐름은 `--"quoted-100"` 으로 깨진 이름을
+  // emit 해 토큰 매칭이 조용히 실패했음.
+  it("따옴표 맵 키 — 따옴표를 벗겨 emit", async () => {
+    const tokens = await loadCodeTokens(
+      [{ type: "scss", files: ["styles/tokens-quoted.scss"] }],
+      FIXTURE_ROOT,
+      []
+    );
+    const names = tokens.map((t) => t.name);
+    expect(names).toContain("--quoted-100");
+    expect(names).toContain("--quoted-900");
+    expect(names.some((n) => n.includes('"') || n.includes("'"))).toBe(false);
+  });
 });
 
 describe("tailwind 파서", () => {

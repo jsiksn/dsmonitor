@@ -177,10 +177,24 @@ function parseMapEntry(raw: string): ScssMapEntry | null {
   if (!trimmed) return null;
   const colonIdx = trimmed.indexOf(":");
   if (colonIdx < 0) return null;
-  const key = trimmed.slice(0, colonIdx).trim();
+  // 0.10.0 — 키의 둘러싼 따옴표 제거. SCSS 에서 `"gray-100"` 과 `gray-100` 은
+  // 같은 맵 키인데, 옛 흐름은 따옴표를 보존해 `--"gray-100"` 으로 깨진 이름을
+  // emit — 토큰 매칭이 조용히 실패했음.
+  const key = stripQuotes(trimmed.slice(0, colonIdx).trim());
   const value = trimmed.slice(colonIdx + 1).trim();
   if (!key) return null;
   return { key, value };
+}
+
+function stripQuotes(s: string): string {
+  if (
+    s.length >= 2 &&
+    ((s.startsWith('"') && s.endsWith('"')) ||
+      (s.startsWith("'") && s.endsWith("'")))
+  ) {
+    return s.slice(1, -1);
+  }
+  return s;
 }
 
 type EachBlock = {

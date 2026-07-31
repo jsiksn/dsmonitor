@@ -8,6 +8,33 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.10.0] — 2026-07-31
+
+> **측정 결과 변화 안내** — tailwind-project preset 에서 `scss-imports` 측정이 시작되고, 따옴표 맵 키의 토큰 이름이 정정됩니다 (아래 방향 명시). 시계열 비교 시 0.10.0 전후 구분을 권장합니다.
+>
+> **EN — Measurement change notice**: `scss-imports` starts being measured on the tailwind-project preset, and token names from quoted SCSS map keys are corrected (directions noted below). For time-series comparisons, treat pre/post-0.10.0 separately.
+
+### 추가 / Added
+
+- **한 —** `scss-imports` 매트릭스 연계 검출 (roadmap 이월분 구현). tailwind-project preset 에서 "코드 파일이 레거시 SCSS 를 import 하는가" 를 셉니다. 단순 "import 경로가 SCSS 면 금지" 가 아니라 **import 된 파일의 클래스 정의 분류에 연동** — 금지 분류 (raw CSS · @apply 혼합) 클래스를 담은 파일의 import 만 레거시로 카운트하고, pure-@apply wrapper · 변수/믹스인 전용 파일의 import 는 정상입니다 (pure-@apply 허용 방침과 충돌 없음). 경로 해석은 상대 경로 · 루트 기준 · `@/`→src 별칭 · 확장자 생략 · partial (`_이름.scss`) 관례 지원 — **해석 실패는 미집계** (오검출 방지 우선). 카운트: 레거시 import 1건 = occurrence 1, 같은 파일로 해석되는 중복 import 는 1건. dashboard 매트릭스에도 등재 (옛 의도적 미등재 해제). **영향: tailwind 프로젝트에서 금지 카운트 · forbiddenFileRatio · preferredCompliance 분모가 늘어나는 방향.**
+- **EN —** Matrix-linked `scss-imports` detection (implementing the roadmap deferral). On the tailwind-project preset, "does a code file import legacy SCSS" is now measured. Rather than "any SCSS import is forbidden", detection is **linked to the class classification of the imported file** — only imports of files containing forbidden-classified classes (raw CSS · @apply-mixed) count as legacy; imports of pure-@apply wrappers and variable/mixin-only files are fine (no conflict with the pure-@apply allowance). Path resolution supports relative paths, root-relative paths, the `@/`→src alias, extension-less imports, and the partial (`_name.scss`) convention — **unresolvable imports are not counted** (false-positive avoidance first). Counting: one legacy import = one occurrence; duplicate imports resolving to the same file count once. Also registered in the dashboard matrix (ending the intentional omission). **Effect: forbidden counts, forbiddenFileRatio, and the preferredCompliance denominator can rise on tailwind projects.**
+- **한 —** 설계 참고: roadmap 의 선행 조각으로 검토했던 "금지 규칙 `importPathPatterns`" 는 도입하지 않았습니다 — 단순 경로 검출을 규칙 체계에 되살리는 함정이라, 분석기 매트릭스 연계 (`src/analyzers/scssImportLink.ts`) 방식으로 구현. 클래스 분류 walk · 셀렉터 추출은 매트릭스와 단일 원천 공유.
+- **EN —** Design note: the "forbidden-rule `importPathPatterns`" prerequisite considered in the roadmap was **not** introduced — it would reintroduce naive path detection into the rule system. Implemented as analyzer-level matrix linkage (`src/analyzers/scssImportLink.ts`) instead; the class-classification walk and selector extraction are now shared single-source with the matrix.
+
+### 정정 / Fixed
+
+- **한 —** SCSS 맵의 따옴표 키가 토큰 이름에서 따옴표를 벗고 emit 됩니다. 옛 흐름은 `$grays: ("gray-100": ...)` 의 `@each` emit 이 `--"gray-100"` 으로 깨진 이름을 만들어 **토큰 매칭이 조용히 실패**했습니다. **영향: 따옴표 맵 키를 쓰는 프로젝트에서 토큰 이름 정정 → 매칭률이 오르는 방향.**
+- **EN —** Quoted SCSS map keys now emit token names without the quotes. Previously `@each` emission from `$grays: ("gray-100": ...)` produced the broken name `--"gray-100"`, silently failing token matching. **Effect: token names are corrected on projects using quoted map keys → match rates can rise.**
+
+### 참고 / Notes
+
+- 전/후 비교 검수: 샘플 프로젝트 (tests/fixtures/sample-project — 레거시 import · pure-@apply wrapper import · 변수 전용 import · 별칭 import · bootstrap 클래스 혼재) 에 분석기를 통째로 실행해 0.9.1 대비 diff — **측정 leaf 64개 중 변화 9개, 전부 scss-imports=2 에서 파생된 산술 결과** (합계 · 비율 · 준수율 분모), 나머지 55개 동일 확인.
+- Before/after verification: the analyzer was run end-to-end on a sample project (tests/fixtures/sample-project — legacy import · pure-@apply wrapper import · variables-only import · alias import · mixed bootstrap classes) and diffed against 0.9.1 — **of 64 measurement leaves, exactly 9 changed, all arithmetically derived from scss-imports=2** (totals · ratios · compliance denominator); the other 55 are identical.
+- 테스트 77개 (+10 — 경로 해석 · 파일 분류 · 통합 카운트 · 따옴표 키) + typecheck + build 통과. baseline JSON shape 변경 없음.
+- 77 tests (+10 — path resolution · file classification · integration counts · quoted keys) + typecheck + build pass. No baseline-JSON-shape changes.
+- docs/roadmap.md 에서 scss-imports 항목 제거 (완료) — 잔여 이월분은 Bootstrap `@extend`/`@include` 와 대시보드 인라인 번들 2건.
+- The scss-imports item is removed from docs/roadmap.md (done) — remaining deferrals are Bootstrap `@extend`/`@include` and the dashboard inline bundle.
+
 ## [0.9.1] — 2026-07-10
 
 ### 추가 / Added

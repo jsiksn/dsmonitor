@@ -41,6 +41,9 @@ const stylingPolicy: StylingPolicy = {
       importModules: ["reactstrap", "react-bootstrap", "bootstrap"],
     },
     {
+      // 0.10.0 부터 측정: 이 id 가 선언되어 있으면 분석기가 import 된 SCSS 의
+      // 클래스 분류에 연동해 카운트 — 금지 분류 (raw CSS·@apply 혼합) 를 담은
+      // 파일의 import 만 레거시. pure-@apply wrapper / 변수 전용 import 는 정상.
       id: "scss-imports",
       label: "SCSS/Sass imports (legacy)",
       severity: "warn",

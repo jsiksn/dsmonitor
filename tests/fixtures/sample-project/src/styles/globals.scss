@@ -1,0 +1,13 @@
+// 전역 스타일 — globalStyleSources 대상.
+:root {
+  --brand-color: #6c91f5;
+}
+
+.wrapper-btn {
+  @apply px-4 py-2 rounded;
+}
+
+.legacy-card {
+  border: 1px solid #ccc;
+  padding: 12px;
+}
