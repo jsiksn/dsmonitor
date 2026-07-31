@@ -1,0 +1,10 @@
+$grays: (
+  "quoted-100": #f8f9fa,
+  'quoted-900': #212529,
+);
+
+@each $key, $value in $grays {
+  :root {
+    #{"--" + $key}: #{$value};
+  }
+}

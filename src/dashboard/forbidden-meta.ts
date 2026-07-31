@@ -7,10 +7,9 @@
  * 0.8.10 부터 본 모듈이 유일한 정의 — TS 는 import, jsx 는 shell.ts 가 inject 하는
  * `window.__FORBIDDEN_META` 로 소비.
  *
- * `scss-imports` (tailwind preset 정의) 가 어느 preset 목록에도 없는 것은
- * **의도** (버그 아님): 감지 규칙이 비어 있어 항상 0 이고, 단순 import 경로 검출은
- * pure-@apply 허용 방침 (codebase.ts matrix) 과 충돌해 오검출 위험. 매트릭스 연계
- * 구현 (이월된 추가개발 — docs/roadmap.md §1, 2026-07 결정) 전까지 미등재 유지.
+ * `scss-imports` — 0.10.0 부터 측정·등재. 옛 흐름 (0.8.8~0.9.1) 은 감지 규칙이
+ * 비어 있어 의도적으로 미등재였음. 현재는 매트릭스 연계 검출 (scssImportLink.ts —
+ * import 된 SCSS 의 클래스 분류가 금지 분류를 포함할 때만 레거시로 카운트).
  */
 
 export interface ForbiddenPresetSpec {
@@ -47,6 +46,8 @@ export const FORBIDDEN_BY_PRESET: Record<string, ForbiddenPresetSpec[]> = {
     { id: "bootstrap-utilities" },
     { id: "apply-mixed",          title: "@apply + raw CSS 혼합 — utility-first 위반" },
     { id: "raw-css",              title: "pure-css 클래스 — utility-first 위반" },
+    // 0.10.0 — 매트릭스 연계 측정 시작과 함께 등재.
+    { id: "scss-imports",         title: "레거시 SCSS import — 내용에 금지 분류 (raw CSS·혼합) 클래스를 담은 SCSS 를 불러옴" },
   ],
   bootstrap: [
     { id: "tailwind-classes" },

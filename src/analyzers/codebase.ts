@@ -1,8 +1,13 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import fg from "fast-glob";
-import postcss from "postcss";
-import postcssScss from "postcss-scss";
+// 0.10.0 — 클래스 분류 walk / 셀렉터 추출 / scss-imports 연계는 scssImportLink.ts 공유.
+import {
+  collectClassTypeEntries,
+  countLegacyScssImports,
+  createStyleFileClassifier,
+  type ClassTypeEntry,
+} from "./scssImportLink";
 import type {
   UIHealthConfig,
   CodebaseReport,
@@ -164,16 +169,7 @@ function matchesDetect(signals: FileSignals, detect: DetectSpec): boolean {
  * 포함된 dot 오탐 방지. 의사 클래스(`:hover`) / id(`#x`) / 결합자(`>`)
  * 는 시작 문자가 `.` 가 아니므로 자연 배제.
  */
-function extractClassNamesFromSelector(selector: string): string[] {
-  const sanitized = selector.replace(/\[[^\]]*\]/g, "");
-  const re = /\.(-?[_a-zA-Z][\w-]*)/g;
-  const out: string[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(sanitized)) !== null) {
-    out.push(m[1]);
-  }
-  return out;
-}
+// 0.10.0 — extractClassNamesFromSelector 는 scssImportLink.ts 로 이동 (단일 원천).
 
 /**
  * globalStyleSources glob 에 매치되는 모든 SCSS/CSS 파일을 파싱해
@@ -226,45 +222,25 @@ async function buildGlobalClassDefinitions(
   for (const abs of files) {
     const content = await fs.readFile(abs, "utf8");
     const ext = path.extname(abs).toLowerCase();
-    let root: postcss.Root;
+    // 0.10.0 — rule 분류 walk 를 scssImportLink.ts 와 공유 (scss-imports 연계가
+    //   같은 분류 규칙을 쓰도록 단일 원천화). 동작 동일.
+    let entries: ClassTypeEntry[];
     try {
-      root =
-        ext === ".scss"
-          ? postcssScss.parse(content, { from: abs })
-          : postcss.parse(content, { from: abs });
+      entries = collectClassTypeEntries(content, ext === ".scss", abs);
     } catch (err) {
       throw new Error(
         `글로벌 스타일 파일 파싱 실패: ${abs}. 원인: ${(err as Error).message}`
       );
     }
-    root.walkRules((rule) => {
-      let hasApply = false;
-      let hasCssDecl = false;
-      rule.walkAtRules((at) => {
-        if (at.name === "apply") hasApply = true;
-      });
-      rule.walkDecls(() => {
-        hasCssDecl = true;
-      });
-      if (!hasApply && !hasCssDecl) return; // 빈 rule 은 분류 X
-      const type: ClassDefinitionType =
-        hasApply && hasCssDecl
-          ? "applyMixed"
-          : hasApply
-          ? "pureApply"
-          : "pureCss";
-      for (const sel of rule.selectors) {
-        for (const cn of extractClassNamesFromSelector(sel)) {
-          const existing = defs.get(cn);
-          if (!existing) {
-            defs.set(cn, { className: cn, type });
-          } else if (rank[type] > rank[existing.type]) {
-            // OR 통합 — 더 strict 한 분류로 격상.
-            defs.set(cn, { className: cn, type });
-          }
-        }
+    for (const { className: cn, type } of entries) {
+      const existing = defs.get(cn);
+      if (!existing) {
+        defs.set(cn, { className: cn, type });
+      } else if (rank[type] > rank[existing.type]) {
+        // OR 통합 — 더 strict 한 분류로 격상.
+        defs.set(cn, { className: cn, type });
       }
-    });
+    }
   }
 
   return defs;
@@ -290,7 +266,7 @@ function analyzeStyling(
   //                                              pure-css 사용은 금지 (utility-first 위반).
   //   bootstrap / css-modules / 그 외 preferred: 매트릭스 미적용 (옛 흐름 그대로 보존).
   //     활성화는 Bootstrap @extend/@include 검출과 함께 이월된 추가개발 —
-  //     docs/roadmap.md §2 참조.
+  //     docs/roadmap.md §1 참조.
   const preferred = policy.preferred;
   const useMatrix = preferred === "scss" || preferred === "tailwind";
 
@@ -317,6 +293,18 @@ function analyzeStyling(
       forbiddenOccurrences["raw-css"] = 0;
     }
   }
+
+  // 0.10.0 — scss-imports 매트릭스 연계 (roadmap 이월분 구현).
+  //   tailwind preset 이 forbidden id "scss-imports" 를 선언한 경우에만 동작.
+  //   단순 경로 검출이 아니라 "import 된 SCSS 의 클래스 분류" 에 연동 —
+  //   금지 분류 (applyMixed / pureCss) 포함 파일의 import 만 레거시로 카운트.
+  //   판정 규칙·해석 관례는 scssImportLink.ts 참조.
+  const scssImportLinkEnabled =
+    useMatrix &&
+    preferred === "tailwind" &&
+    policy.forbidden.some((fb) => fb.id === "scss-imports");
+  const classifyStyleFile = createStyleFileClassifier();
+  const absRoot = cfg.__absRoot;
 
   const perFile = new Map<
     string,
@@ -363,6 +351,16 @@ function analyzeStyling(
         for (const tok of tokenize(cn)) {
           if (fb.classPatterns.some((p) => p.test(tok))) count += 1;
         }
+      }
+      // 0.10.0 — scss-imports: 레거시 SCSS import 1건 = occurrence 1.
+      //   해석 실패 / 파싱 실패 / pure-@apply·변수 전용 파일 import 는 미집계.
+      if (fb.id === "scss-imports" && scssImportLinkEnabled) {
+        count += countLegacyScssImports(
+          signals.imports,
+          path.dirname(path.resolve(absRoot, f.relPath)),
+          absRoot,
+          classifyStyleFile
+        );
       }
       const moduleHit = fb.importModules?.some((m) =>
         signals.imports.some((s) => s === m || s.startsWith(m + "/"))

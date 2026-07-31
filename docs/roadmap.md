@@ -6,25 +6,11 @@
 
 ---
 
-## 1. `scss-imports` 매트릭스 연계 검출
+> `scss-imports` 매트릭스 연계 검출 (옛 §1) 은 **0.10.0 에서 구현 완료** — CHANGELOG 참조.
+> 설계 참고: 선행 조각으로 검토했던 "금지 규칙 importPathPatterns" 는 도입하지 않았음
+> (단순 경로 검출을 규칙 체계에 되살리는 함정) — 분석기 매트릭스 연계 방식으로 구현.
 
-**배경 (왜 이월됐나)** — tailwind-project preset 은 금지 항목으로 `scss-imports` (SCSS 파일 import 자체)
-를 선언하지만, 감지 규칙이 의도적으로 비어 있어 항상 0 으로 측정됩니다. 단순하게 "import 경로가
-`.scss` 로 끝나면 금지" 로 구현하면 **pure-@apply 허용 방침과 충돌**합니다 — tailwind-project 에서
-`@apply` wrapper 용 SCSS import 는 정상 사용인데 (codebase.ts matrix: pure-@apply 정상 /
-apply-mixed·raw-css 금지), 경로만 보면 이것까지 금지로 오검출됩니다. (2026-07 논의로 이월 확정.)
-
-**현재 상태** — 항목만 등록되어 baseline JSON 에 항상 0. dashboard 매트릭스에도 의도적으로 미등재
-(주석: `src/dashboard/forbidden-meta.ts`, `presets/tailwind-project.js`).
-
-**구현 방향** — import 문 자체가 아니라 **import 된 SCSS 파일의 클래스 정의가 매트릭스에서 어떻게
-분류됐는지에 연동**: 전부 pure-@apply 로 정의된 파일의 import 는 정상, 혼합(apply-mixed)·raw-css
-클래스를 담은 파일의 import 만 금지로 카운트.
-
-**선행 조각** — 금지 규칙(`ForbiddenPatternSpec`)에 `importPathPatterns` 지원 추가 (허용 규칙의
-`DetectSpec` 에는 이미 있음 — `src/policy.ts`). 그 위에 매트릭스 분류 결과와의 연결 계층.
-
-## 2. Bootstrap `@extend` / `@include` 검출
+## 1. Bootstrap `@extend` / `@include` 검출
 
 **배경** — bootstrap-project preset 은 JSX `className` 패턴과 import 모듈명으로만 Bootstrap 을
 감지합니다. SCSS 에서 `@extend .btn`, `@include button-variant(...)` 로 Bootstrap 을 소비하는
@@ -38,7 +24,7 @@ apply-mixed·raw-css 금지), 경로만 보면 이것까지 금지로 오검출�
 css-modules preset 의 매트릭스 활성화 여부를 함께 결정. 측정 결과가 달라지는 변경이므로 minor
 버전 + CHANGELOG 에 변화 방향 명시.
 
-## 3. 대시보드 인라인 번들 (CDN 의존 제거)
+## 2. 대시보드 인라인 번들 (CDN 의존 제거)
 
 **배경** — 대시보드 HTML 은 React / ReactDOM / Babel 을 열 때마다 unpkg CDN 에서 내려받고,
 컴포넌트 (jsx) 를 브라우저에서 런타임 변환합니다. **인터넷이 안 되는 환경 (사내 보안망·폐쇄망)
