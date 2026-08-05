@@ -331,7 +331,19 @@ function TokenMatrixSection({ d }) {
                 return (
                   <tr key={r.n}>
                     <td className="mono dim">{i + 1}</td>
-                    <td className="mono" style={{ color: both ? "var(--ink)" : "var(--ink-2)" }}>{r.n}</td>
+                    {/* 0.11.0 — tokenNameMapping 변환 행은 Figma 원명 병기 (역추적용) */}
+                    <td
+                      className="mono"
+                      style={{ color: both ? "var(--ink)" : "var(--ink-2)" }}
+                      title={r.mappedFrom ? `Figma 원명: ${r.mappedFrom}` : undefined}
+                    >
+                      {r.n}
+                      {r.mappedFrom && (
+                        <span className="dim" style={{ fontSize: 11, marginLeft: 6 }}>
+                          ← {r.mappedFrom}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ textAlign: "center", color: inCode ? "var(--good-ink)" : "var(--ink-4)" }}>
                       {inCode ? "✓" : "−"}
                     </td>

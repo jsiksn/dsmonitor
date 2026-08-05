@@ -56,6 +56,10 @@ import { validateSameFile } from "./figma/fileKeyValidator";
 import { loadCodeTokens } from "./codeTokens";
 import { buildTokenMatrix, type TokenMatrixDsInput } from "./tokenMatrix";
 import {
+  applyTokenNameMapping,
+  validateTokenNameMapping,
+} from "./tokenNameMapping";
+import {
   analyzeComponentMatch,
   dsInputsFromCounts,
 } from "./figma/componentMatch";
@@ -110,6 +114,20 @@ export async function analyzeFigma(
   // URL 사전 파싱 검증 — analyzer 시작 전 구조적 오류 먼저 차단.
   preflightUrls(fc.designSystemFiles, "designSystemFiles");
   preflightDomainUrls(fc.domainFiles);
+
+  // 0.11.0 — tokenNameMapping 규칙 구조 검증. API 호출 전에 fail-fast
+  // (규칙 오류를 안고 측정하면 매트릭스가 조용히 어긋난 채 저장되므로).
+  for (const ds of fc.designSystemFiles) {
+    if (!ds.tokenNameMapping) continue;
+    const ruleErrors = validateTokenNameMapping(ds.tokenNameMapping);
+    if (ruleErrors.length > 0) {
+      throw new Error(
+        `designSystemFiles["${ds.label}"].tokenNameMapping 규칙 오류:\n` +
+          ruleErrors.map((e) => `  - ${e}`).join("\n") +
+          `\n힌트: npx dsmonitor doctor 로 정적 검증 가능.`
+      );
+    }
+  }
 
   // 0.2.2 — 호출 횟수 카운터 / 분할 카운터 초기화. 측정 끝 시점에 출력 + warning.
   resetFigmaApiCallCount();
@@ -237,11 +255,26 @@ export async function analyzeFigma(
     );
   }
 
-  const dsInputs: TokenMatrixDsInput[] = fc.designSystemFiles.map((d) => ({
-    label: d.label,
-    styles: dsStylesByLabel.get(d.label) ?? [],
-    variables: dsVariablesByLabel.get(d.label) ?? [],
-  }));
+  // 0.11.0 — tokenNameMapping: DS variables 이름을 코드 CSS 변수명 형태로 변환
+  // (canonicalTokenKey 이전 적용, variables 한정 — styles 는 대상 아님).
+  // 미설정 DS 는 기존 그대로. 규칙 경고 (0매치 / 퇴화) 는 FigmaReport.warnings 로.
+  const dsInputs: TokenMatrixDsInput[] = fc.designSystemFiles.map((d) => {
+    const raw = dsVariablesByLabel.get(d.label) ?? [];
+    let variables: TokenMatrixDsInput["variables"] = raw;
+    if (d.tokenNameMapping && d.tokenNameMapping.length > 0 && raw.length > 0) {
+      const applied = applyTokenNameMapping(raw, d.tokenNameMapping, d.label);
+      variables = applied.variables;
+      for (const w of applied.warnings) {
+        warnings.push(w);
+        console.warn(`[figma]   ⚠ ${w}`);
+      }
+    }
+    return {
+      label: d.label,
+      styles: dsStylesByLabel.get(d.label) ?? [],
+      variables,
+    };
+  });
   const tokenMatrix = buildTokenMatrix(codeTokens, dsInputs);
   if (parserWarnings.length > 0) {
     tokenMatrix.warnings = parserWarnings;

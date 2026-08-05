@@ -554,9 +554,19 @@ function appendTokenMatrixSection(
 
   lines.push(`### 토큰 매칭 매트릭스`);
   lines.push("");
+  // 0.11.0 — tokenNameMapping 설정 DS 가 있으면 안내문에 반영 (완전 일치라는
+  // 설명이 규칙 변환 사실과 상충하지 않도록).
+  const mappedDs = dsFiles.filter(
+    (d) => d.tokenNameMapping && d.tokenNameMapping.length > 0
+  );
   lines.push(
     `> 코드 SCSS 변수와 Figma DS Styles / Variables 의 **이름 완전 일치 매칭** 결과. ` +
-      `정규화 / 값 기반 / 수동 매핑 없음. 동명 중복은 cell 에 \`×N\` 으로 표시.`
+      `값 기반 / 수동 매핑 없음. 동명 중복은 cell 에 \`×N\` 으로 표시.` +
+      (mappedDs.length > 0
+        ? ` ${mappedDs.map((d) => `\`${d.label}\``).join(", ")} 는 설정된 ` +
+          `tokenNameMapping 접두어 규칙으로 변수명을 변환한 뒤 매칭 — 변환 행은 ` +
+          `Figma 원명을 \`(← 원명)\` 으로 병기.`
+        : "")
   );
   lines.push("");
 
@@ -594,7 +604,10 @@ function appendTokenMatrixSection(
   } else {
     for (const row of tm.rows) {
       const cells = [
-        `\`${row.name}\``,
+        // 0.11.0 — 매핑 변환 행은 Figma 원명 병기 (역추적용).
+        row.mappedFrom
+          ? `\`${row.name}\` (← \`${row.mappedFrom}\`)`
+          : `\`${row.name}\``,
         renderMatrixCell(row.inCode),
         ...tm.designSystems.map((ds) =>
           renderMatrixCell(row.inDs[ds] ?? { exists: false, count: 0 })

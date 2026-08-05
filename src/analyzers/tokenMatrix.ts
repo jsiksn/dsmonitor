@@ -30,7 +30,9 @@ import type { FigmaStyleEntry } from "./figma/apiClient";
 export type TokenMatrixDsInput = {
   label: string;
   styles: FigmaStyleEntry[];
-  variables: FigmaVariableEntry[];
+  // 0.11.0 — tokenNameMapping 적용 결과 (mappedFrom = Figma 원래 이름) 를
+  // 그대로 받는다. 매핑 미사용 시 mappedFrom 없는 기존 형태 그대로.
+  variables: (FigmaVariableEntry & { mappedFrom?: string })[];
 };
 
 /**
@@ -79,6 +81,8 @@ export function buildTokenMatrix(
   // 0.9.0 — 정규화 키 기준으로 집계. 표시 이름은 첫 등장 원 이름 보존 (코드 우선).
   // 코드 측은 파서에서 이미 dedup. 방어적으로 다시 set 화.
   const displayName = new Map<string, string>();
+  // 0.11.0 — 정규화 키 → tokenNameMapping 변환 전 Figma 원명 (row.mappedFrom).
+  const mappedFromByKey = new Map<string, string>();
   const codeSet = new Set<string>();
   for (const t of codeTokens) {
     const key = canonicalTokenKey(t.name);
@@ -99,6 +103,10 @@ export function buildTokenMatrix(
       const key = canonicalTokenKey(v.name);
       counts.set(key, (counts.get(key) ?? 0) + 1);
       if (!displayName.has(key)) displayName.set(key, v.name);
+      // 0.11.0 — tokenNameMapping 적용 행의 Figma 원명 보존 (첫 등장 우선).
+      if (v.mappedFrom && !mappedFromByKey.has(key)) {
+        mappedFromByKey.set(key, v.mappedFrom);
+      }
     }
     dsCounts.set(ds.label, counts);
   }
@@ -124,7 +132,14 @@ export function buildTokenMatrix(
       inDs[ds.label] = { exists: c > 0, count: c };
     }
 
-    return { name: displayName.get(key) ?? key, inCode, inDs };
+    const row: TokenMatrixRow = {
+      name: displayName.get(key) ?? key,
+      inCode,
+      inDs,
+    };
+    const mappedFrom = mappedFromByKey.get(key);
+    if (mappedFrom) row.mappedFrom = mappedFrom;
+    return row;
   });
 
   // duplicates — DS 내 같은 논리 토큰 (정규화 키) 이 2개 이상인 항목.

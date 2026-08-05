@@ -8,6 +8,28 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.11.0] — 2026-08-05
+
+> **측정 결과 변화 안내** — `tokenNameMapping` 을 **설정한 프로젝트에서만** 토큰 매트릭스 매칭이 달라집니다 (매칭률이 오르는 방향). **미설정 프로젝트의 측정 결과는 이전 버전과 완전히 동일합니다** (아래 검수 참조).
+>
+> **EN — Measurement change notice**: token-matrix matching changes **only on projects that configure `tokenNameMapping`** (match rates rise). **Projects without the setting produce results identical to previous versions** (see verification below).
+
+### 추가 / Added
+
+- **한 —** `figma.designSystemFiles[].tokenNameMapping` — 토큰 이름 매핑 규칙 (2026-08-05 설계 확정분 구현). Figma 변수명 (`spacing/4`) 과 코드 CSS 변수명 (`--myds-space-4`) 의 명명 규약이 다른 프로젝트 (dsforge 류 파이프라인 산출물 등) 에서 실제 1:1 대응 토큰이 전부 미매칭으로 표시되던 공백을 해소합니다. **선언적 접두어 규칙** `{ from, to }[]` 만 지원 — 매치는 대소문자 무시 · 최장 `from` 우선 · catch-all (`from: ""`) 최대 1개, 접두어 이후는 고정 정규화 (소문자화 + `/`·공백 → `-`), 적용은 **variables 한정** (styles 대상 아님) 이며 `canonicalTokenKey` 이전에 수행됩니다. 규칙 구조 오류 (from 중복 · catch-all 2개 · `to` 가 `--` 미시작) 는 측정 시작 전 에러 + `doctor` 정적 검증. 매치 0건 규칙과 "1건 이하 매치 규칙 3개 이상" (수동 테이블 퇴화 신호) 은 warning. 변환 행은 리포트에 `(← Figma 원명)` 병기, 대시보드에 보조 표시 (`row.mappedFrom`). README §7.11.3 에 dsforge `tokenCssNaming` 변환표 수록.
+- **EN —** `figma.designSystemFiles[].tokenNameMapping` — token name mapping rules (implementing the 2026-08-05 design). Closes the gap where projects whose Figma variable names (`spacing/4`) and code CSS variable names (`--myds-space-4`) follow different conventions (e.g. dsforge-style pipeline output) showed all actually-1:1 tokens as unmatched. Only **declarative prefix rules** `{ from, to }[]` are supported — case-insensitive match, longest-`from` wins, at most one catch-all (`from: ""`); the remainder is normalized in a fixed way (lowercase, `/` and whitespace → `-`); applied to **variables only** (never styles), before `canonicalTokenKey`. Structural rule errors (duplicate `from` · two catch-alls · `to` not starting with `--`) fail before measurement starts and are statically checked by `doctor`. A 0-match rule, or 3+ rules matching ≤1 token (manual-table degeneration signal), produce warnings. Transformed rows carry the original Figma name — `(← original)` in the report, secondary text in the dashboard (`row.mappedFrom`). README §7.11.3 includes a dsforge `tokenCssNaming` conversion table.
+- **한 —** 설계 배제 사항 (의도적): 토큰별 수동 매핑 테이블 · 측정에 개입하는 값 기반 자동 추론 · regex/함수형 규칙. tokenMatrix 의 "값 기반 / 수동 매핑 없음" 결정은 유지 — 접두어 규칙은 토큰별 짝짓기가 아닌 선언적 일괄 변환이라 그 결정과 구분됩니다. "매칭 0% 시 규칙 초안 제안" 보조 기능은 후속 관찰 후보로 이월.
+- **EN —** Deliberately excluded: per-token manual mapping tables, value-based inference that feeds measurement, and regex/function rules. The token matrix's "no value-based / manual mapping" decision stands — prefix rules are declarative bulk transforms, not per-token pairing. A "suggest a draft rule when matching is ~0%" helper is deferred as a follow-up candidate.
+
+### 참고 / Notes
+
+- 리포터 안내문에서 "정규화 없음" 표기를 제거했습니다 — 0.9.0 의 `canonicalTokenKey` 정규화 도입 이후 사실과 달랐던 문구 정리 (표기만, 동작 무변경).
+- The report note no longer says "no normalization" — stale wording since 0.9.0 introduced `canonicalTokenKey` normalization (wording only, no behavior change).
+- 전/후 비교 검수: ① 매핑 미설정 — sample-project 분석기 전체 실행 + dsforge 형태 합성 입력 매트릭스, 0.10.0 대비 leaf diff **0** (타임스탬프 제외). ② 매핑 설정 — 같은 합성 입력에서 의도 변화만 확인 (매칭 0 → 3, 행 7 → 4 병합, `mappedFrom` 3건 보존, warning 0).
+- Before/after verification: ① without mapping — full analyzer run on sample-project plus a dsforge-shaped synthetic matrix input, leaf diff vs 0.10.0 is **zero** (excluding timestamps). ② with mapping — on the same synthetic input, only the intended change appears (matched 0 → 3, rows 7 → 4 merged, 3 `mappedFrom` preserved, 0 warnings).
+- 테스트 91개 (+14 — 규칙 검증 · 최장 우선 · catch-all · 문자 정규화 · 경고 2종 · 매트릭스 통합) + typecheck + build 통과. baseline JSON shape 는 옵션 필드 `tokenMatrix.rows[].mappedFrom` 추가만 (매핑 미사용 시 필드 자체 없음).
+- 91 tests (+14 — rule validation · longest-prefix · catch-all · normalization · both warnings · matrix integration) + typecheck + build pass. The only baseline-JSON-shape change is the optional `tokenMatrix.rows[].mappedFrom` field (absent entirely when mapping is unused).
+
 ## [0.10.0] — 2026-07-31
 
 > **측정 결과 변화 안내** — tailwind-project preset 에서 `scss-imports` 측정이 시작되고, 따옴표 맵 키의 토큰 이름이 정정됩니다 (아래 방향 명시). 시계열 비교 시 0.10.0 전후 구분을 권장합니다.

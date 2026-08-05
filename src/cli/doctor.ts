@@ -15,6 +15,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import fg from "fast-glob";
 import type { UIHealthConfig } from "../types";
+import { validateTokenNameMapping } from "../analyzers/tokenNameMapping";
 // 0.8.10 — glob 판정을 공유 유틸로 이동 (옛 로컬 isGlobPattern — 파서 2곳과 동일 구현).
 import { isGlob as isGlobPattern } from "../utils/glob";
 
@@ -321,6 +322,38 @@ export function runDoctor(
         category: "figma.designSystemFiles",
         message: `${cfg.figma.designSystemFiles.length} entries`,
       });
+    }
+
+    // ─── designSystemFiles[].tokenNameMapping 구조 검증 (0.11.0) ─────
+    // 런타임 (figma.ts fail-fast) 과 같은 validateTokenNameMapping 공유 —
+    // 정적 검증만이므로 doctor 의 오프라인 성격 유지 (네트워크 호출 없음).
+    for (const ds of cfg.figma.designSystemFiles) {
+      if (!ds.tokenNameMapping) continue;
+      const where = `designSystemFiles[${ds.label}].tokenNameMapping`;
+      const ruleErrors = validateTokenNameMapping(ds.tokenNameMapping);
+      for (const e of ruleErrors) {
+        push({
+          severity: "error",
+          category: "figma.tokenNameMapping",
+          message: `${where}: ${e}`,
+          hint:
+            "규칙은 접두어 변환만 지원합니다 — from 중복 금지, catch-all(from: \"\") 최대 1개, " +
+            "to 는 \"--\" 시작. 예: { from: \"spacing/\", to: \"--myds-space-\" }",
+        });
+      }
+      if (ds.tokenNameMapping.length === 0) {
+        push({
+          severity: "warn",
+          category: "figma.tokenNameMapping",
+          message: `${where}: 빈 배열 — 변환이 적용되지 않습니다. 의도한 설정인지 확인하세요.`,
+        });
+      } else if (ruleErrors.length === 0) {
+        push({
+          severity: "ok",
+          category: "figma.tokenNameMapping",
+          message: `${where}: ${ds.tokenNameMapping.length} rules`,
+        });
+      }
     }
   }
 

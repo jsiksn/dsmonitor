@@ -571,6 +571,55 @@ figma: {
 
 URL 은 Figma 의 "Copy link" 결과를 그대로 붙여 넣으면 됩니다. fileKey 를 손으로 추출할 필요가 없고, URL 안의 `node-id=2-2` 와 REST API 의 `2:2` 사이 변환도 도구가 알아서 처리합니다.
 
+#### 7.11.3 `tokenNameMapping` — 토큰 이름 매핑 규칙 (0.11.0+, 선택)
+
+토큰 매트릭스는 이름으로 매칭하기 때문에, Figma 변수명 (`spacing/4`) 과 코드 CSS 변수명
+(`--myds-space-4`) 의 명명 규약이 다른 프로젝트 (dsforge 류 파이프라인 산출물 등) 에서는
+실제로 1:1 대응인 토큰이 전부 미매칭으로 표시됩니다. 이때 DS 항목에 **선언적 접두어 변환
+규칙**을 적어 주면 매칭 전에 Figma 변수명을 코드 형태로 변환합니다.
+
+```ts
+designSystemFiles: [
+  {
+    url: "https://www.figma.com/design/AAAAA/Design-System",
+    label: "ds",
+    primary: true,
+    tokenNameMapping: [
+      { from: "spacing/", to: "--myds-space-" }, // spacing/4 → --myds-space-4
+      { from: "size/",    to: "--myds-size-" },
+      { from: "",         to: "--myds-" },       // catch-all: logo/blue → --myds-logo-blue
+    ],
+  },
+],
+```
+
+동작 규칙:
+
+- **variables 에만 적용** — Styles (텍스트 스타일 등) 는 대상이 아닙니다.
+- 접두어 매치는 대소문자 무시, 여러 규칙이 맞으면 **가장 긴 `from` 이 승리** (catch-all 은 자연스럽게 최후순위).
+- 접두어 이후 나머지는 고정 정규화: 소문자화 + `/` 와 공백 → `-` (`Light / 100` → `light-100`).
+- 어떤 규칙에도 안 맞는 이름은 변환 없이 그대로 (기존 완전 일치 동작).
+- 변환된 행은 리포트에 `(← Figma 원명)` 병기, 대시보드에 보조 표시 — Figma 쪽 역추적용.
+- 제약 (위반 시 측정 시작 전 에러, `npx dsmonitor doctor` 로도 정적 검증): 같은 `from` 중복 금지 ·
+  catch-all 최대 1개 · `to` 는 `--` 시작.
+- **미설정 시 측정 결과는 이전 버전과 완전히 동일합니다.**
+
+토큰별 수동 매핑 테이블 / 값 기반 자동 추론 / regex·함수형 규칙은 **의도적으로 지원하지 않습니다**
+— 규칙이 리포트에 그대로 인쇄될 수 있고 퇴화 (규칙이 사실상 토큰 1개씩 짝짓기가 되는 상황) 를
+기계적으로 감지할 수 있는 선언적 접두어 형태만 허용합니다. 매치 0건 규칙과 "1건 이하 매치 규칙
+3개 이상" 은 warning 으로 표시됩니다.
+
+**dsforge `tokenCssNaming` 변환표** — dsforge 하네스로 만든 프로젝트라면 프로젝트 descriptor 의
+`tokenCssNaming` 을 다음과 같이 옮기면 됩니다:
+
+| dsforge (`tokenCssNaming`)                  | dsmonitor (`tokenNameMapping`)                  |
+|---------------------------------------------|-------------------------------------------------|
+| `"spaceFrom": "spacing/", "spaceTo": "--myds-space-"` | `{ from: "spacing/", to: "--myds-space-" }` |
+| `"sizeFrom": "size/", "sizeTo": "--myds-size-"`       | `{ from: "size/", to: "--myds-size-" }`     |
+| `"radiusFrom": "radius/", "radiusTo": "--myds-radius-"` | `{ from: "radius/", to: "--myds-radius-" }` |
+| `"colorPrefix": "--myds-"` (나머지 전부)      | `{ from: "", to: "--myds-" }` (catch-all)       |
+| `"textClass": { ... }` (텍스트 스타일 → 클래스) | 대응 없음 — 매핑 대상 아님 (variables 한정)      |
+
 ### 7.12 `lighthouse` (선택)
 
 Lighthouse 측정 설정입니다.
@@ -1654,6 +1703,60 @@ Domain files accept any of three patterns, and you can mix patterns B and C in a
 ```
 
 Paste Figma "Copy link" URLs verbatim — no need to extract `fileKey` by hand, and `node-id=2-2` in URLs is auto-converted to `2:2` for the REST API.
+
+#### 7.11.3 `tokenNameMapping` — token name mapping rules (0.11.0+, optional)
+
+The token matrix matches by name, so in projects whose Figma variable names (`spacing/4`) and
+code CSS variable names (`--myds-space-4`) follow different conventions (e.g. output of a
+dsforge-style pipeline), tokens that are actually 1:1 all show as unmatched. Declare
+**prefix transform rules** on the DS entry to convert Figma variable names into the code form
+before matching.
+
+```ts
+designSystemFiles: [
+  {
+    url: "https://www.figma.com/design/AAAAA/Design-System",
+    label: "ds",
+    primary: true,
+    tokenNameMapping: [
+      { from: "spacing/", to: "--myds-space-" }, // spacing/4 → --myds-space-4
+      { from: "size/",    to: "--myds-size-" },
+      { from: "",         to: "--myds-" },       // catch-all: logo/blue → --myds-logo-blue
+    ],
+  },
+],
+```
+
+Behavior:
+
+- **Applies to variables only** — Styles (text styles etc.) are not transformed.
+- Prefix match is case-insensitive; when several rules match, the **longest `from` wins**
+  (the catch-all naturally loses to any specific prefix).
+- The remainder after the prefix is normalized (fixed, not configurable): lowercased, `/` and
+  whitespace → `-` (`Light / 100` → `light-100`).
+- Names matching no rule pass through unchanged (the old exact-match behavior).
+- Transformed rows carry the original Figma name — shown as `(← original)` in the report and
+  as secondary text in the dashboard, for tracing back to Figma.
+- Constraints (error before measurement starts; also statically checked by
+  `npx dsmonitor doctor`): no duplicate `from`, at most one catch-all, `to` must start with `--`.
+- **Without this field, measurement results are identical to previous versions.**
+
+Per-token manual mapping tables, value-based auto-inference, and regex/function rules are
+**deliberately not supported** — only the declarative prefix form is allowed, because it can be
+printed verbatim in reports and degeneration (rules devolving into one-token pairings) can be
+detected mechanically. A rule matching 0 tokens, or 3+ rules matching ≤1 token each, produce
+warnings.
+
+**dsforge `tokenCssNaming` conversion table** — for projects built with the dsforge harness,
+translate the project descriptor's `tokenCssNaming` as follows:
+
+| dsforge (`tokenCssNaming`)                  | dsmonitor (`tokenNameMapping`)                  |
+|---------------------------------------------|-------------------------------------------------|
+| `"spaceFrom": "spacing/", "spaceTo": "--myds-space-"` | `{ from: "spacing/", to: "--myds-space-" }` |
+| `"sizeFrom": "size/", "sizeTo": "--myds-size-"`       | `{ from: "size/", to: "--myds-size-" }`     |
+| `"radiusFrom": "radius/", "radiusTo": "--myds-radius-"` | `{ from: "radius/", to: "--myds-radius-" }` |
+| `"colorPrefix": "--myds-"` (everything else) | `{ from: "", to: "--myds-" }` (catch-all)       |
+| `"textClass": { ... }` (text styles → classes) | no equivalent — out of scope (variables only)  |
 
 ### 7.12 `lighthouse` (optional)
 

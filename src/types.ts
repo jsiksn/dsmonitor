@@ -488,6 +488,39 @@ export type FigmaPageSelection =
     };
 
 /**
+ * 토큰 이름 매핑 규칙 1개 (0.11.0).
+ *
+ * Figma 변수명을 코드 CSS 변수명으로 변환하는 **선언적 접두어 규칙**.
+ * tokenMatrix 의 이름 매칭 전에 DS 쪽 variables 이름에만 적용된다
+ * (styles / 텍스트 스타일은 대상 아님 — 코드 대응물이 변수가 아니라 클래스라
+ * 규칙 형태가 다름. docs/roadmap 이 아닌 2026-08-05 설계 논의로 확정).
+ *
+ * 예: `{ from: "spacing/", to: "--myds-space-" }` → `spacing/4` 가
+ * `--myds-space-4` 로 변환되어 코드 토큰과 이름 일치 매칭.
+ *
+ * 규칙 외 문자 처리는 고정 (설정 아님): 접두어 제거 후 나머지를
+ * 소문자화 + `/` 와 공백을 `-` 로 치환.
+ *
+ * 제약 (위반 시 측정 시작 전 에러 — doctor 로도 정적 검증):
+ *   - 같은 `from` 중복 금지
+ *   - catch-all (`from: ""`) 은 최대 1개
+ *   - `to` 는 `--` 로 시작 (변환 결과가 CSS 변수명이어야 매칭이 의미 있음)
+ *
+ * 여러 규칙이 매치되면 **가장 긴 `from` 이 승리** (catch-all 은 자연스럽게
+ * 최후순위). 어떤 규칙에도 안 맞는 이름은 변환 없이 기존 동작 그대로.
+ *
+ * 주의 — tokenMatrix 의 "값 기반 / 수동 매핑 없음" 설계 결정과의 구분:
+ * 이것은 토큰별 수동 짝짓기가 아니라 일괄 변환 규칙이다. 토큰 1개에만
+ * 매치되는 규칙이 쌓이면 수동 테이블로 퇴화하므로 warning 으로 감지한다.
+ */
+export type TokenNameMappingRule = {
+  /** Figma 변수명 접두어. "" = catch-all (나머지 전부). */
+  from: string;
+  /** 치환될 코드 CSS 변수명 접두어. 반드시 "--" 시작. */
+  to: string;
+};
+
+/**
  * DS 파일 설정. 파일 단위로 Styles / Main Components 를 카운트.
  * 페이지/프레임 선택은 제공하지 않음 (DS 파일 전체 대상).
  */
@@ -510,6 +543,14 @@ export type FigmaDesignSystemFile = {
    * 도메인 파일의 comment 와 대칭. 없으면 리포트에서 괄호 부분 생략.
    */
   comment?: string;
+  /**
+   * 이 DS 의 변수명 → 코드 CSS 변수명 변환 규칙 (0.11.0, 옵션).
+   *
+   * DS 별 배치인 이유: 명명 규약은 DS 마다 다를 수 있음 (ds-new / ds-legacy).
+   * 미지정 = 변환 없음 (기존 이름 완전 일치 동작 그대로).
+   * 상세 제약·동작은 `TokenNameMappingRule` 참조.
+   */
+  tokenNameMapping?: TokenNameMappingRule[];
 };
 
 /**
@@ -1169,6 +1210,14 @@ export type TokenMatrixRow = {
   inCode: TokenMatrixCell;
   /** key = DS label. config 의 designSystemFiles 순서와 동일. */
   inDs: Record<string, TokenMatrixCell>;
+  /**
+   * tokenNameMapping 으로 변환된 행의 Figma 원래 변수명 (0.11.0).
+   *
+   * 표시 이름은 코드 우선 규칙 그대로 코드 변수명이므로, Figma 쪽에서
+   * 역추적할 때 이 필드를 사용 (리포트 괄호 병기 / 대시보드 보조 표시).
+   * 매핑 미적용 행은 필드 자체가 없음.
+   */
+  mappedFrom?: string;
 };
 
 /** DS 내 동명 중복 기록. count ≥ 2. */
