@@ -1,5 +1,5 @@
 /**
- * 토큰 이름 매핑 (0.11.0, 2026-08-05 설계 확정).
+ * 토큰 이름 매핑 (0.11.0 variables, 0.11.1 styles 확장 — 2026-08-05 설계 확정).
  *
  * 배경: dsforge 류 파이프라인은 Figma 변수명 (`spacing/4`) 을 규칙으로 변환한
  * CSS 변수 (`--<ds>-space-4`) 를 코드에 쓴다. tokenMatrix 는 이름 일치 매칭이라
@@ -11,18 +11,31 @@
  *   - 측정에 개입하는 값 기반 추론 없음 — 적용은 항상 명시 규칙만.
  *   - regex / 함수형 규칙 없음 — 감사 가능성 (리포트에 규칙 인쇄, 퇴화 감지).
  *
- * 적용 지점: figma.ts 의 tokenMatrix 입력 조립 시 DS variables 에만.
- * styles (텍스트 스타일) 는 대상 아님 — 코드 대응물이 클래스라 형태가 다름.
+ * 적용 지점: figma.ts 의 tokenMatrix 입력 조립 시, canonicalTokenKey 이전.
+ * 적용 범위 (0.11.1):
+ *   - variables 전체
+ *   - styles 중 FILL / EFFECT 만 — 색·그림자(elevation) 스타일은 단일 값 토큰과
+ *     1:1 대응이 자연스러움 (구식 DS 의 색 토큰이 사는 곳). TEXT 는 복합체
+ *     (size/weight/line-height) 라 단일 토큰 대응이 안 되고 변환 시 거짓 매칭
+ *     위험이 있어 고정 제외, GRID 는 코드 토큰 대응물 자체가 없어 제외.
+ *     styleType 별 설정 옵션은 두지 않음 — 문자 정규화와 같은 원칙 (설정 최소화).
  * 변환 결과는 `--` 시작이므로 canonicalTokenKey 를 무변경 통과한다.
  */
 
 import type { FigmaVariableEntry, TokenNameMappingRule } from "../types";
+import type { FigmaStyleEntry } from "./figma/apiClient";
 
-/** 매핑 적용 결과의 variables 엔트리 — 변환된 행은 원래 이름을 보존. */
+/** 매핑 적용 결과 엔트리 — 변환된 항목은 원래 이름을 보존. */
 export type MappedVariableEntry = FigmaVariableEntry & {
-  /** 변환 전 Figma 변수명. 변환 안 된 엔트리는 필드 없음. */
+  /** 변환 전 Figma 이름. 변환 안 된 엔트리는 필드 없음. */
   mappedFrom?: string;
 };
+export type MappedStyleEntry = FigmaStyleEntry & {
+  mappedFrom?: string;
+};
+
+/** 매핑 대상 styleType (0.11.1). 그 외 (TEXT / GRID / unknown) 는 변환 없이 통과. */
+const MAPPED_STYLE_TYPES = new Set(["FILL", "EFFECT"]);
 
 /**
  * 규칙 배열의 구조 오류 목록 반환 (빈 배열 = 유효).
@@ -74,39 +87,57 @@ function normalizeRest(rest: string): string {
 }
 
 /**
- * DS variables 에 매핑 규칙 적용.
+ * DS 의 variables + styles 에 매핑 규칙 적용.
  *
- * - 매치 판정: `from` 이 변수명의 접두어인지 **대소문자 무시** 비교.
+ * - 매치 판정: `from` 이 이름의 접두어인지 **대소문자 무시** 비교.
  *   여러 규칙 매치 시 가장 긴 `from` 승리 (동률 없음 — from 중복은 validate 에서 에러).
  * - 변환: `to` + normalizeRest(접두어 이후 나머지). 원래 이름은 mappedFrom 으로 보존.
+ * - styles 는 FILL / EFFECT 만 변환 (MAPPED_STYLE_TYPES) — TEXT / GRID 는 그대로.
  * - 어떤 규칙에도 안 맞는 이름: 변환 없이 그대로 (mappedFrom 없음).
+ * - 변환 후 변수·스타일 동명 충돌은 여기서 처리하지 않음 — tokenMatrix 의
+ *   기존 duplicates (×N + "정리 권장") 로 표면화 (같은 토큰이 양쪽에 정의된
+ *   것은 사용자가 봐야 할 신호).
  *
  * warnings (측정은 계속 — 규칙 오타 / 수동 테이블 퇴화 신호):
- *   - 매치 0건 규칙: 규칙별 warning.
+ *   - 매치 0건 규칙: 규칙별 warning. 카운트는 variables + 대상 styles 합산 —
+ *     FILL 스타일에만 매치되는 규칙도 정당하므로 variables 만 세면 억울한 경고가 됨.
  *   - 매치 1건 이하 규칙이 3개 이상: 퇴화 warning 1건 (누적 판정 —
  *     소규모 카테고리의 정당한 1건 매치는 개별로는 문제 아님).
  */
 export function applyTokenNameMapping(
-  variables: FigmaVariableEntry[],
+  input: { variables: FigmaVariableEntry[]; styles: FigmaStyleEntry[] },
   rules: TokenNameMappingRule[],
   dsLabel: string
-): { variables: MappedVariableEntry[]; warnings: string[] } {
+): {
+  variables: MappedVariableEntry[];
+  styles: MappedStyleEntry[];
+  warnings: string[];
+} {
   // 최장 from 우선 — 미리 내림차순 정렬해 첫 매치 = 최장 매치.
   const sorted = [...rules].sort((a, b) => b.from.length - a.from.length);
   const matchCount = new Map<TokenNameMappingRule, number>();
   for (const r of rules) matchCount.set(r, 0);
 
-  const mapped: MappedVariableEntry[] = variables.map((v) => {
-    const lower = v.name.toLowerCase();
+  const transform = <T extends { name: string }>(
+    entry: T
+  ): T & { mappedFrom?: string } => {
+    const lower = entry.name.toLowerCase();
     const rule = sorted.find((r) => lower.startsWith(r.from.toLowerCase()));
-    if (!rule) return v;
+    if (!rule) return entry;
     matchCount.set(rule, (matchCount.get(rule) ?? 0) + 1);
     return {
-      ...v,
-      name: rule.to + normalizeRest(v.name.slice(rule.from.length)),
-      mappedFrom: v.name,
+      ...entry,
+      name: rule.to + normalizeRest(entry.name.slice(rule.from.length)),
+      mappedFrom: entry.name,
     };
-  });
+  };
+
+  const variables = input.variables.map((v) => transform(v));
+  const styles = input.styles.map((s) =>
+    MAPPED_STYLE_TYPES.has(String(s.styleType).toUpperCase())
+      ? transform(s)
+      : s
+  );
 
   const warnings: string[] = [];
   const prefix = `[tokenNameMapping "${dsLabel}"]`;
@@ -125,5 +156,5 @@ export function applyTokenNameMapping(
       `${prefix} 매치 1건 이하 규칙이 ${lowMatchRules}개 — 접두어 규칙이 수동 매핑 테이블처럼 사용되고 있습니다. 명명 규약 정렬을 권장합니다.`
     );
   }
-  return { variables: mapped, warnings };
+  return { variables, styles, warnings };
 }

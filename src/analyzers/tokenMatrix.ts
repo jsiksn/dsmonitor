@@ -29,9 +29,10 @@ import type { FigmaStyleEntry } from "./figma/apiClient";
 
 export type TokenMatrixDsInput = {
   label: string;
-  styles: FigmaStyleEntry[];
-  // 0.11.0 — tokenNameMapping 적용 결과 (mappedFrom = Figma 원래 이름) 를
+  // 0.11.0/0.11.1 — tokenNameMapping 적용 결과 (mappedFrom = Figma 원래 이름) 를
   // 그대로 받는다. 매핑 미사용 시 mappedFrom 없는 기존 형태 그대로.
+  // styles 는 FILL/EFFECT 만 변환 대상 (figma.ts / tokenNameMapping.ts 참조).
+  styles: (FigmaStyleEntry & { mappedFrom?: string })[];
   variables: (FigmaVariableEntry & { mappedFrom?: string })[];
 };
 
@@ -98,6 +99,10 @@ export function buildTokenMatrix(
       const key = canonicalTokenKey(s.name);
       counts.set(key, (counts.get(key) ?? 0) + 1);
       if (!displayName.has(key)) displayName.set(key, s.name);
+      // 0.11.1 — tokenNameMapping 적용 행의 Figma 원명 보존 (variables 와 동일).
+      if (s.mappedFrom && !mappedFromByKey.has(key)) {
+        mappedFromByKey.set(key, s.mappedFrom);
+      }
     }
     for (const v of ds.variables) {
       const key = canonicalTokenKey(v.name);

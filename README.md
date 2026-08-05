@@ -571,7 +571,7 @@ figma: {
 
 URL 은 Figma 의 "Copy link" 결과를 그대로 붙여 넣으면 됩니다. fileKey 를 손으로 추출할 필요가 없고, URL 안의 `node-id=2-2` 와 REST API 의 `2:2` 사이 변환도 도구가 알아서 처리합니다.
 
-#### 7.11.3 `tokenNameMapping` — 토큰 이름 매핑 규칙 (0.11.0+, 선택)
+#### 7.11.3 `tokenNameMapping` — 토큰 이름 매핑 규칙 (0.11.0+, 0.11.1 styles 확장, 선택)
 
 토큰 매트릭스는 이름으로 매칭하기 때문에, Figma 변수명 (`spacing/4`) 과 코드 CSS 변수명
 (`--myds-space-4`) 의 명명 규약이 다른 프로젝트 (dsforge 류 파이프라인 산출물 등) 에서는
@@ -595,7 +595,10 @@ designSystemFiles: [
 
 동작 규칙:
 
-- **variables 에만 적용** — Styles (텍스트 스타일 등) 는 대상이 아닙니다.
+- **variables 전체 + styles 중 FILL / EFFECT 에 적용** (0.11.1+) — 색·그림자 (elevation)
+  스타일은 단일 값 토큰과 1:1 대응이 자연스러워 포함합니다 (색 토큰이 paint style 에 사는
+  구식 DS 지원). **TEXT 스타일은 고정 제외** — size/weight/line-height 복합체라 단일 토큰
+  대응이 안 되고 변환 시 거짓 매칭 위험이 있습니다. GRID 도 제외 (대응물 없음).
 - 접두어 매치는 대소문자 무시, 여러 규칙이 맞으면 **가장 긴 `from` 이 승리** (catch-all 은 자연스럽게 최후순위).
 - 접두어 이후 나머지는 고정 정규화: 소문자화 + `/` 와 공백 → `-` (`Light / 100` → `light-100`).
 - 어떤 규칙에도 안 맞는 이름은 변환 없이 그대로 (기존 완전 일치 동작).
@@ -618,7 +621,7 @@ designSystemFiles: [
 | `"sizeFrom": "size/", "sizeTo": "--myds-size-"`       | `{ from: "size/", to: "--myds-size-" }`     |
 | `"radiusFrom": "radius/", "radiusTo": "--myds-radius-"` | `{ from: "radius/", to: "--myds-radius-" }` |
 | `"colorPrefix": "--myds-"` (나머지 전부)      | `{ from: "", to: "--myds-" }` (catch-all)       |
-| `"textClass": { ... }` (텍스트 스타일 → 클래스) | 대응 없음 — 매핑 대상 아님 (variables 한정)      |
+| `"textClass": { ... }` (텍스트 스타일 → 클래스) | 대응 없음 — TEXT 스타일은 매핑 제외 대상          |
 
 ### 7.12 `lighthouse` (선택)
 
@@ -1704,7 +1707,7 @@ Domain files accept any of three patterns, and you can mix patterns B and C in a
 
 Paste Figma "Copy link" URLs verbatim — no need to extract `fileKey` by hand, and `node-id=2-2` in URLs is auto-converted to `2:2` for the REST API.
 
-#### 7.11.3 `tokenNameMapping` — token name mapping rules (0.11.0+, optional)
+#### 7.11.3 `tokenNameMapping` — token name mapping rules (0.11.0+, styles since 0.11.1, optional)
 
 The token matrix matches by name, so in projects whose Figma variable names (`spacing/4`) and
 code CSS variable names (`--myds-space-4`) follow different conventions (e.g. output of a
@@ -1729,7 +1732,11 @@ designSystemFiles: [
 
 Behavior:
 
-- **Applies to variables only** — Styles (text styles etc.) are not transformed.
+- **Applies to all variables, plus FILL / EFFECT styles** (0.11.1+) — color and shadow
+  (elevation) styles correspond 1:1 to single-value tokens (supporting old-school design
+  systems that keep color tokens in paint styles). **TEXT styles are always excluded** —
+  they bundle size/weight/line-height, so there is no single-token counterpart, and
+  transforming them risks false matches. GRID is excluded too (no counterpart).
 - Prefix match is case-insensitive; when several rules match, the **longest `from` wins**
   (the catch-all naturally loses to any specific prefix).
 - The remainder after the prefix is normalized (fixed, not configurable): lowercased, `/` and
@@ -1756,7 +1763,7 @@ translate the project descriptor's `tokenCssNaming` as follows:
 | `"sizeFrom": "size/", "sizeTo": "--myds-size-"`       | `{ from: "size/", to: "--myds-size-" }`     |
 | `"radiusFrom": "radius/", "radiusTo": "--myds-radius-"` | `{ from: "radius/", to: "--myds-radius-" }` |
 | `"colorPrefix": "--myds-"` (everything else) | `{ from: "", to: "--myds-" }` (catch-all)       |
-| `"textClass": { ... }` (text styles → classes) | no equivalent — out of scope (variables only)  |
+| `"textClass": { ... }` (text styles → classes) | no equivalent — TEXT styles are excluded from mapping |
 
 ### 7.12 `lighthouse` (optional)
 

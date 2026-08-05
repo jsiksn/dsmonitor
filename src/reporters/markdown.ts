@@ -564,8 +564,8 @@ function appendTokenMatrixSection(
       `값 기반 / 수동 매핑 없음. 동명 중복은 cell 에 \`×N\` 으로 표시.` +
       (mappedDs.length > 0
         ? ` ${mappedDs.map((d) => `\`${d.label}\``).join(", ")} 는 설정된 ` +
-          `tokenNameMapping 접두어 규칙으로 변수명을 변환한 뒤 매칭 — 변환 행은 ` +
-          `Figma 원명을 \`(← 원명)\` 으로 병기.`
+          `tokenNameMapping 접두어 규칙으로 변수·FILL/EFFECT 스타일 이름을 변환한 뒤 ` +
+          `매칭 — 변환 행은 Figma 원명을 \`(← 원명)\` 으로 병기.`
         : "")
   );
   lines.push("");

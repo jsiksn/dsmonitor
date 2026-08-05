@@ -255,25 +255,35 @@ export async function analyzeFigma(
     );
   }
 
-  // 0.11.0 — tokenNameMapping: DS variables 이름을 코드 CSS 변수명 형태로 변환
-  // (canonicalTokenKey 이전 적용, variables 한정 — styles 는 대상 아님).
+  // 0.11.0 — tokenNameMapping: DS 쪽 이름을 코드 CSS 변수명 형태로 변환
+  // (canonicalTokenKey 이전 적용). 0.11.1 — variables 전체 + styles 중
+  // FILL/EFFECT 에 적용 (TEXT/GRID 는 변환 없이 통과 — 모듈 주석 참조).
   // 미설정 DS 는 기존 그대로. 규칙 경고 (0매치 / 퇴화) 는 FigmaReport.warnings 로.
+  // 입력이 전부 비어 있으면 (예: 스캔 실패) 적용 생략 — 전 규칙 0매치라는
+  // 오해성 경고 방지 (원인은 규칙이 아니라 조회 실패이므로).
   const dsInputs: TokenMatrixDsInput[] = fc.designSystemFiles.map((d) => {
-    const raw = dsVariablesByLabel.get(d.label) ?? [];
-    let variables: TokenMatrixDsInput["variables"] = raw;
-    if (d.tokenNameMapping && d.tokenNameMapping.length > 0 && raw.length > 0) {
-      const applied = applyTokenNameMapping(raw, d.tokenNameMapping, d.label);
+    const rawVariables = dsVariablesByLabel.get(d.label) ?? [];
+    const rawStyles = dsStylesByLabel.get(d.label) ?? [];
+    let variables: TokenMatrixDsInput["variables"] = rawVariables;
+    let styles: TokenMatrixDsInput["styles"] = rawStyles;
+    if (
+      d.tokenNameMapping &&
+      d.tokenNameMapping.length > 0 &&
+      rawVariables.length + rawStyles.length > 0
+    ) {
+      const applied = applyTokenNameMapping(
+        { variables: rawVariables, styles: rawStyles },
+        d.tokenNameMapping,
+        d.label
+      );
       variables = applied.variables;
+      styles = applied.styles;
       for (const w of applied.warnings) {
         warnings.push(w);
         console.warn(`[figma]   ⚠ ${w}`);
       }
     }
-    return {
-      label: d.label,
-      styles: dsStylesByLabel.get(d.label) ?? [],
-      variables,
-    };
+    return { label: d.label, styles, variables };
   });
   const tokenMatrix = buildTokenMatrix(codeTokens, dsInputs);
   if (parserWarnings.length > 0) {

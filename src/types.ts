@@ -490,10 +490,12 @@ export type FigmaPageSelection =
 /**
  * 토큰 이름 매핑 규칙 1개 (0.11.0).
  *
- * Figma 변수명을 코드 CSS 변수명으로 변환하는 **선언적 접두어 규칙**.
- * tokenMatrix 의 이름 매칭 전에 DS 쪽 variables 이름에만 적용된다
- * (styles / 텍스트 스타일은 대상 아님 — 코드 대응물이 변수가 아니라 클래스라
- * 규칙 형태가 다름. docs/roadmap 이 아닌 2026-08-05 설계 논의로 확정).
+ * Figma 쪽 이름을 코드 CSS 변수명으로 변환하는 **선언적 접두어 규칙**.
+ * tokenMatrix 의 이름 매칭 전에 적용된다. 적용 범위 (2026-08-05 설계 논의 확정):
+ *   - variables 전체 (0.11.0)
+ *   - styles 중 FILL / EFFECT (0.11.1) — 색·그림자 스타일은 단일 값 토큰과
+ *     1:1 대응 (구식 DS 의 색 토큰이 사는 곳). TEXT 는 복합체라 대응이 안 되고
+ *     거짓 매칭 위험이 있어 고정 제외, GRID 는 대응물 없음.
  *
  * 예: `{ from: "spacing/", to: "--myds-space-" }` → `spacing/4` 가
  * `--myds-space-4` 로 변환되어 코드 토큰과 이름 일치 매칭.
@@ -544,7 +546,8 @@ export type FigmaDesignSystemFile = {
    */
   comment?: string;
   /**
-   * 이 DS 의 변수명 → 코드 CSS 변수명 변환 규칙 (0.11.0, 옵션).
+   * 이 DS 의 Figma 이름 → 코드 CSS 변수명 변환 규칙 (0.11.0+, 옵션).
+   * variables 전체 + FILL/EFFECT styles 에 적용 (0.11.1).
    *
    * DS 별 배치인 이유: 명명 규약은 DS 마다 다를 수 있음 (ds-new / ds-legacy).
    * 미지정 = 변환 없음 (기존 이름 완전 일치 동작 그대로).

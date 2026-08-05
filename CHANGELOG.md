@@ -8,6 +8,24 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.11.1] — 2026-08-05
+
+> **측정 결과 변화 안내** — 0.11.0 과 동일하게 `tokenNameMapping` 을 **설정한 프로젝트에서만** 변화합니다 (styles 매칭이 추가로 살아나는 방향). 미설정 프로젝트는 완전 동일.
+>
+> **EN — Measurement change notice**: as with 0.11.0, results change **only on projects that configure `tokenNameMapping`** (style matching additionally comes alive). Projects without the setting are identical.
+
+### 추가 / Added
+
+- **한 —** `tokenNameMapping` 을 **styles 로 확장** (0.11.0 은 variables 한정이었음). 같은 규칙이 styles 중 **FILL / EFFECT** 에도 적용됩니다 — 색·그림자 (elevation) 스타일은 단일 값 토큰과 1:1 대응이 자연스럽고, 색 토큰이 variables 가 아닌 paint style 에 사는 **구식 DS** 에서 variables 와 동일한 명명 불일치가 성립하기 때문입니다 (0.11.0 의 "styles 코드 대응물은 클래스" 근거는 dsforge 사례의 과잉 일반화였음 — dsmonitor 매트릭스의 styles 매칭 상대는 원래 코드 토큰). **TEXT 는 고정 제외** (size/weight/line-height 복합체 — 단일 토큰 대응 불가 + catch-all 변환 시 거짓 매칭 위험), GRID 도 제외 (대응물 없음). styleType 별 설정 옵션은 두지 않음 (설정 표면 최소화 원칙). 규칙 매치 카운트 (0매치 경고·퇴화 판정) 는 variables + 대상 styles 합산. 변환 후 변수·스타일 동명 충돌은 기존 duplicates 메커니즘 (×N + "정리 권장") 으로 표면화 — 같은 토큰이 양쪽에 정의된 것은 사용자가 봐야 할 신호라 숨기지 않습니다.
+- **EN —** `tokenNameMapping` is **extended to styles** (0.11.0 was variables-only). The same rules now also apply to **FILL / EFFECT** styles — color and shadow (elevation) styles correspond 1:1 to single-value tokens, and old-school design systems that keep color tokens in paint styles rather than variables hit exactly the same naming mismatch (the 0.11.0 rationale "styles map to classes in code" over-generalized a dsforge trait — the matrix has always matched styles against code tokens). **TEXT is always excluded** (a size/weight/line-height composite — no single-token counterpart, and catch-all transforms risk false matches); GRID too (no counterpart). No per-styleType config option (minimal-config principle). Rule match counting (0-match warning · degeneration) sums variables + eligible styles. Post-transform name collisions between a variable and a style surface through the existing duplicates mechanism (×N + "cleanup recommended") — a token defined on both sides is a signal the user should see, not hide.
+
+### 참고 / Notes
+
+- 전/후 비교 검수: ① 매핑 미설정 — 0.11.0 대비 leaf diff **0** (타임스탬프 제외). ② 매핑 설정 — 의도 변화만 (매칭 0 → 4: 변수 2 + FILL 1 + EFFECT 1, 행 9 → 5 병합, TEXT 스타일 행 불변, warning 0).
+- Before/after verification: ① without mapping — leaf diff vs 0.11.0 is **zero** (excluding timestamps). ② with mapping — only the intended change (matched 0 → 4: 2 variables + 1 FILL + 1 EFFECT; rows 9 → 5 merged; TEXT style row untouched; 0 warnings).
+- 테스트 97개 (+6 — FILL/EFFECT 변환 · TEXT/GRID 제외 · 합산 카운트 · 매트릭스 styles mappedFrom · 동명 duplicates) + typecheck 통과. baseline JSON shape 변화 없음 (mappedFrom 은 0.11.0 에서 도입된 옵션 필드 그대로).
+- 97 tests (+6 — FILL/EFFECT transform · TEXT/GRID exclusion · summed counting · matrix styles mappedFrom · same-name duplicates) + typecheck pass. No baseline-JSON-shape changes (mappedFrom is the optional field introduced in 0.11.0).
+
 ## [0.11.0] — 2026-08-05
 
 > **측정 결과 변화 안내** — `tokenNameMapping` 을 **설정한 프로젝트에서만** 토큰 매트릭스 매칭이 달라집니다 (매칭률이 오르는 방향). **미설정 프로젝트의 측정 결과는 이전 버전과 완전히 동일합니다** (아래 검수 참조).
