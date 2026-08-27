@@ -91,6 +91,23 @@ npm install --save-dev dsmonitor eslint-plugin-dsmonitor
 > 3. 생성된 대시보드를 브라우저로 엽니다 — macOS 는 터미널에서 `open dsmonitor/reports/dashboard-*.html`, Windows 는 `start dsmonitor\reports\dashboard-*.html`, 또는 파일 탐색기에서 `dsmonitor/reports/` 폴더의 `dashboard-….html` 파일을 더블클릭합니다.
 >
 > Figma · Lighthouse 까지 포함한 설정은 아래 3.1 ~ 3.3 과 [7. 설정 가이드](#7-설정-가이드--dsmonitorconfigts-의-모든-필드) 에서 다룹니다.
+> Claude Code / Codex 를 쓰신다면 아래 3.0 의 **AI 에이전트 세팅**이 이 과정 전체를 대신해 줍니다.
+
+### 3.0 AI 에이전트로 세팅하기 (`dsmonitor agent-setup`, 0.12.0+)
+
+Claude Code 나 Codex 같은 코딩 에이전트를 쓰고 있다면, 아래 두 단계로 **설정 전체를 에이전트에게 맡길 수 있습니다** — 에이전트가 리포지토리를 검토해 stylingPolicy preset 선택, scan 경로, DS 컴포넌트 경로/별칭, 토큰 파서, migrationTargets 후보까지 판단해 config 를 작성하고, `doctor` 검증과 `audit --only code` 실측까지 통과시킨 뒤, 리포만으로 알 수 없는 것(Figma URL·토큰, Lighthouse 계정)만 질문합니다.
+
+```bash
+npx dsmonitor agent-setup   # 어댑터 설치 (1회) — 이후 에이전트를 열고:
+```
+
+> **"dsmonitor 설정해줘"**
+
+`agent-setup` 이 심는 것은 얇은 포인터 두 개뿐입니다 — Claude Code 용 `.claude/skills/dsmonitor-setup/SKILL.md` 와 Codex 용 `AGENTS.md` 블록(기존 AGENTS.md 가 있으면 내용을 보존하고 말미에 추가). 에이전트가 실제로 따르는 **정본 플레이북은 패키지 안** (`node_modules/dsmonitor/docs/agent-setup-playbook.md`) 에 있어서, 프로젝트에 사본이 남지 않고 `npm update dsmonitor` 만으로 항상 최신으로 유지됩니다.
+
+- 동작 모델: dsmonitor 가 AI 를 실행하는 게 아니라 **AI 가 dsmonitor CLI 를 사용합니다.** AI 도구가 없는 환경에서는 어댑터 파일이 그냥 읽히지 않는 텍스트일 뿐이며, 기존 수동 세팅 경로(3.1~3.3)는 그대로 유효합니다.
+- 에이전트는 `.env.local` 에 실제 토큰·비밀번호를 쓰지 않습니다 (사용자 직접 입력) — 플레이북의 고정 규칙입니다.
+- 옵션: `--force` (기존 SKILL.md 덮어쓰기), `--claude-only` / `--codex-only`.
 
 ### 3.1 부트스트랩 (`dsmonitor init`)
 
@@ -169,6 +186,8 @@ npx dsmonitor dashboard                      # dashboard HTML 만 재빌드 (사
 npx dsmonitor baseline-lint                  # ESLint forbidden class baseline 생성
 npx dsmonitor doctor [--json] [--strict]     # 설정 / 환경변수 / path 진단 (0.7.0+)
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]  # Figma frame 안의 instance CSV 출력
+npx dsmonitor agent-setup [--force] [--claude-only] [--codex-only]     # AI 에이전트 세팅 어댑터 설치 (0.12.0+, §3.0)
+npx dsmonitor init --yes [--figma] [--lighthouse] [--auth <none|basic|custom>] [--force] [--skip-install]  # 비대화형 부트스트랩 (0.12.0+)
 ```
 
 공통 옵션:
@@ -1238,6 +1257,23 @@ Optional peer dependencies (install only what you actually use):
 > 3. Open the generated dashboard in a browser — macOS: `open dsmonitor/reports/dashboard-*.html`; Windows: `start dsmonitor\reports\dashboard-*.html`; or double-click the `dashboard-….html` file in `dsmonitor/reports/` in your file explorer.
 >
 > For full configuration (including Figma · Lighthouse), see 3.1 – 3.3 below and [7. Configuration Guide](#7-configuration-guide--all-fields-of-dsmonitorconfigts).
+> Using Claude Code / Codex? **Agent-assisted setup** in 3.0 below does this whole process for you.
+
+### 3.0 Agent-assisted setup (`dsmonitor agent-setup`, 0.12.0+)
+
+If you work with a coding agent such as Claude Code or Codex, you can **hand the entire configuration over to the agent** in two steps — it inspects your repository and decides the stylingPolicy preset, scan paths, DS component paths/aliases, token parsers, and migrationTargets candidates, writes the config, passes `doctor` validation and an `audit --only code` live run, and only asks you for what the repo cannot tell it (Figma URLs/token, Lighthouse credentials).
+
+```bash
+npx dsmonitor agent-setup   # install the adapters (once) — then open your agent and say:
+```
+
+> **"Set up dsmonitor for this project"**
+
+`agent-setup` plants only two thin pointers — `.claude/skills/dsmonitor-setup/SKILL.md` for Claude Code and a sentinel block in `AGENTS.md` for Codex (an existing AGENTS.md is preserved; the block is appended). The **canonical playbook the agent actually follows lives inside the package** (`node_modules/dsmonitor/docs/agent-setup-playbook.md`), so no copy lingers in your project and `npm update dsmonitor` alone keeps it current.
+
+- Operating model: dsmonitor never invokes an AI — **the AI drives the dsmonitor CLI.** Without an AI tool the adapter files are just inert text, and the manual path (3.1–3.3) stays fully valid.
+- The agent never writes real tokens/passwords into `.env.local` (you enter those yourself) — a fixed rule in the playbook.
+- Options: `--force` (overwrite an existing SKILL.md), `--claude-only` / `--codex-only`.
 
 ### 3.1 Bootstrap (`dsmonitor init`)
 
@@ -1316,6 +1352,8 @@ npx dsmonitor dashboard                      # rebuild the dashboard HTML (auto-
 npx dsmonitor baseline-lint                  # generate the ESLint forbidden class baseline
 npx dsmonitor doctor [--json] [--strict]     # diagnose config / env / paths (0.7.0+)
 npx dsmonitor export-migration --frame=<frame-comment> [--ds=<label>]
+npx dsmonitor agent-setup [--force] [--claude-only] [--codex-only]     # install AI-agent setup adapters (0.12.0+, §3.0)
+npx dsmonitor init --yes [--figma] [--lighthouse] [--auth <none|basic|custom>] [--force] [--skip-install]  # non-interactive bootstrap (0.12.0+)
 ```
 
 Shared options:

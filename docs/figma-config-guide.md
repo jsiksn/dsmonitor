@@ -21,6 +21,11 @@ DSMonitor 의 Figma analyzer 는 Figma REST API 를 통해 다음을 측정합�
 
 ## 초기 설정 (한 번만)
 
+> **AI 에이전트 사용자 (0.12.0+)** — Claude Code/Codex 를 쓴다면 `npx dsmonitor agent-setup`
+> 후 에이전트에게 "dsmonitor 설정해줘"라고 하면 이 가이드의 설정 작성을 에이전트가
+> 대신합니다 (토큰 발급·입력은 여전히 사용자 몫 — 에이전트는 실제 토큰을 파일에 쓰지 않음).
+> 상세: `docs/agent-setup-playbook.md` (정본), README §3.0.
+
 ### 1. Figma Personal Access Token 발급
 
 1. Figma 웹 앱 → **Settings** → **Security** → **Personal access tokens** → "Generate new token"

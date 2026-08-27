@@ -1,5 +1,10 @@
 # 측정 흐름 / Measurement Flow
 
+> 측정 전 설정(config) 작성은 README §3 참고 — AI 에이전트(Claude Code/Codex) 사용 시
+> `npx dsmonitor agent-setup` 으로 자동화 가능 (0.12.0+, 정본: `docs/agent-setup-playbook.md`).
+> Setup happens before measurement — see README §3; with a coding agent, `npx dsmonitor
+> agent-setup` automates it (0.12.0+, canonical playbook: `docs/agent-setup-playbook.md`).
+
 ## 한국어
 
 dsmonitor 는 3가지 측정 부분 진행:

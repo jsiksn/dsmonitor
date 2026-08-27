@@ -50,6 +50,27 @@ interface InitAnswers {
 }
 
 /**
+ * 비대화형 실행 옵션 (0.12.0 — 에이전트 세팅 흐름).
+ *
+ * 각 필드가 명시되면 해당 프롬프트를 건너뛰고 그 값을 쓴다. `yes` 는 명시되지
+ * 않은 나머지를 보수적 기본값 (lighthouse=false, figma=false, authType="none",
+ * 덮어쓰기 안 함) 으로 채워 프롬프트 없이 완주한다 — figma/lighthouse 는 외부
+ * 입력 (토큰·URL) 이 필수라, 에이전트가 사용자 확인 후 플래그로 켜는 흐름과 일치.
+ *
+ * `skipInstall` — lighthouse=true 여도 @lhci/cli 자동 install (npm 고정) 을
+ * 건너뜀. yarn/pnpm 프로젝트에서 에이전트/사용자가 직접 설치할 때 사용.
+ */
+export interface InitCliOptions {
+  yes?: boolean;
+  lighthouse?: boolean;
+  figma?: boolean;
+  authType?: LighthouseAuthType;
+  /** 기존 config 덮어쓰기 (프롬프트 스킵). */
+  force?: boolean;
+  skipInstall?: boolean;
+}
+
+/**
  * 0.7.0 (Y): cwd 기준으로 흔한 path 들을 탐색해 init template 의 default 값을
  * 자동으로 채우기 위한 결과. 발견 0건이면 각 필드는 null 이고 template 안에는
  * "자동 감지 안 됨" 안내 + 흔한 옵션을 주석으로 노출합니다.
@@ -107,58 +128,76 @@ export function detectProjectPaths(cwd: string): DetectedPaths {
   };
 }
 
-export async function runInit(): Promise<void> {
+export async function runInit(cli: InitCliOptions = {}): Promise<void> {
   console.log("");
   console.log("DSMonitor init — 외부 사용자 dsmonitor/ 폴더 부트스트랩");
   console.log("─".repeat(60));
 
-  const baseAnswers = await prompts(
-    [
-      {
+  // 0.12.0 — 비대화형 경로: CLI 로 명시된 답은 프롬프트를 건너뛰고, --yes 는
+  // 나머지를 보수적 기본값으로 채움. 아무 플래그도 없으면 기존 대화형 그대로.
+  const answers: InitAnswers = {
+    lighthouse: cli.lighthouse ?? (cli.yes ? false : true),
+    figma: cli.figma ?? (cli.yes ? false : true),
+  };
+  const askLighthouse = cli.lighthouse === undefined && !cli.yes;
+  const askFigma = cli.figma === undefined && !cli.yes;
+
+  if (askLighthouse || askFigma) {
+    const questions: prompts.PromptObject[] = [];
+    if (askLighthouse) {
+      questions.push({
         type: "confirm",
         name: "lighthouse",
         message: "Lighthouse 측정 사용? (페이지별 Performance / Accessibility / Best Practices / SEO)",
         initial: true,
-      },
-      {
+      });
+    }
+    if (askFigma) {
+      questions.push({
         type: "confirm",
         name: "figma",
         message: "Figma 측정 사용? (DS 토큰 매트릭스 / instance 출처)",
         initial: true,
-      },
-    ],
-    {
+      });
+    }
+    const baseAnswers = await prompts(questions, {
       onCancel: () => {
         console.log("\n[dsmonitor init] 취소됨");
         process.exit(0);
       },
-    }
-  );
+    });
+    if (askLighthouse) answers.lighthouse = baseAnswers.lighthouse as boolean;
+    if (askFigma) answers.figma = baseAnswers.figma as boolean;
+  }
 
-  const answers: InitAnswers = { ...baseAnswers };
-
-  // Lighthouse=Y → 인증 방식 select prompt (0.4.0)
+  // Lighthouse=Y → 인증 방식 select prompt (0.4.0) — CLI 명시/--yes 시 스킵.
   if (answers.lighthouse) {
-    const authAnswer = await prompts(
-      {
-        type: "select",
-        name: "authType",
-        message: "Lighthouse 인증 방식?",
-        choices: [
-          { title: "1. 인증 없음 (공개 사이트)", value: "none" },
-          { title: "2. ID/PW 기본 form login (dsmonitor 내장 어댑터)", value: "basic" },
-          { title: "3. 커스텀 어댑터 (스켈레톤 자동 생성)", value: "custom" },
-        ],
-        initial: 0,
-      },
-      {
-        onCancel: () => {
-          console.log("\n[dsmonitor init] 취소됨");
-          process.exit(0);
+    if (cli.authType !== undefined) {
+      answers.authType = cli.authType;
+    } else if (cli.yes) {
+      answers.authType = "none";
+    } else {
+      const authAnswer = await prompts(
+        {
+          type: "select",
+          name: "authType",
+          message: "Lighthouse 인증 방식?",
+          choices: [
+            { title: "1. 인증 없음 (공개 사이트)", value: "none" },
+            { title: "2. ID/PW 기본 form login (dsmonitor 내장 어댑터)", value: "basic" },
+            { title: "3. 커스텀 어댑터 (스켈레톤 자동 생성)", value: "custom" },
+          ],
+          initial: 0,
         },
-      }
-    );
-    answers.authType = authAnswer.authType as LighthouseAuthType;
+        {
+          onCancel: () => {
+            console.log("\n[dsmonitor init] 취소됨");
+            process.exit(0);
+          },
+        }
+      );
+      answers.authType = authAnswer.authType as LighthouseAuthType;
+    }
   }
 
   // 1. 외부 사용자 dsmonitor/ 부분 검증 (덮어쓰기 확인)
@@ -167,28 +206,45 @@ export async function runInit(): Promise<void> {
   const configPath = path.join(projectDir, "dsmonitor.config.ts");
 
   if (existsSync(configPath)) {
-    const overwrite = await prompts(
-      {
-        type: "confirm",
-        name: "overwrite",
-        message: `이미 ${path.relative(cwd, configPath)} 존재. 덮어쓰기?`,
-        initial: false,
-      },
-      {
-        onCancel: () => {
-          console.log("\n[dsmonitor init] 취소됨");
-          process.exit(0);
-        },
-      }
-    );
-    if (!overwrite.overwrite) {
-      console.log("\n[dsmonitor init] 덮어쓰기 안 함 — 끝");
+    if (cli.force) {
+      // --force: 프롬프트 없이 덮어쓰기.
+    } else if (cli.yes) {
+      // --yes 단독: 조용한 파괴 방지 — 덮어쓰지 않고 종료 (--force 로만 덮어씀).
+      console.log(
+        `\n[dsmonitor init] 이미 ${path.relative(cwd, configPath)} 존재 — 덮어쓰지 않음 (덮어쓰려면 --force)`
+      );
       return;
+    } else {
+      const overwrite = await prompts(
+        {
+          type: "confirm",
+          name: "overwrite",
+          message: `이미 ${path.relative(cwd, configPath)} 존재. 덮어쓰기?`,
+          initial: false,
+        },
+        {
+          onCancel: () => {
+            console.log("\n[dsmonitor init] 취소됨");
+            process.exit(0);
+          },
+        }
+      );
+      if (!overwrite.overwrite) {
+        console.log("\n[dsmonitor init] 덮어쓰기 안 함 — 끝");
+        return;
+      }
     }
   }
 
   // 2. Lighthouse Y → npm install --save-dev @lhci/cli (spawn)
-  if (answers.lighthouse) {
+  //    0.12.0 — --skip-install: npm 고정 자동 install 회피 (yarn/pnpm 프로젝트).
+  if (answers.lighthouse && cli.skipInstall) {
+    console.log("\n▶ @lhci/cli 자동 install 건너뜀 (--skip-install) — 직접 설치하세요:");
+    console.log("    npm  : npm install --save-dev @lhci/cli");
+    console.log("    yarn : yarn add --dev @lhci/cli");
+    console.log("    pnpm : pnpm add --save-dev @lhci/cli");
+  }
+  if (answers.lighthouse && !cli.skipInstall) {
     console.log("\n▶ @lhci/cli 자동 install 시도 (npm install --save-dev @lhci/cli)...");
     const result = spawnSync("npm", ["install", "--save-dev", "@lhci/cli"], {
       cwd,

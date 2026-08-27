@@ -8,6 +8,26 @@
 
 > **EN —** **eslint-plugin-dsmonitor** version history → [eslint-plugin-dsmonitor/CHANGELOG.md](./eslint-plugin-dsmonitor/CHANGELOG.md)
 
+## [0.12.0] — 2026-08-07
+
+> **측정 결과 무변화** — 세팅 도구만 추가되었습니다 (분석기·리포터 무접촉). 검수: sample-project 분석기 전체 산출물이 0.11.1 대비 leaf diff 0 (타임스탬프·실행 경로 제외).
+>
+> **EN — No measurement changes** — this release adds setup tooling only (analyzers/reporters untouched). Verified: full analyzer output on the sample project is leaf-identical to 0.11.1 (excluding timestamp/run-path artifacts).
+
+### 추가 / Added
+
+- **한 —** `dsmonitor agent-setup` — **AI 에이전트 세팅 어댑터 설치** (신규 명령). Claude Code/Codex 같은 코딩 에이전트가 리포지토리를 검토해 dsmonitor 설정 전체 (stylingPolicy preset 선택 · scan 경로 · officialPaths/aliases · 토큰 파서 · migrationTargets 후보) 를 작성하고 `doctor --json` 자기검증 루프와 `audit --only code` 실측까지 통과시키는 흐름을 지원합니다. 동작 모델: **dsmonitor 가 AI 를 부르는 게 아니라 AI 가 dsmonitor CLI 를 부립니다** — 이 명령은 얇은 포인터 2개만 심습니다 (Claude Code 용 `.claude/skills/dsmonitor-setup/SKILL.md`, Codex 용 `AGENTS.md` 센티널 블록 — 기존 파일 보존·말미 추가·재실행 멱등). **정본 플레이북은 패키지 안** (`docs/agent-setup-playbook.md`) 에 있어 프로젝트에 사본이 남지 않고 `npm update` 만으로 갱신됩니다. 에이전트는 `.env.local` 에 실제 토큰을 쓰지 않으며 (사용자 몫), 리포로 알 수 없는 것 (Figma URL·토큰, Lighthouse 계정) 은 사용자에게 질문합니다. 옵션: `--force`, `--claude-only`, `--codex-only`.
+- **EN —** `dsmonitor agent-setup` — **AI-agent setup adapter install** (new command). Lets a coding agent (Claude Code/Codex) inspect the repository and author the entire dsmonitor config (stylingPolicy preset choice · scan paths · officialPaths/aliases · token parsers · migrationTargets candidates), then pass the `doctor --json` self-check loop and an `audit --only code` live run. Operating model: **the AI drives the dsmonitor CLI, never the reverse** — the command plants only two thin pointers (`.claude/skills/dsmonitor-setup/SKILL.md` for Claude Code; a sentinel block in `AGENTS.md` for Codex — existing files preserved, appended, idempotent on re-run). The **canonical playbook ships inside the package** (`docs/agent-setup-playbook.md`), so no copy lingers in the project and `npm update` keeps it current. The agent never writes real tokens into `.env.local` (user's job) and asks the user for what the repo cannot tell it (Figma URLs/token, Lighthouse credentials). Options: `--force`, `--claude-only`, `--codex-only`.
+- **한 —** `init` 비대화형 플래그 — `--yes`(-y) · `--figma/--no-figma` · `--lighthouse/--no-lighthouse` · `--auth <none|basic|custom>` · `--force` · `--skip-install`. 명시된 항목은 프롬프트를 건너뛰고, `--yes` 는 나머지를 보수적 기본값 (figma/lighthouse off — 외부 입력 필수 항목이라 확인 후 켜는 흐름) 으로 채워 무프롬프트 완주. 기존 config 는 `--yes` 만으로 덮어쓰지 않음 (`--force` 필요). `--skip-install` 은 npm 고정 `@lhci/cli` 자동 설치를 건너뜀 (yarn/pnpm 프로젝트). 플래그 없이 실행하면 기존 대화형 그대로.
+- **EN —** Non-interactive `init` flags — `--yes`(-y) · `--figma/--no-figma` · `--lighthouse/--no-lighthouse` · `--auth <none|basic|custom>` · `--force` · `--skip-install`. Explicit flags skip their prompts; `--yes` fills the rest with conservative defaults (figma/lighthouse off — they need external inputs, so agents enable them after confirming with the user) for a promptless run. An existing config is never overwritten by `--yes` alone (`--force` required). `--skip-install` skips the npm-only `@lhci/cli` auto-install (yarn/pnpm projects). Without flags, the interactive flow is unchanged.
+
+### 참고 / Notes
+
+- 아키텍처 결정: 별도 의존 프로젝트가 아닌 **dsmonitor 내장** — 플레이북이 config 스키마·doctor 카테고리·CLI 플래그를 참조하므로 같은 릴리즈로 움직여야 버전 드리프트가 구조적으로 사라지고, npm 패키지에 이미 포함된 docs/presets(스택별 완성 config 3종) 를 few-shot 으로 재활용합니다.
+- Architecture decision: **built into dsmonitor**, not a separate dependent project — the playbook references the config schema, doctor categories, and CLI flags, so shipping in the same release structurally eliminates version drift, and it reuses the docs/presets already in the npm tarball (3 complete per-stack config examples) as few-shot references.
+- 테스트 97 → 109개 (+12 — agent-setup 파일 생성·기존 AGENTS.md 보존·센티널 멱등·--force / init 비대화형 산출물·덮어쓰기 가드·custom auth 스켈레톤) + typecheck + build 통과. E2E: 빌드된 CLI 로 스크래치 프로젝트에서 agent-setup 멱등 재실행·init --yes 무프롬프트 확인.
+- 97 → 109 tests (+12 — agent-setup file creation · existing-AGENTS.md preservation · sentinel idempotency · --force / non-interactive init outputs · overwrite guard · custom-auth skeleton) + typecheck + build pass. E2E: with the built CLI on a scratch project, verified idempotent agent-setup re-runs and promptless `init --yes`.
+
 ## [0.11.1] — 2026-08-05
 
 > **측정 결과 변화 안내** — 0.11.0 과 동일하게 `tokenNameMapping` 을 **설정한 프로젝트에서만** 변화합니다 (styles 매칭이 추가로 살아나는 방향). 미설정 프로젝트는 완전 동일.

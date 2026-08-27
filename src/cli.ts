@@ -144,7 +144,9 @@ function parseArgs(argv: string[]): {
 //   옛 흐름: 목록이 Unknown command 안내에만 있었고 init / doctor 누락 + `--help`
 //   미구현 (init 완료 안내가 `npx dsmonitor --help` 를 권하는데 exit 2 로 어긋남).
 const COMMAND_LIST =
-  `    init                                                    — 부트스트랩 (인터랙티브, config 없어도 실행 가능)\n` +
+  `    init [--yes] [--figma|--no-figma] [--lighthouse|--no-lighthouse] [--auth <none|basic|custom>] [--force] [--skip-install]\n` +
+  `                                                            — 부트스트랩 (플래그 없으면 인터랙티브, config 없어도 실행 가능)\n` +
+  `    agent-setup [--force] [--claude-only] [--codex-only]    — AI 에이전트 세팅 어댑터 설치 (Claude Code skill + Codex AGENTS.md)\n` +
   `    audit [--only code|figma|lighthouse] [--baseline]       — 측정 (code + figma 통합 또는 부분별, v0.3.1: lighthouse 추가)\n` +
   `    audit --all [--baseline] [--skip-lighthouse]            — 통합 측정 chain (code + figma + Lighthouse + report + dashboard, v0.3.0)\n` +
   `    doctor [--json] [--strict]                              — config / 환경변수 진단\n` +
@@ -175,9 +177,43 @@ async function main() {
   }
 
   // v0.1.0: init subcommand — config 없어도 작동 (사용자 환경 dsmonitor/ 부트스트랩).
+  // 0.12.0 — 비대화형 플래그 (에이전트 세팅 흐름: docs/agent-setup-playbook.md).
+  //   --yes(-y) 는 미명시 항목을 보수적 기본값으로, 개별 플래그는 해당 프롬프트만 스킵.
   if (cmd === "init") {
+    const args = process.argv.slice(3);
+    const has = (f: string): boolean => args.includes(f);
+    const authRaw = (() => {
+      const i = args.indexOf("--auth");
+      return i >= 0 && args[i + 1] ? args[i + 1] : undefined;
+    })();
+    if (authRaw !== undefined && !["none", "basic", "custom"].includes(authRaw)) {
+      console.error(`[dsmonitor] --auth 인자는 "none" / "basic" / "custom" 만 허용. 받은 값: "${authRaw}"`);
+      process.exit(1);
+    }
+    const flag = (on: string, off: string): boolean | undefined =>
+      has(on) ? true : has(off) ? false : undefined;
     const { runInit } = await import("./cli/init");
-    await runInit();
+    await runInit({
+      yes: has("--yes") || has("-y"),
+      lighthouse: flag("--lighthouse", "--no-lighthouse"),
+      figma: flag("--figma", "--no-figma"),
+      authType: authRaw as "none" | "basic" | "custom" | undefined,
+      force: has("--force"),
+      skipInstall: has("--skip-install"),
+    });
+    return;
+  }
+
+  // 0.12.0: agent-setup — AI 에이전트(Claude Code/Codex) 세팅 어댑터 설치.
+  //   config 없어도 작동 (init 이전에 실행하는 명령).
+  if (cmd === "agent-setup") {
+    const args = process.argv.slice(3);
+    const { runAgentSetup } = await import("./cli/agentSetup");
+    await runAgentSetup({
+      force: args.includes("--force"),
+      claudeOnly: args.includes("--claude-only"),
+      codexOnly: args.includes("--codex-only"),
+    });
     return;
   }
 
